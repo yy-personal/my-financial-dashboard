@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { FinancialContext } from "../context/FinancialContext";
 import {
 	LineChart,
@@ -28,6 +28,23 @@ const Dashboard = () => {
 	} = useContext(FinancialContext);
 
 	const [activeTab, setActiveTab] = useState("summary");
+	const [isMobile, setIsMobile] = useState(false);
+
+	// Check if viewing on mobile device
+	useEffect(() => {
+		const checkIfMobile = () => {
+			setIsMobile(window.innerWidth < 768);
+		};
+
+		// Initial check
+		checkIfMobile();
+
+		// Add event listener for window resize
+		window.addEventListener("resize", checkIfMobile);
+
+		// Clean up
+		return () => window.removeEventListener("resize", checkIfMobile);
+	}, []);
 
 	// Format number as currency
 	const formatCurrency = (value) => {
@@ -243,20 +260,142 @@ const Dashboard = () => {
 	const monthlySavings = takeHomePay - monthlyExpenses - loanPayment;
 	const savingsRate = monthlySavings / takeHomePay;
 
-	// Filtered data for charts (every 3 months)
-	const chartData = projection.filter((item, index) => index % 3 === 0);
+	// Filtered data for charts (every 3 months on mobile, every 2 months on desktop)
+	const chartData = projection.filter((item, index) =>
+		isMobile ? index % 3 === 0 : index % 2 === 0
+	);
+
+	// Mobile Tab Selector Component
+	const MobileTabSelector = () => (
+		<div className="mb-4">
+			<label className="block text-gray-700 font-medium mb-2">View</label>
+			<select
+				className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-target"
+				value={activeTab}
+				onChange={(e) => setActiveTab(e.target.value)}
+			>
+				<option value="summary">Summary</option>
+				<option value="milestones">Milestones</option>
+				<option value="charts">Charts</option>
+				<option value="projection">Projection Table</option>
+			</select>
+		</div>
+	);
+
+	// ResponsiveCard Component
+	const ResponsiveCard = ({ title, children }) => (
+		<div className="bg-white p-3 sm:p-4 rounded-lg shadow mb-4 sm:mb-6">
+			<h2 className="text-lg font-semibold mb-3 sm:mb-4 text-blue-700">
+				{title}
+			</h2>
+			{children}
+		</div>
+	);
+
+	// Create a more mobile-friendly data table
+	const ResponsiveDataTable = ({ title, headers, rows, formatters = {} }) => {
+		return (
+			<div className="bg-white p-3 sm:p-4 rounded-lg shadow mb-4 sm:mb-6">
+				<h2 className="text-lg font-semibold mb-3 sm:mb-4 text-blue-700">
+					{title}
+				</h2>
+
+				{/* Desktop view */}
+				<div className="hidden md:block overflow-x-auto">
+					<table className="min-w-full bg-white">
+						<thead className="bg-blue-100">
+							<tr>
+								{headers.map((header, index) => (
+									<th
+										key={index}
+										className="py-2 px-3 border-b text-left"
+									>
+										{header.label}
+									</th>
+								))}
+							</tr>
+						</thead>
+						<tbody>
+							{rows.map((row, rowIndex) => (
+								<tr
+									key={rowIndex}
+									className={`${
+										row.highlight
+											? "bg-green-50"
+											: rowIndex % 2 === 0
+											? "bg-gray-50"
+											: ""
+									} hover:bg-blue-50`}
+								>
+									{headers.map((header, colIndex) => (
+										<td
+											key={colIndex}
+											className="py-2 px-3 border-b"
+										>
+											{formatters[header.key]
+												? formatters[header.key](
+														row[header.key]
+												  )
+												: row[header.key]}
+										</td>
+									))}
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+
+				{/* Mobile view - cards instead of table */}
+				<div className="md:hidden space-y-3">
+					{rows.map((row, rowIndex) => (
+						<div
+							key={rowIndex}
+							className={`p-3 border rounded-lg ${
+								row.highlight
+									? "bg-green-50 border-green-200"
+									: "bg-white border-gray-200"
+							}`}
+						>
+							{headers.map((header, colIndex) => (
+								<div
+									key={colIndex}
+									className="flex justify-between py-1 border-b border-gray-100 last:border-b-0"
+								>
+									<span className="font-medium text-gray-600">
+										{header.label}:
+									</span>
+									<span className="text-right">
+										{formatters[header.key]
+											? formatters[header.key](
+													row[header.key]
+											  )
+											: row[header.key]}
+									</span>
+								</div>
+							))}
+						</div>
+					))}
+				</div>
+			</div>
+		);
+	};
 
 	return (
-		<div className="bg-gray-50 p-6 rounded-lg shadow-lg max-w-6xl mx-auto">
+		<div className="bg-gray-50 p-3 sm:p-6 rounded-lg shadow-lg max-w-6xl mx-auto">
 			{/* Header */}
-			<div className="bg-blue-700 text-white p-4 rounded-t-lg mb-6">
-				<h1 className="text-2xl font-bold text-center">
+			<div className="bg-blue-700 text-white p-3 sm:p-4 rounded-t-lg mb-4 sm:mb-6">
+				<h1 className="text-xl sm:text-2xl font-bold text-center">
 					PERSONAL FINANCIAL PROJECTION
 				</h1>
 			</div>
 
-			{/* Navigation Tabs */}
-			<div className="flex border-b border-gray-200 mb-6">
+			{/* Mobile Tab Selector (only shown on mobile) */}
+			<div className="md:hidden">
+				<MobileTabSelector />
+			</div>
+
+			{/* Navigation Tabs (hidden on mobile) */}
+			<div className="hidden md:flex border-b border-gray-200 mb-6">
 				<button
 					className={`py-2 px-4 font-medium ${
 						activeTab === "summary"
@@ -302,12 +441,9 @@ const Dashboard = () => {
 			{/* Summary Tab */}
 			{activeTab === "summary" && (
 				<div>
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
 						{/* Personal Information */}
-						<div className="bg-white p-4 rounded-lg shadow">
-							<h2 className="text-lg font-semibold mb-4 text-blue-700">
-								Personal Information
-							</h2>
+						<ResponsiveCard title="Personal Information">
 							<div className="grid grid-cols-2 gap-2">
 								<p className="text-gray-600">Birthday:</p>
 								<p className="font-medium">
@@ -348,13 +484,10 @@ const Dashboard = () => {
 									}
 								</p>
 							</div>
-						</div>
+						</ResponsiveCard>
 
 						{/* Financial Snapshot */}
-						<div className="bg-white p-4 rounded-lg shadow">
-							<h2 className="text-lg font-semibold mb-4 text-blue-700">
-								Current Financial Snapshot
-							</h2>
+						<ResponsiveCard title="Current Financial Snapshot">
 							<div className="grid grid-cols-2 gap-2">
 								<p className="text-gray-600">
 									Current Savings:
@@ -387,15 +520,12 @@ const Dashboard = () => {
 									)}
 								</p>
 							</div>
-						</div>
+						</ResponsiveCard>
 					</div>
 
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
 						{/* Income & Expenses */}
-						<div className="bg-white p-4 rounded-lg shadow">
-							<h2 className="text-lg font-semibold mb-4 text-blue-700">
-								Monthly Income & Expenses
-							</h2>
+						<ResponsiveCard title="Monthly Income & Expenses">
 							<div className="grid grid-cols-2 gap-2">
 								<p className="text-gray-600">Current Salary:</p>
 								<p className="font-medium">
@@ -436,13 +566,10 @@ const Dashboard = () => {
 									{formatPercent(savingsRate)}
 								</p>
 							</div>
-						</div>
+						</ResponsiveCard>
 
 						{/* Key Timeframes */}
-						<div className="bg-white p-4 rounded-lg shadow">
-							<h2 className="text-lg font-semibold mb-4 text-blue-700">
-								Key Timeframes
-							</h2>
+						<ResponsiveCard title="Key Timeframes">
 							<div className="grid grid-cols-2 gap-2">
 								<p className="text-gray-600">
 									Time to Pay Off Loan:
@@ -471,89 +598,128 @@ const Dashboard = () => {
 										: "Not within projection"}
 								</p>
 							</div>
-						</div>
+						</ResponsiveCard>
 					</div>
 
 					{/* Expense Breakdown */}
-					<div className="bg-white p-4 rounded-lg shadow mb-6">
-						<h2 className="text-lg font-semibold mb-4 text-blue-700">
-							Monthly Expense Breakdown
-						</h2>
+					<ResponsiveCard title="Monthly Expense Breakdown">
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
 								<div className="overflow-y-auto max-h-64">
-									<table className="min-w-full bg-white">
-										<thead className="bg-blue-100">
-											<tr>
-												<th className="py-2 px-4 border-b text-left">
-													Category
-												</th>
-												<th className="py-2 px-4 border-b text-right">
-													Amount
-												</th>
-											</tr>
-										</thead>
-										<tbody>
-											{financialData.expenses.map(
-												(expense, index) => (
-													<tr
-														key={expense.id}
-														className={
-															index % 2 === 0
-																? "bg-gray-50"
-																: ""
-														}
-													>
-														<td className="py-2 px-4 border-b">
-															{expense.name}
-														</td>
-														<td className="py-2 px-4 border-b text-right">
-															{formatCurrency(
-																expense.amount
-															)}
-														</td>
-													</tr>
-												)
-											)}
-											<tr
-												className={
-													financialData.expenses
-														.length %
-														2 ===
-													0
-														? "bg-gray-50"
-														: ""
-												}
-											>
-												<td className="py-2 px-4 border-b">
-													Loan Payment
-												</td>
-												<td className="py-2 px-4 border-b text-right">
-													{formatCurrency(
-														financialData
-															.personalInfo
-															.monthlyRepayment
-													)}
-												</td>
-											</tr>
-											<tr className="bg-blue-50 font-semibold">
-												<td className="py-2 px-4 border-b">
-													Total
-												</td>
-												<td className="py-2 px-4 border-b text-right">
-													{formatCurrency(
-														totalExpenses +
+									{/* Desktop expense table */}
+									<div className="hidden md:block">
+										<table className="min-w-full bg-white">
+											<thead className="bg-blue-100">
+												<tr>
+													<th className="py-2 px-4 border-b text-left">
+														Category
+													</th>
+													<th className="py-2 px-4 border-b text-right">
+														Amount
+													</th>
+												</tr>
+											</thead>
+											<tbody>
+												{financialData.expenses.map(
+													(expense, index) => (
+														<tr
+															key={expense.id}
+															className={
+																index % 2 === 0
+																	? "bg-gray-50"
+																	: ""
+															}
+														>
+															<td className="py-2 px-4 border-b">
+																{expense.name}
+															</td>
+															<td className="py-2 px-4 border-b text-right">
+																{formatCurrency(
+																	expense.amount
+																)}
+															</td>
+														</tr>
+													)
+												)}
+												<tr
+													className={
+														financialData.expenses
+															.length %
+															2 ===
+														0
+															? "bg-gray-50"
+															: ""
+													}
+												>
+													<td className="py-2 px-4 border-b">
+														Loan Payment
+													</td>
+													<td className="py-2 px-4 border-b text-right">
+														{formatCurrency(
 															financialData
 																.personalInfo
 																.monthlyRepayment
-													)}
-												</td>
-											</tr>
-										</tbody>
-									</table>
+														)}
+													</td>
+												</tr>
+												<tr className="bg-blue-50 font-semibold">
+													<td className="py-2 px-4 border-b">
+														Total
+													</td>
+													<td className="py-2 px-4 border-b text-right">
+														{formatCurrency(
+															totalExpenses +
+																financialData
+																	.personalInfo
+																	.monthlyRepayment
+														)}
+													</td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+
+									{/* Mobile expense cards */}
+									<div className="md:hidden space-y-2">
+										{financialData.expenses.map(
+											(expense) => (
+												<div
+													key={expense.id}
+													className="flex justify-between p-2 border-b"
+												>
+													<span>{expense.name}</span>
+													<span>
+														{formatCurrency(
+															expense.amount
+														)}
+													</span>
+												</div>
+											)
+										)}
+										<div className="flex justify-between p-2 border-b">
+											<span>Loan Payment</span>
+											<span>
+												{formatCurrency(
+													financialData.personalInfo
+														.monthlyRepayment
+												)}
+											</span>
+										</div>
+										<div className="flex justify-between p-2 bg-blue-50 font-semibold">
+											<span>Total</span>
+											<span>
+												{formatCurrency(
+													totalExpenses +
+														financialData
+															.personalInfo
+															.monthlyRepayment
+												)}
+											</span>
+										</div>
+									</div>
 								</div>
 							</div>
-							<div className="h-64">
+							<div className="h-64 md:h-auto">
 								<ResponsiveContainer width="100%" height="100%">
 									<PieChart>
 										<Pie
@@ -562,12 +728,16 @@ const Dashboard = () => {
 											nameKey="name"
 											cx="50%"
 											cy="50%"
-											outerRadius={80}
+											outerRadius={isMobile ? 60 : 80}
 											fill="#8884d8"
 											label={({ name, percent }) =>
-												`${name} ${(
-													percent * 100
-												).toFixed(0)}%`
+												isMobile
+													? `${(
+															percent * 100
+													  ).toFixed(0)}%`
+													: `${name} ${(
+															percent * 100
+													  ).toFixed(0)}%`
 											}
 										>
 											{expenseData.map((entry, index) => (
@@ -587,18 +757,21 @@ const Dashboard = () => {
 												formatCurrency(value)
 											}
 										/>
-										<Legend />
+										<Legend
+											layout={
+												isMobile
+													? "horizontal"
+													: "vertical"
+											}
+										/>
 									</PieChart>
 								</ResponsiveContainer>
 							</div>
 						</div>
-					</div>
+					</ResponsiveCard>
 
 					{/* Recommendations */}
-					<div className="bg-white p-4 rounded-lg shadow">
-						<h2 className="text-lg font-semibold mb-4 text-blue-700">
-							Financial Recommendations
-						</h2>
+					<ResponsiveCard title="Financial Recommendations">
 						<ul className="list-disc pl-5 space-y-2">
 							<li>
 								Continue with your current loan repayment plan
@@ -637,100 +810,62 @@ const Dashboard = () => {
 								savings
 							</li>
 						</ul>
-					</div>
+					</ResponsiveCard>
 				</div>
 			)}
 
 			{/* Milestones Tab */}
 			{activeTab === "milestones" && (
 				<div>
-					<div className="bg-white p-4 rounded-lg shadow mb-6">
-						<h2 className="text-lg font-semibold mb-4 text-blue-700">
-							Key Financial Milestones
-						</h2>
-						<div className="overflow-x-auto">
-							<table className="min-w-full bg-white">
-								<thead className="bg-blue-100">
-									<tr>
-										<th className="py-2 px-4 border-b text-left">
-											Milestone
-										</th>
-										<th className="py-2 px-4 border-b text-left">
-											Date
-										</th>
-										<th className="py-2 px-4 border-b text-left">
-											Time to Achieve
-										</th>
-										<th className="py-2 px-4 border-b text-left">
-											Age
-										</th>
-										<th className="py-2 px-4 border-b text-left">
-											Savings at Milestone
-										</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr className="hover:bg-gray-50">
-										<td className="py-2 px-4 border-b">
-											Student Loan Paid Off
-										</td>
-										<td className="py-2 px-4 border-b">
-											{loanPaidOffMonth
-												? loanPaidOffMonth.date
-												: "Not within projection"}
-										</td>
-										<td className="py-2 px-4 border-b">
-											{timeToPayLoan}
-										</td>
-										<td className="py-2 px-4 border-b">
-											{loanPaidOffMonth
-												? loanPaidOffMonth.age
-												: "-"}
-										</td>
-										<td className="py-2 px-4 border-b">
-											{loanPaidOffMonth
-												? formatCurrency(
-														loanPaidOffMonth.cashSavings
-												  )
-												: "-"}
-										</td>
-									</tr>
-									<tr className="hover:bg-gray-50">
-										<td className="py-2 px-4 border-b">
-											$100,000 Savings Achieved
-										</td>
-										<td className="py-2 px-4 border-b">
-											{savingsGoalReachedMonth
-												? savingsGoalReachedMonth.date
-												: "Not within projection"}
-										</td>
-										<td className="py-2 px-4 border-b">
-											{timeToSavingsGoal}
-										</td>
-										<td className="py-2 px-4 border-b">
-											{savingsGoalReachedMonth
-												? savingsGoalReachedMonth.age
-												: "-"}
-										</td>
-										<td className="py-2 px-4 border-b">
-											{savingsGoalReachedMonth
-												? formatCurrency(
-														savingsGoalReachedMonth.cashSavings
-												  )
-												: "-"}
-										</td>
-									</tr>
-								</tbody>
-							</table>
-						</div>
-					</div>
+					{/* Key Milestones Table */}
+					<ResponsiveDataTable
+						title="Key Financial Milestones"
+						headers={[
+							{ key: "milestone", label: "Milestone" },
+							{ key: "date", label: "Date" },
+							{ key: "timeToAchieve", label: "Time to Achieve" },
+							{ key: "age", label: "Age" },
+							{ key: "savings", label: "Savings at Milestone" },
+						]}
+						rows={[
+							{
+								milestone: "Student Loan Paid Off",
+								date: loanPaidOffMonth
+									? loanPaidOffMonth.date
+									: "Not within projection",
+								timeToAchieve: timeToPayLoan,
+								age: loanPaidOffMonth
+									? loanPaidOffMonth.age
+									: "-",
+								savings: loanPaidOffMonth
+									? loanPaidOffMonth.cashSavings
+									: null,
+								highlight: loanPaidOffMonth !== null,
+							},
+							{
+								milestone: "$100,000 Savings Achieved",
+								date: savingsGoalReachedMonth
+									? savingsGoalReachedMonth.date
+									: "Not within projection",
+								timeToAchieve: timeToSavingsGoal,
+								age: savingsGoalReachedMonth
+									? savingsGoalReachedMonth.age
+									: "-",
+								savings: savingsGoalReachedMonth
+									? savingsGoalReachedMonth.cashSavings
+									: null,
+								highlight: savingsGoalReachedMonth !== null,
+							},
+						]}
+						formatters={{
+							savings: (value) =>
+								value ? formatCurrency(value) : "-",
+						}}
+					/>
 
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
 						{/* Progress Towards Loan Payment */}
-						<div className="bg-white p-4 rounded-lg shadow">
-							<h2 className="text-lg font-semibold mb-4 text-blue-700">
-								Progress Towards Loan Payment
-							</h2>
+						<ResponsiveCard title="Progress Towards Loan Payment">
 							{loanPaidOffMonth && (
 								<div>
 									<div className="mb-2 flex justify-between">
@@ -822,13 +957,10 @@ const Dashboard = () => {
 									</div>
 								</div>
 							)}
-						</div>
+						</ResponsiveCard>
 
 						{/* Progress Towards Savings Goal */}
-						<div className="bg-white p-4 rounded-lg shadow">
-							<h2 className="text-lg font-semibold mb-4 text-blue-700">
-								Progress Towards $100K Savings
-							</h2>
+						<ResponsiveCard title="Progress Towards $100K Savings">
 							{savingsGoalReachedMonth && (
 								<div>
 									<div className="mb-2 flex justify-between">
@@ -920,7 +1052,7 @@ const Dashboard = () => {
 									</div>
 								</div>
 							)}
-						</div>
+						</ResponsiveCard>
 					</div>
 				</div>
 			)}
@@ -928,13 +1060,10 @@ const Dashboard = () => {
 			{/* Charts Tab */}
 			{activeTab === "charts" && (
 				<div>
-					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 						{/* Savings Growth Chart */}
-						<div className="bg-white p-4 rounded-lg shadow">
-							<h2 className="text-lg font-semibold mb-4 text-blue-700">
-								Savings Growth Over Time
-							</h2>
-							<div className="h-64">
+						<ResponsiveCard title="Savings Growth Over Time">
+							<div className="h-72">
 								<ResponsiveContainer width="100%" height="100%">
 									<AreaChart data={chartData}>
 										<CartesianGrid strokeDasharray="3 3" />
@@ -977,14 +1106,11 @@ const Dashboard = () => {
 									</AreaChart>
 								</ResponsiveContainer>
 							</div>
-						</div>
+						</ResponsiveCard>
 
 						{/* Loan Repayment Chart */}
-						<div className="bg-white p-4 rounded-lg shadow">
-							<h2 className="text-lg font-semibold mb-4 text-blue-700">
-								Loan Repayment Progress
-							</h2>
-							<div className="h-64">
+						<ResponsiveCard title="Loan Repayment Progress">
+							<div className="h-72">
 								<ResponsiveContainer width="100%" height="100%">
 									<LineChart data={chartData}>
 										<CartesianGrid strokeDasharray="3 3" />
@@ -1005,18 +1131,16 @@ const Dashboard = () => {
 											dataKey="loanRemaining"
 											name="Remaining Loan"
 											stroke="#ff7300"
+											strokeWidth={2}
 										/>
 									</LineChart>
 								</ResponsiveContainer>
 							</div>
-						</div>
+						</ResponsiveCard>
 
 						{/* Monthly Expenses Breakdown */}
-						<div className="bg-white p-4 rounded-lg shadow">
-							<h2 className="text-lg font-semibold mb-4 text-blue-700">
-								Monthly Expense Breakdown
-							</h2>
-							<div className="h-64">
+						<ResponsiveCard title="Monthly Expense Breakdown">
+							<div className="h-72">
 								<ResponsiveContainer width="100%" height="100%">
 									<PieChart>
 										<Pie
@@ -1025,12 +1149,16 @@ const Dashboard = () => {
 											nameKey="name"
 											cx="50%"
 											cy="50%"
-											outerRadius={80}
+											outerRadius={isMobile ? 70 : 90}
 											fill="#8884d8"
 											label={({ name, percent }) =>
-												`${name} ${(
-													percent * 100
-												).toFixed(0)}%`
+												isMobile
+													? `${(
+															percent * 100
+													  ).toFixed(0)}%`
+													: `${name} ${(
+															percent * 100
+													  ).toFixed(0)}%`
 											}
 										>
 											{expenseData.map((entry, index) => (
@@ -1050,20 +1178,28 @@ const Dashboard = () => {
 												formatCurrency(value)
 											}
 										/>
-										<Legend />
+										<Legend
+											layout={
+												isMobile
+													? "horizontal"
+													: "vertical"
+											}
+										/>
 									</PieChart>
 								</ResponsiveContainer>
 							</div>
-						</div>
+						</ResponsiveCard>
 
 						{/* Monthly Cash Flow */}
-						<div className="bg-white p-4 rounded-lg shadow">
-							<h2 className="text-lg font-semibold mb-4 text-blue-700">
-								Monthly Cash Flow
-							</h2>
-							<div className="h-64">
+						<ResponsiveCard title="Monthly Cash Flow">
+							<div className="h-72">
 								<ResponsiveContainer width="100%" height="100%">
-									<BarChart data={chartData.slice(0, 8)}>
+									<BarChart
+										data={chartData.slice(
+											0,
+											isMobile ? 5 : 8
+										)}
+									>
 										<CartesianGrid strokeDasharray="3 3" />
 										<XAxis dataKey="date" />
 										<YAxis
@@ -1100,18 +1236,16 @@ const Dashboard = () => {
 									</BarChart>
 								</ResponsiveContainer>
 							</div>
-						</div>
+						</ResponsiveCard>
 					</div>
 				</div>
 			)}
 
 			{/* Projection Table Tab */}
 			{activeTab === "projection" && (
-				<div className="bg-white p-4 rounded-lg shadow">
-					<h2 className="text-lg font-semibold mb-4 text-blue-700">
-						Monthly Financial Projection
-					</h2>
-					<div className="overflow-x-auto">
+				<ResponsiveCard title="Monthly Financial Projection">
+					{/* Desktop table view */}
+					<div className="hidden md:block overflow-x-auto">
 						<table className="min-w-full bg-white">
 							<thead className="bg-blue-100">
 								<tr>
@@ -1186,6 +1320,87 @@ const Dashboard = () => {
 							</tbody>
 						</table>
 					</div>
+
+					{/* Mobile view - card layout */}
+					<div className="md:hidden space-y-4">
+						{projection.slice(0, 12).map((month, index) => (
+							<div
+								key={index}
+								className={`p-3 border rounded-lg ${
+									month.milestone
+										? "bg-green-50 border-green-200"
+										: "bg-white border-gray-200"
+								}`}
+							>
+								<div className="flex justify-between font-bold mb-2 border-b pb-1">
+									<span>
+										Month {month.month}: {month.date}
+									</span>
+									{month.milestone && (
+										<span className="text-green-600">
+											{month.milestone}
+										</span>
+									)}
+								</div>
+								<div className="grid grid-cols-2 gap-y-1">
+									<span className="text-gray-600">
+										Take-Home:
+									</span>
+									<span className="text-right">
+										{formatCurrency(month.takeHomePay)}
+									</span>
+
+									<span className="text-gray-600">
+										Expenses:
+									</span>
+									<span className="text-right">
+										{formatCurrency(month.expenses)}
+									</span>
+
+									<span className="text-gray-600">
+										Loan Payment:
+									</span>
+									<span className="text-right">
+										{formatCurrency(month.loanPayment)}
+									</span>
+
+									<span className="text-gray-600">
+										Loan Remaining:
+									</span>
+									<span className="text-right">
+										{formatCurrency(month.loanRemaining)}
+									</span>
+
+									<span className="text-gray-600">
+										Monthly Savings:
+									</span>
+									<span className="text-right">
+										{formatCurrency(month.monthlySavings)}
+									</span>
+
+									<span className="text-gray-600 font-medium">
+										Cash Savings:
+									</span>
+									<span className="text-right font-medium">
+										{formatCurrency(month.cashSavings)}
+									</span>
+								</div>
+							</div>
+						))}
+						<div className="text-center text-blue-600">
+							<button
+								className="font-medium"
+								onClick={() =>
+									alert(
+										"Full projection available in desktop view"
+									)
+								}
+							>
+								View more months in desktop view
+							</button>
+						</div>
+					</div>
+
 					{/* Show milestone information if available */}
 					{(loanPaidOffMonth || savingsGoalReachedMonth) && (
 						<div className="mt-4">
@@ -1214,7 +1429,7 @@ const Dashboard = () => {
 							</ul>
 						</div>
 					)}
-				</div>
+				</ResponsiveCard>
 			)}
 		</div>
 	);
