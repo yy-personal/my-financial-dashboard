@@ -7,10 +7,18 @@ export const FinancialProvider = ({ children }) => {
 	// Initialize state with default values or load from localStorage
 	const initialState = {
 		personalInfo: {
-			birthday: "September 1996",
-			currentAge: "28 (as of March 2025)",
-			employmentStart: "August 2024",
-			projectionStart: "March 2025",
+			birthday: {
+				month: 9, // September
+				year: 1996,
+			},
+			employmentStart: {
+				month: 8, // August
+				year: 2024,
+			},
+			projectionStart: {
+				month: 3, // March
+				year: 2025,
+			},
 			currentSavings: 11000,
 			remainingLoan: 26848,
 			interestRate: 4.75,
@@ -24,12 +32,13 @@ export const FinancialProvider = ({ children }) => {
 			cpfRate: 20, // percentage
 			employerCpfRate: 17, // percentage
 		},
-		expenses: {
-			rental: 700,
-			food: 600,
-			transportation: 228,
-			entertainment: 200,
-		},
+		// Changed from fixed keys to an array of expense objects
+		expenses: [
+			{ id: 1, name: "Rental", amount: 700 },
+			{ id: 2, name: "Food", amount: 600 },
+			{ id: 3, name: "Transportation", amount: 228 },
+			{ id: 4, name: "Entertainment", amount: 200 },
+		],
 	};
 
 	// Try to load saved data from localStorage
@@ -58,12 +67,86 @@ export const FinancialProvider = ({ children }) => {
 		}));
 	};
 
-	// Calculate total expenses
-	const totalExpenses =
-		financialData.expenses.rental +
-		financialData.expenses.food +
-		financialData.expenses.transportation +
-		financialData.expenses.entertainment;
+	// Calculate total expenses from the expenses array
+	const totalExpenses = financialData.expenses.reduce(
+		(total, expense) => total + expense.amount,
+		0
+	);
+
+	// Calculate current age based on birthday
+	const calculateAge = () => {
+		const today = new Date();
+		const birthMonth = financialData.personalInfo.birthday.month;
+		const birthYear = financialData.personalInfo.birthday.year;
+
+		let age = today.getFullYear() - birthYear;
+
+		// Adjust age if birthday hasn't occurred yet this year
+		if (
+			today.getMonth() + 1 < birthMonth ||
+			(today.getMonth() + 1 === birthMonth && today.getDate() < 15)
+		) {
+			age--;
+		}
+
+		return age;
+	};
+
+	// Function to add a new expense category
+	const addExpense = (name, amount) => {
+		const newExpense = {
+			id: Date.now(), // Use timestamp as unique ID
+			name,
+			amount: parseFloat(amount) || 0,
+		};
+
+		setFinancialData((prev) => ({
+			...prev,
+			expenses: [...prev.expenses, newExpense],
+		}));
+	};
+
+	// Function to remove an expense category
+	const removeExpense = (id) => {
+		setFinancialData((prev) => ({
+			...prev,
+			expenses: prev.expenses.filter((expense) => expense.id !== id),
+		}));
+	};
+
+	// Function to update an existing expense
+	const updateExpense = (id, updates) => {
+		setFinancialData((prev) => ({
+			...prev,
+			expenses: prev.expenses.map((expense) =>
+				expense.id === id ? { ...expense, ...updates } : expense
+			),
+		}));
+	};
+
+	// Get month name
+	const getMonthName = (monthNumber) => {
+		const months = [
+			"January",
+			"February",
+			"March",
+			"April",
+			"May",
+			"June",
+			"July",
+			"August",
+			"September",
+			"October",
+			"November",
+			"December",
+		];
+		return months[monthNumber - 1];
+	};
+
+	// Format a date object as a string
+	const formatDate = (dateObj) => {
+		return `${getMonthName(dateObj.month)} ${dateObj.year}`;
+	};
 
 	// Provide the context value
 	return (
@@ -72,6 +155,12 @@ export const FinancialProvider = ({ children }) => {
 				financialData,
 				updateFinancialData,
 				totalExpenses,
+				calculateAge,
+				addExpense,
+				removeExpense,
+				updateExpense,
+				getMonthName,
+				formatDate,
 			}}
 		>
 			{children}

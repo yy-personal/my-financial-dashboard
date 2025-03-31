@@ -19,7 +19,14 @@ import {
 } from "recharts";
 
 const Dashboard = () => {
-	const { financialData, totalExpenses } = useContext(FinancialContext);
+	const {
+		financialData,
+		totalExpenses,
+		calculateAge,
+		getMonthName,
+		formatDate,
+	} = useContext(FinancialContext);
+
 	const [activeTab, setActiveTab] = useState("summary");
 
 	// Format number as currency
@@ -41,25 +48,6 @@ const Dashboard = () => {
 		}).format(value);
 	};
 
-	// Get month name
-	function getMonthName(monthNumber) {
-		const months = [
-			"January",
-			"February",
-			"March",
-			"April",
-			"May",
-			"June",
-			"July",
-			"August",
-			"September",
-			"October",
-			"November",
-			"December",
-		];
-		return months[monthNumber - 1];
-	}
-
 	// Calculate financial projection
 	const calculateProjection = () => {
 		const projection = [];
@@ -71,8 +59,8 @@ const Dashboard = () => {
 		let currentSavings = personalInfo.currentSavings;
 		let loanRemaining = personalInfo.remainingLoan;
 		let cpfBalance = 0; // Starting CPF balance
-		const birthYear = 1996;
-		const birthMonth = 9; // September
+		const birthYear = personalInfo.birthday.year;
+		const birthMonth = personalInfo.birthday.month;
 
 		// Parameters
 		let currentSalary = income.currentSalary;
@@ -88,8 +76,8 @@ const Dashboard = () => {
 		const monthlyInterestRate = annualInterestRate / 12;
 
 		// Calculate months
-		let startMonth = 3; // March
-		let startYear = 2025;
+		let startMonth = personalInfo.projectionStart.month;
+		let startYear = personalInfo.projectionStart.year;
 
 		// Track milestones
 		let loanPaidOffMonth = null;
@@ -201,23 +189,37 @@ const Dashboard = () => {
 	const { projection, loanPaidOffMonth, savingsGoalReachedMonth } =
 		calculateProjection();
 
-	// Expense breakdown for pie chart
+	// Expense breakdown for pie chart - now uses the dynamic expenses array
+	// Also include loan payment in the expenses
 	const expenseData = [
-		{ name: "Rental", value: financialData.expenses.rental },
-		{ name: "Food", value: financialData.expenses.food },
-		{
-			name: "Transportation",
-			value: financialData.expenses.transportation,
-		},
-		{ name: "Entertainment", value: financialData.expenses.entertainment },
+		...financialData.expenses.map((expense) => ({
+			name: expense.name,
+			value: expense.amount,
+		})),
 		{
 			name: "Loan Payment",
 			value: financialData.personalInfo.monthlyRepayment,
 		},
 	];
 
-	// Colors for pie chart
-	const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
+	// Colors for pie chart - expanded to accommodate more expense categories
+	const COLORS = [
+		"#0088FE",
+		"#00C49F",
+		"#FFBB28",
+		"#FF8042",
+		"#8884d8",
+		"#82ca9d",
+		"#ffc658",
+		"#ff7300",
+		"#ff0000",
+		"#B10DC9",
+		"#FF851B",
+		"#85144b",
+		"#3D9970",
+		"#2ECC40",
+		"#01FF70",
+	];
 
 	// Extract summary data
 	const timeToPayLoan = loanPaidOffMonth
@@ -309,23 +311,41 @@ const Dashboard = () => {
 							<div className="grid grid-cols-2 gap-2">
 								<p className="text-gray-600">Birthday:</p>
 								<p className="font-medium">
-									{financialData.personalInfo.birthday}
+									{getMonthName(
+										financialData.personalInfo.birthday
+											.month
+									)}{" "}
+									{financialData.personalInfo.birthday.year}
 								</p>
 								<p className="text-gray-600">Current Age:</p>
 								<p className="font-medium">
-									{financialData.personalInfo.currentAge}
+									{calculateAge()} years old
 								</p>
 								<p className="text-gray-600">
 									Employment Start:
 								</p>
 								<p className="font-medium">
-									{financialData.personalInfo.employmentStart}
+									{getMonthName(
+										financialData.personalInfo
+											.employmentStart.month
+									)}{" "}
+									{
+										financialData.personalInfo
+											.employmentStart.year
+									}
 								</p>
 								<p className="text-gray-600">
 									Projection Start:
 								</p>
 								<p className="font-medium">
-									{financialData.personalInfo.projectionStart}
+									{getMonthName(
+										financialData.personalInfo
+											.projectionStart.month
+									)}{" "}
+									{
+										financialData.personalInfo
+											.projectionStart.year
+									}
 								</p>
 							</div>
 						</div>
@@ -384,7 +404,12 @@ const Dashboard = () => {
 									)}
 								</p>
 								<p className="text-gray-600">
-									Salary After July 2025:
+									Salary After{" "}
+									{getMonthName(
+										financialData.income
+											.salaryAdjustmentMonth
+									)}{" "}
+									{financialData.income.salaryAdjustmentYear}:
 								</p>
 								<p className="font-medium">
 									{formatCurrency(
@@ -456,55 +481,76 @@ const Dashboard = () => {
 						</h2>
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
-								<div className="grid grid-cols-2 gap-2">
-									<p className="text-gray-600">Rental:</p>
-									<p className="font-medium">
-										{formatCurrency(
-											financialData.expenses.rental
-										)}
-									</p>
-									<p className="text-gray-600">Food:</p>
-									<p className="font-medium">
-										{formatCurrency(
-											financialData.expenses.food
-										)}
-									</p>
-									<p className="text-gray-600">
-										Transportation:
-									</p>
-									<p className="font-medium">
-										{formatCurrency(
-											financialData.expenses
-												.transportation
-										)}
-									</p>
-									<p className="text-gray-600">
-										Entertainment:
-									</p>
-									<p className="font-medium">
-										{formatCurrency(
-											financialData.expenses.entertainment
-										)}
-									</p>
-									<p className="text-gray-600">
-										Loan Payment:
-									</p>
-									<p className="font-medium">
-										{formatCurrency(
-											financialData.personalInfo
-												.monthlyRepayment
-										)}
-									</p>
-									<p className="text-gray-600 font-semibold">
-										Total:
-									</p>
-									<p className="font-semibold">
-										{formatCurrency(
-											totalExpenses +
-												financialData.personalInfo
-													.monthlyRepayment
-										)}
-									</p>
+								<div className="overflow-y-auto max-h-64">
+									<table className="min-w-full bg-white">
+										<thead className="bg-blue-100">
+											<tr>
+												<th className="py-2 px-4 border-b text-left">
+													Category
+												</th>
+												<th className="py-2 px-4 border-b text-right">
+													Amount
+												</th>
+											</tr>
+										</thead>
+										<tbody>
+											{financialData.expenses.map(
+												(expense, index) => (
+													<tr
+														key={expense.id}
+														className={
+															index % 2 === 0
+																? "bg-gray-50"
+																: ""
+														}
+													>
+														<td className="py-2 px-4 border-b">
+															{expense.name}
+														</td>
+														<td className="py-2 px-4 border-b text-right">
+															{formatCurrency(
+																expense.amount
+															)}
+														</td>
+													</tr>
+												)
+											)}
+											<tr
+												className={
+													financialData.expenses
+														.length %
+														2 ===
+													0
+														? "bg-gray-50"
+														: ""
+												}
+											>
+												<td className="py-2 px-4 border-b">
+													Loan Payment
+												</td>
+												<td className="py-2 px-4 border-b text-right">
+													{formatCurrency(
+														financialData
+															.personalInfo
+															.monthlyRepayment
+													)}
+												</td>
+											</tr>
+											<tr className="bg-blue-50 font-semibold">
+												<td className="py-2 px-4 border-b">
+													Total
+												</td>
+												<td className="py-2 px-4 border-b text-right">
+													{formatCurrency(
+														totalExpenses +
+															financialData
+																.personalInfo
+																.monthlyRepayment
+													)}
+												</td>
+											</tr>
+										</tbody>
+									</table>
 								</div>
 							</div>
 							<div className="h-64">
@@ -566,7 +612,11 @@ const Dashboard = () => {
 									: "the projected date"}
 							</li>
 							<li>
-								After your salary adjustment in July 2025,
+								After your salary adjustment in{" "}
+								{getMonthName(
+									financialData.income.salaryAdjustmentMonth
+								)}{" "}
+								{financialData.income.salaryAdjustmentYear},
 								consider increasing your loan payment to
 								accelerate debt repayment
 							</li>
@@ -710,9 +760,13 @@ const Dashboard = () => {
 										<p className="mt-2">
 											Total repayment period:{" "}
 											{timeToPayLoan} from{" "}
+											{getMonthName(
+												financialData.personalInfo
+													.projectionStart.month
+											)}{" "}
 											{
 												financialData.personalInfo
-													.projectionStart
+													.projectionStart.year
 											}
 										</p>
 									</div>
@@ -805,9 +859,13 @@ const Dashboard = () => {
 										<p className="mt-2">
 											Total savings period:{" "}
 											{timeToSavingsGoal} from{" "}
+											{getMonthName(
+												financialData.personalInfo
+													.projectionStart.month
+											)}{" "}
 											{
 												financialData.personalInfo
-													.projectionStart
+													.projectionStart.year
 											}
 										</p>
 									</div>
