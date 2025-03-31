@@ -8,17 +8,38 @@ const EditParameters = () => {
 		updateFinancialData,
 		addExpense,
 		removeExpense,
-		updateExpense,
 		getMonthName,
 		calculateAge,
 	} = useContext(FinancialContext);
 
 	const navigate = useNavigate();
 
-	// Create a state copy of the financial data for the form
+	// Create a local state copy for ALL expenses to prevent focus issues
+	const [expenses, setExpenses] = useState(
+		financialData.expenses.map((expense) => ({
+			...expense,
+			amount: String(expense.amount),
+		}))
+	);
+
+	// Create a local form state for all form fields
 	const [formData, setFormData] = useState({
-		personalInfo: { ...financialData.personalInfo },
-		income: { ...financialData.income },
+		personalInfo: {
+			...financialData.personalInfo,
+			currentSavings: String(financialData.personalInfo.currentSavings),
+			remainingLoan: String(financialData.personalInfo.remainingLoan),
+			interestRate: String(financialData.personalInfo.interestRate),
+			monthlyRepayment: String(
+				financialData.personalInfo.monthlyRepayment
+			),
+		},
+		income: {
+			...financialData.income,
+			currentSalary: String(financialData.income.currentSalary),
+			futureSalary: String(financialData.income.futureSalary),
+			cpfRate: String(financialData.income.cpfRate),
+			employerCpfRate: String(financialData.income.employerCpfRate),
+		},
 	});
 
 	// State for new expense
@@ -44,7 +65,7 @@ const EditParameters = () => {
 			...prev,
 			personalInfo: {
 				...prev.personalInfo,
-				[name]: parseFloat(value) || 0,
+				[name]: value,
 			},
 		}));
 	};
@@ -70,35 +91,36 @@ const EditParameters = () => {
 			...prev,
 			income: {
 				...prev.income,
-				[name]:
-					name === "salaryAdjustmentMonth" ||
-					name === "salaryAdjustmentYear"
-						? parseInt(value) || 0
-						: parseFloat(value) || 0,
+				[name]: value,
 			},
 		}));
 	};
 
 	// Handle expense field changes
-	const handleExpenseChange = (id, field, value) => {
-		if (field === "amount") {
-			value = parseFloat(value) || 0;
-		}
-		updateExpense(id, { [field]: value });
+	const handleExpenseChange = (index, field, value) => {
+		const updatedExpenses = [...expenses];
+		updatedExpenses[index] = {
+			...updatedExpenses[index],
+			[field]: value,
+		};
+		setExpenses(updatedExpenses);
 	};
 
-	// Handle form submission
-	const handleSubmit = (e) => {
-		e.preventDefault();
-		updateFinancialData(formData);
-		navigate("/");
+	// Handle removing an expense
+	const handleRemoveExpense = (id) => {
+		setExpenses(expenses.filter((expense) => expense.id !== id));
 	};
 
 	// Handle adding a new expense
 	const handleAddExpense = (e) => {
 		e.preventDefault();
 		if (newExpense.name.trim() && newExpense.amount) {
-			addExpense(newExpense.name.trim(), newExpense.amount);
+			const newExpenseItem = {
+				id: Date.now(), // Use timestamp as a unique identifier
+				name: newExpense.name.trim(),
+				amount: newExpense.amount,
+			};
+			setExpenses([...expenses, newExpenseItem]);
 			setNewExpense({ name: "", amount: "" });
 		}
 	};
@@ -110,6 +132,55 @@ const EditParameters = () => {
 			...prev,
 			[name]: value,
 		}));
+	};
+
+	// Handle form submission
+	const handleSubmit = (e) => {
+		e.preventDefault();
+
+		// Create a copy of the form data for processing
+		const processedData = {
+			personalInfo: { ...formData.personalInfo },
+			income: { ...formData.income },
+		};
+
+		// Convert numeric string values to actual numbers
+		const numericFields = [
+			"currentSavings",
+			"remainingLoan",
+			"interestRate",
+			"monthlyRepayment",
+		];
+		numericFields.forEach((field) => {
+			processedData.personalInfo[field] =
+				parseFloat(processedData.personalInfo[field]) || 0;
+		});
+
+		// Convert income numeric values
+		const incomeNumericFields = [
+			"currentSalary",
+			"futureSalary",
+			"cpfRate",
+			"employerCpfRate",
+		];
+		incomeNumericFields.forEach((field) => {
+			processedData.income[field] =
+				parseFloat(processedData.income[field]) || 0;
+		});
+
+		// Process expenses - convert amount strings to numbers
+		const processedExpenses = expenses.map((expense) => ({
+			...expense,
+			amount: parseFloat(expense.amount) || 0,
+		}));
+
+		// Update the financial data with properly converted values
+		updateFinancialData({
+			...processedData,
+			expenses: processedExpenses,
+		});
+
+		navigate("/");
 	};
 
 	// Create a date dropdown component
@@ -153,34 +224,6 @@ const EditParameters = () => {
 		</div>
 	);
 
-	// Create form input field with label
-	const FormField = ({
-		label,
-		name,
-		value,
-		onChange,
-		type = "text",
-		step = "0.01",
-	}) => (
-		<div className="mb-4">
-			<label
-				htmlFor={name}
-				className="block text-gray-700 font-medium mb-2"
-			>
-				{label}
-			</label>
-			<input
-				type={type}
-				id={name}
-				name={name}
-				value={value}
-				onChange={onChange}
-				step={step}
-				className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-			/>
-		</div>
-	);
-
 	return (
 		<div className="bg-white p-6 rounded-lg shadow-lg max-w-4xl mx-auto">
 			<h1 className="text-2xl font-bold mb-6 text-blue-700">
@@ -217,38 +260,73 @@ const EditParameters = () => {
 							label="Projection Start"
 						/>
 
-						<FormField
-							label="Current Savings (SGD)"
-							name="currentSavings"
-							value={formData.personalInfo.currentSavings}
-							onChange={handlePersonalInfoChange}
-							type="number"
-						/>
+						<div className="mb-4">
+							<label
+								htmlFor="currentSavings"
+								className="block text-gray-700 font-medium mb-2"
+							>
+								Current Savings (SGD)
+							</label>
+							<input
+								type="text"
+								id="currentSavings"
+								name="currentSavings"
+								value={formData.personalInfo.currentSavings}
+								onChange={handlePersonalInfoChange}
+								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							/>
+						</div>
 
-						<FormField
-							label="Remaining Loan (SGD)"
-							name="remainingLoan"
-							value={formData.personalInfo.remainingLoan}
-							onChange={handlePersonalInfoChange}
-							type="number"
-						/>
+						<div className="mb-4">
+							<label
+								htmlFor="remainingLoan"
+								className="block text-gray-700 font-medium mb-2"
+							>
+								Remaining Loan (SGD)
+							</label>
+							<input
+								type="text"
+								id="remainingLoan"
+								name="remainingLoan"
+								value={formData.personalInfo.remainingLoan}
+								onChange={handlePersonalInfoChange}
+								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							/>
+						</div>
 
-						<FormField
-							label="Loan Interest Rate (%)"
-							name="interestRate"
-							value={formData.personalInfo.interestRate}
-							onChange={handlePersonalInfoChange}
-							type="number"
-							step="0.01"
-						/>
+						<div className="mb-4">
+							<label
+								htmlFor="interestRate"
+								className="block text-gray-700 font-medium mb-2"
+							>
+								Loan Interest Rate (%)
+							</label>
+							<input
+								type="text"
+								id="interestRate"
+								name="interestRate"
+								value={formData.personalInfo.interestRate}
+								onChange={handlePersonalInfoChange}
+								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							/>
+						</div>
 
-						<FormField
-							label="Monthly Loan Repayment (SGD)"
-							name="monthlyRepayment"
-							value={formData.personalInfo.monthlyRepayment}
-							onChange={handlePersonalInfoChange}
-							type="number"
-						/>
+						<div className="mb-4">
+							<label
+								htmlFor="monthlyRepayment"
+								className="block text-gray-700 font-medium mb-2"
+							>
+								Monthly Loan Repayment (SGD)
+							</label>
+							<input
+								type="text"
+								id="monthlyRepayment"
+								name="monthlyRepayment"
+								value={formData.personalInfo.monthlyRepayment}
+								onChange={handlePersonalInfoChange}
+								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							/>
+						</div>
 					</div>
 				</div>
 
@@ -257,21 +335,39 @@ const EditParameters = () => {
 						Income Parameters
 					</h2>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-						<FormField
-							label="Current Monthly Salary (SGD)"
-							name="currentSalary"
-							value={formData.income.currentSalary}
-							onChange={handleIncomeChange}
-							type="number"
-						/>
+						<div className="mb-4">
+							<label
+								htmlFor="currentSalary"
+								className="block text-gray-700 font-medium mb-2"
+							>
+								Current Monthly Salary (SGD)
+							</label>
+							<input
+								type="text"
+								id="currentSalary"
+								name="currentSalary"
+								value={formData.income.currentSalary}
+								onChange={handleIncomeChange}
+								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							/>
+						</div>
 
-						<FormField
-							label="Future Monthly Salary (SGD)"
-							name="futureSalary"
-							value={formData.income.futureSalary}
-							onChange={handleIncomeChange}
-							type="number"
-						/>
+						<div className="mb-4">
+							<label
+								htmlFor="futureSalary"
+								className="block text-gray-700 font-medium mb-2"
+							>
+								Future Monthly Salary (SGD)
+							</label>
+							<input
+								type="text"
+								id="futureSalary"
+								name="futureSalary"
+								value={formData.income.futureSalary}
+								onChange={handleIncomeChange}
+								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							/>
+						</div>
 
 						<div className="mb-4">
 							<label
@@ -298,32 +394,61 @@ const EditParameters = () => {
 							</select>
 						</div>
 
-						<FormField
-							label="Salary Adjustment Year"
-							name="salaryAdjustmentYear"
-							value={formData.income.salaryAdjustmentYear}
-							onChange={handleIncomeChange}
-							type="number"
-							step="1"
-						/>
+						<div className="mb-4">
+							<label
+								htmlFor="salaryAdjustmentYear"
+								className="block text-gray-700 font-medium mb-2"
+							>
+								Salary Adjustment Year
+							</label>
+							<select
+								id="salaryAdjustmentYear"
+								name="salaryAdjustmentYear"
+								value={formData.income.salaryAdjustmentYear}
+								onChange={handleIncomeChange}
+								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							>
+								{yearOptions.map((year) => (
+									<option key={year} value={year}>
+										{year}
+									</option>
+								))}
+							</select>
+						</div>
 
-						<FormField
-							label="CPF Contribution Rate (%)"
-							name="cpfRate"
-							value={formData.income.cpfRate}
-							onChange={handleIncomeChange}
-							type="number"
-							step="0.1"
-						/>
+						<div className="mb-4">
+							<label
+								htmlFor="cpfRate"
+								className="block text-gray-700 font-medium mb-2"
+							>
+								CPF Contribution Rate (%)
+							</label>
+							<input
+								type="text"
+								id="cpfRate"
+								name="cpfRate"
+								value={formData.income.cpfRate}
+								onChange={handleIncomeChange}
+								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							/>
+						</div>
 
-						<FormField
-							label="Employer CPF Contribution Rate (%)"
-							name="employerCpfRate"
-							value={formData.income.employerCpfRate}
-							onChange={handleIncomeChange}
-							type="number"
-							step="0.1"
-						/>
+						<div className="mb-4">
+							<label
+								htmlFor="employerCpfRate"
+								className="block text-gray-700 font-medium mb-2"
+							>
+								Employer CPF Contribution Rate (%)
+							</label>
+							<input
+								type="text"
+								id="employerCpfRate"
+								name="employerCpfRate"
+								value={formData.income.employerCpfRate}
+								onChange={handleIncomeChange}
+								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							/>
+						</div>
 					</div>
 				</div>
 
@@ -349,7 +474,7 @@ const EditParameters = () => {
 								</tr>
 							</thead>
 							<tbody>
-								{financialData.expenses.map((expense) => (
+								{expenses.map((expense, index) => (
 									<tr
 										key={expense.id}
 										className="border-b hover:bg-gray-50"
@@ -360,7 +485,7 @@ const EditParameters = () => {
 												value={expense.name}
 												onChange={(e) =>
 													handleExpenseChange(
-														expense.id,
+														index,
 														"name",
 														e.target.value
 													)
@@ -370,16 +495,15 @@ const EditParameters = () => {
 										</td>
 										<td className="px-4 py-2">
 											<input
-												type="number"
+												type="text"
 												value={expense.amount}
 												onChange={(e) =>
 													handleExpenseChange(
-														expense.id,
+														index,
 														"amount",
 														e.target.value
 													)
 												}
-												step="0.01"
 												className="w-full px-2 py-1 border border-gray-300 rounded"
 											/>
 										</td>
@@ -387,7 +511,9 @@ const EditParameters = () => {
 											<button
 												type="button"
 												onClick={() =>
-													removeExpense(expense.id)
+													handleRemoveExpense(
+														expense.id
+													)
 												}
 												className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
 											>
@@ -402,10 +528,13 @@ const EditParameters = () => {
 									<td className="px-4 py-2">Total</td>
 									<td className="px-4 py-2">
 										SGD{" "}
-										{financialData.expenses
+										{expenses
 											.reduce(
 												(sum, expense) =>
-													sum + expense.amount,
+													sum +
+													(parseFloat(
+														expense.amount
+													) || 0),
 												0
 											)
 											.toFixed(2)}
@@ -431,12 +560,11 @@ const EditParameters = () => {
 								className="px-3 py-2 border border-gray-300 rounded-md"
 							/>
 							<input
-								type="number"
+								type="text"
 								name="amount"
 								value={newExpense.amount}
 								onChange={handleNewExpenseChange}
 								placeholder="Amount (SGD)"
-								step="0.01"
 								className="px-3 py-2 border border-gray-300 rounded-md"
 							/>
 							<button

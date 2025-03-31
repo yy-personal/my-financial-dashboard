@@ -41,13 +41,195 @@ export const FinancialProvider = ({ children }) => {
 		],
 	};
 
+	// Function to migrate old data format to new format
+	const migrateData = (oldData) => {
+		// Check if we need to migrate the expenses format from object to array
+		if (oldData && oldData.expenses && !Array.isArray(oldData.expenses)) {
+			console.log("Migrating expenses from object to array format");
+
+			// Create array of expense objects from the old format
+			const migratedExpenses = [];
+
+			// Handle old format with rental, food, transportation, entertainment as direct properties
+			if (typeof oldData.expenses.rental === "number") {
+				migratedExpenses.push({
+					id: 1,
+					name: "Rental",
+					amount: oldData.expenses.rental,
+				});
+			}
+			if (typeof oldData.expenses.food === "number") {
+				migratedExpenses.push({
+					id: 2,
+					name: "Food",
+					amount: oldData.expenses.food,
+				});
+			}
+			if (typeof oldData.expenses.transportation === "number") {
+				migratedExpenses.push({
+					id: 3,
+					name: "Transportation",
+					amount: oldData.expenses.transportation,
+				});
+			}
+			if (typeof oldData.expenses.entertainment === "number") {
+				migratedExpenses.push({
+					id: 4,
+					name: "Entertainment",
+					amount: oldData.expenses.entertainment,
+				});
+			}
+
+			// Update the expenses property with the new array format
+			oldData.expenses =
+				migratedExpenses.length > 0
+					? migratedExpenses
+					: initialState.expenses;
+		}
+
+		// Ensure personalInfo date fields are objects with month and year
+		if (oldData && oldData.personalInfo) {
+			// Birthday
+			if (
+				oldData.personalInfo.birthday &&
+				typeof oldData.personalInfo.birthday === "string"
+			) {
+				try {
+					// Try to extract month and year if it's a string in format "Month Year"
+					const parts = oldData.personalInfo.birthday.split(" ");
+					if (parts.length === 2) {
+						const month = getMonthNumber(parts[0]);
+						const year = parseInt(parts[1]);
+						if (!isNaN(month) && !isNaN(year)) {
+							oldData.personalInfo.birthday = { month, year };
+						} else {
+							oldData.personalInfo.birthday =
+								initialState.personalInfo.birthday;
+						}
+					} else {
+						oldData.personalInfo.birthday =
+							initialState.personalInfo.birthday;
+					}
+				} catch (e) {
+					oldData.personalInfo.birthday =
+						initialState.personalInfo.birthday;
+				}
+			} else if (!oldData.personalInfo.birthday) {
+				oldData.personalInfo.birthday =
+					initialState.personalInfo.birthday;
+			}
+
+			// Employment Start
+			if (
+				oldData.personalInfo.employmentStart &&
+				typeof oldData.personalInfo.employmentStart === "string"
+			) {
+				try {
+					const parts =
+						oldData.personalInfo.employmentStart.split(" ");
+					if (parts.length === 2) {
+						const month = getMonthNumber(parts[0]);
+						const year = parseInt(parts[1]);
+						if (!isNaN(month) && !isNaN(year)) {
+							oldData.personalInfo.employmentStart = {
+								month,
+								year,
+							};
+						} else {
+							oldData.personalInfo.employmentStart =
+								initialState.personalInfo.employmentStart;
+						}
+					} else {
+						oldData.personalInfo.employmentStart =
+							initialState.personalInfo.employmentStart;
+					}
+				} catch (e) {
+					oldData.personalInfo.employmentStart =
+						initialState.personalInfo.employmentStart;
+				}
+			} else if (!oldData.personalInfo.employmentStart) {
+				oldData.personalInfo.employmentStart =
+					initialState.personalInfo.employmentStart;
+			}
+
+			// Projection Start
+			if (
+				oldData.personalInfo.projectionStart &&
+				typeof oldData.personalInfo.projectionStart === "string"
+			) {
+				try {
+					const parts =
+						oldData.personalInfo.projectionStart.split(" ");
+					if (parts.length === 2) {
+						const month = getMonthNumber(parts[0]);
+						const year = parseInt(parts[1]);
+						if (!isNaN(month) && !isNaN(year)) {
+							oldData.personalInfo.projectionStart = {
+								month,
+								year,
+							};
+						} else {
+							oldData.personalInfo.projectionStart =
+								initialState.personalInfo.projectionStart;
+						}
+					} else {
+						oldData.personalInfo.projectionStart =
+							initialState.personalInfo.projectionStart;
+					}
+				} catch (e) {
+					oldData.personalInfo.projectionStart =
+						initialState.personalInfo.projectionStart;
+				}
+			} else if (!oldData.personalInfo.projectionStart) {
+				oldData.personalInfo.projectionStart =
+					initialState.personalInfo.projectionStart;
+			}
+		}
+
+		return oldData;
+	};
+
+	// Get month number from month name
+	const getMonthNumber = (monthName) => {
+		const months = [
+			"January",
+			"February",
+			"March",
+			"April",
+			"May",
+			"June",
+			"July",
+			"August",
+			"September",
+			"October",
+			"November",
+			"December",
+		];
+		return (
+			months.findIndex((m) =>
+				monthName.toLowerCase().startsWith(m.toLowerCase())
+			) + 1 || 1
+		);
+	};
+
 	// Try to load saved data from localStorage
 	const loadSavedData = () => {
 		try {
 			const savedData = localStorage.getItem("financialData");
-			return savedData ? JSON.parse(savedData) : initialState;
+			if (savedData) {
+				// Parse the saved data
+				const parsedData = JSON.parse(savedData);
+
+				// Migrate the data if needed
+				const migratedData = migrateData(parsedData);
+
+				return migratedData;
+			}
+			return initialState;
 		} catch (error) {
 			console.error("Error loading saved data:", error);
+			// Clear potentially corrupted data
+			localStorage.removeItem("financialData");
 			return initialState;
 		}
 	};
@@ -68,10 +250,12 @@ export const FinancialProvider = ({ children }) => {
 	};
 
 	// Calculate total expenses from the expenses array
-	const totalExpenses = financialData.expenses.reduce(
-		(total, expense) => total + expense.amount,
-		0
-	);
+	const totalExpenses = Array.isArray(financialData.expenses)
+		? financialData.expenses.reduce(
+				(total, expense) => total + expense.amount,
+				0
+		  )
+		: 0;
 
 	// Calculate current age based on birthday
 	const calculateAge = () => {
@@ -102,7 +286,9 @@ export const FinancialProvider = ({ children }) => {
 
 		setFinancialData((prev) => ({
 			...prev,
-			expenses: [...prev.expenses, newExpense],
+			expenses: Array.isArray(prev.expenses)
+				? [...prev.expenses, newExpense]
+				: [newExpense],
 		}));
 	};
 
@@ -110,7 +296,9 @@ export const FinancialProvider = ({ children }) => {
 	const removeExpense = (id) => {
 		setFinancialData((prev) => ({
 			...prev,
-			expenses: prev.expenses.filter((expense) => expense.id !== id),
+			expenses: Array.isArray(prev.expenses)
+				? prev.expenses.filter((expense) => expense.id !== id)
+				: [],
 		}));
 	};
 
@@ -118,9 +306,11 @@ export const FinancialProvider = ({ children }) => {
 	const updateExpense = (id, updates) => {
 		setFinancialData((prev) => ({
 			...prev,
-			expenses: prev.expenses.map((expense) =>
-				expense.id === id ? { ...expense, ...updates } : expense
-			),
+			expenses: Array.isArray(prev.expenses)
+				? prev.expenses.map((expense) =>
+						expense.id === id ? { ...expense, ...updates } : expense
+				  )
+				: [],
 		}));
 	};
 
@@ -140,12 +330,18 @@ export const FinancialProvider = ({ children }) => {
 			"November",
 			"December",
 		];
-		return months[monthNumber - 1];
+		return months[monthNumber - 1] || "January";
 	};
 
 	// Format a date object as a string
 	const formatDate = (dateObj) => {
 		return `${getMonthName(dateObj.month)} ${dateObj.year}`;
+	};
+
+	// Reset data to initial state (for troubleshooting)
+	const resetData = () => {
+		localStorage.removeItem("financialData");
+		setFinancialData(initialState);
 	};
 
 	// Provide the context value
@@ -161,6 +357,7 @@ export const FinancialProvider = ({ children }) => {
 				updateExpense,
 				getMonthName,
 				formatDate,
+				resetData,
 			}}
 		>
 			{children}
