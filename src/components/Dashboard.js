@@ -1623,34 +1623,39 @@ const Dashboard = () => {
 												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap">
 													{month.date}
 												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap">
+												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-green-600">
 													{formatCurrency(
 														month.takeHomePay
 													)}
 												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap">
+												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-orange-600">
 													{formatCurrency(
 														month.expenses
 													)}
 												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap">
+												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-red-600">
 													{formatCurrency(
 														month.loanPayment
 													)}
 												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap">
+												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-red-600">
 													{formatCurrency(
 														month.loanRemaining
 													)}
 												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-blue-600">
+												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-green-600">
 													{formatCurrency(
 														month.monthlySavings
 													)}
 												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-blue-600">
+												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-green-600">
 													{formatCurrency(
 														month.cashSavings
+													)}
+												</td>
+												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-purple-600">
+													{formatCurrency(
+														month.cpfBalance
 													)}
 												</td>
 											</tr>
