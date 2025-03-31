@@ -20,6 +20,7 @@ export const FinancialProvider = ({ children }) => {
 				year: 2025,
 			},
 			currentSavings: 11000,
+			currentCpfBalance: 15000, // Added initial CPF balance field
 			remainingLoan: 26848,
 			interestRate: 4.75,
 			monthlyRepayment: 900,
@@ -85,6 +86,16 @@ export const FinancialProvider = ({ children }) => {
 				migratedExpenses.length > 0
 					? migratedExpenses
 					: initialState.expenses;
+		}
+
+		// Add currentCpfBalance if it doesn't exist
+		if (
+			oldData &&
+			oldData.personalInfo &&
+			typeof oldData.personalInfo.currentCpfBalance === "undefined"
+		) {
+			oldData.personalInfo.currentCpfBalance =
+				initialState.personalInfo.currentCpfBalance;
 		}
 
 		// Ensure personalInfo date fields are objects with month and year
