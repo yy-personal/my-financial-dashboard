@@ -1,6 +1,13 @@
 // src/App.js - Updated with authentication
-import React, { useState } from "react";
-import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import {
+	Routes,
+	Route,
+	Link,
+	useLocation,
+	Navigate,
+	useNavigate,
+} from "react-router-dom";
 import Dashboard from "./components/Dashboard";
 import EditParameters from "./components/EditParameters";
 import Login from "./components/Login";
@@ -9,6 +16,13 @@ import { useAuth } from "./context/AuthContext";
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
 	const { isAuthenticated, loading } = useAuth();
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		if (!loading && !isAuthenticated) {
+			navigate("/login", { replace: true });
+		}
+	}, [isAuthenticated, loading, navigate]);
 
 	if (loading) {
 		return (
@@ -22,7 +36,7 @@ const ProtectedRoute = ({ children }) => {
 	}
 
 	if (!isAuthenticated) {
-		return <Navigate to="/login" replace />;
+		return null; // Navigate is handled in useEffect
 	}
 
 	return children;
@@ -42,7 +56,7 @@ function App() {
 	};
 
 	// If on login page, show only login component
-	if (location.pathname === "/login") {
+	if (location.pathname.endsWith("/login")) {
 		return <Login />;
 	}
 
@@ -62,7 +76,8 @@ function App() {
 							<Link
 								to="/"
 								className={`px-4 py-2 rounded-md transition-colors ${
-									location.pathname === "/"
+									location.pathname === "/" ||
+									location.pathname === ""
 										? "bg-blue-900"
 										: "hover:bg-blue-800"
 								}`}
@@ -72,7 +87,7 @@ function App() {
 							<Link
 								to="/edit"
 								className={`px-4 py-2 rounded-md transition-colors ${
-									location.pathname === "/edit"
+									location.pathname.endsWith("/edit")
 										? "bg-blue-900"
 										: "hover:bg-blue-800"
 								}`}
@@ -123,7 +138,8 @@ function App() {
 							<Link
 								to="/"
 								className={`block px-4 py-2 my-1 rounded-md ${
-									location.pathname === "/"
+									location.pathname === "/" ||
+									location.pathname === ""
 										? "bg-blue-900"
 										: "hover:bg-blue-800"
 								}`}
@@ -134,7 +150,7 @@ function App() {
 							<Link
 								to="/edit"
 								className={`block px-4 py-2 my-1 rounded-md ${
-									location.pathname === "/edit"
+									location.pathname.endsWith("/edit")
 										? "bg-blue-900"
 										: "hover:bg-blue-800"
 								}`}

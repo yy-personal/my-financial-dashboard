@@ -11,22 +11,38 @@ export const AuthProvider = ({ children }) => {
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
+		console.log("Setting up auth state listener");
 		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			console.log(
+				"Auth state changed:",
+				user ? "User logged in" : "No user"
+			);
 			setCurrentUser(user);
 			setLoading(false);
 		});
 
 		// Cleanup subscription on unmount
-		return () => unsubscribe();
+		return () => {
+			console.log("Cleaning up auth state listener");
+			unsubscribe();
+		};
 	}, []);
 
 	// Logout function
 	const logout = async () => {
-		const { success, error } = await logoutUser();
-		if (!success) {
-			console.error("Logout error:", error);
+		try {
+			console.log("Attempting to log out user");
+			const { success, error } = await logoutUser();
+			if (!success) {
+				console.error("Logout error:", error);
+			} else {
+				console.log("User logged out successfully");
+			}
+			return { success, error };
+		} catch (err) {
+			console.error("Exception during logout:", err);
+			return { success: false, error: err.message };
 		}
-		return { success, error };
 	};
 
 	const value = {
@@ -38,7 +54,16 @@ export const AuthProvider = ({ children }) => {
 
 	return (
 		<AuthContext.Provider value={value}>
-			{!loading && children}
+			{!loading ? (
+				children
+			) : (
+				<div className="min-h-screen flex items-center justify-center">
+					<div className="text-center">
+						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+						<p className="mt-3">Loading authentication...</p>
+					</div>
+				</div>
+			)}
 		</AuthContext.Provider>
 	);
 };

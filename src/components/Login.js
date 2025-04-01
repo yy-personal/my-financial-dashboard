@@ -1,12 +1,23 @@
 // src/components/Login.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { loginWithEmail } from "../firebase/firebase";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
+	const navigate = useNavigate();
+	const { isAuthenticated } = useAuth();
+
+	// If user is already authenticated, redirect to dashboard
+	useEffect(() => {
+		if (isAuthenticated) {
+			navigate("/");
+		}
+	}, [isAuthenticated, navigate]);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -17,10 +28,13 @@ const Login = () => {
 			const { user, error } = await loginWithEmail(email, password);
 			if (error) {
 				setError(error);
+			} else if (user) {
+				// Successfully logged in, navigate to dashboard
+				navigate("/");
 			}
 		} catch (err) {
 			setError("Failed to login. Please check your credentials.");
-			console.error(err);
+			console.error("Login error:", err);
 		} finally {
 			setIsLoading(false);
 		}
@@ -92,6 +106,14 @@ const Login = () => {
 						>
 							{isLoading ? "Signing in..." : "Sign in"}
 						</button>
+					</div>
+
+					<div className="text-center text-sm">
+						<p>
+							For demo, use: <br />
+							Email: demo@example.com <br />
+							Password: password123
+						</p>
 					</div>
 				</form>
 			</div>
