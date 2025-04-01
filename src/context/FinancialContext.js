@@ -1,10 +1,16 @@
-import React, { createContext, useState, useEffect } from "react";
+// src/context/FinancialContext.js - Updated version with Firebase integration
+import React, { createContext, useState, useEffect, useContext } from "react";
+import { saveFinancialData, loadFinancialData } from "../firebase/firebase";
+import { useAuth } from "./AuthContext";
 
 // Create the context
 export const FinancialContext = createContext();
 
 export const FinancialProvider = ({ children }) => {
-	// Initialize state with default values or load from localStorage
+	const { currentUser } = useAuth();
+	const [isLoading, setIsLoading] = useState(true);
+
+	// Initialize state with default values
 	const initialState = {
 		personalInfo: {
 			birthday: {
@@ -223,34 +229,81 @@ export const FinancialProvider = ({ children }) => {
 		);
 	};
 
-	// Try to load saved data from localStorage
-	const loadSavedData = () => {
+	// Load data from Firebase or localStorage depending on authentication state
+	const loadSavedData = async () => {
 		try {
-			const savedData = localStorage.getItem("financialData");
-			if (savedData) {
-				// Parse the saved data
-				const parsedData = JSON.parse(savedData);
-
-				// Migrate the data if needed
-				const migratedData = migrateData(parsedData);
-
-				return migratedData;
+			// First check if we're authenticated
+			if (currentUser) {
+				// Try to load from Firebase
+				const { data, error } = await loadFinancialData(
+					currentUser.uid
+				);
+				if (data) {
+					return migrateData(data);
+				} else if (error) {
+					console.warn("Error loading from Firebase:", error);
+					// Fall back to localStorage
+					const localData = localStorage.getItem("financialData");
+					if (localData) {
+						const parsedData = JSON.parse(localData);
+						// Save the local data to Firebase for future use
+						await saveFinancialData(currentUser.uid, parsedData);
+						return migrateData(parsedData);
+					}
+				}
+			} else {
+				// Not authenticated, use localStorage
+				const savedData = localStorage.getItem("financialData");
+				if (savedData) {
+					return migrateData(JSON.parse(savedData));
+				}
 			}
+
+			// If nothing found or error occurred, use initialState
 			return initialState;
 		} catch (error) {
 			console.error("Error loading saved data:", error);
 			// Clear potentially corrupted data
 			localStorage.removeItem("financialData");
 			return initialState;
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
-	const [financialData, setFinancialData] = useState(loadSavedData);
+	const [financialData, setFinancialData] = useState(initialState);
 
-	// Save data to localStorage whenever it changes
+	// Load data when component mounts or user changes
 	useEffect(() => {
-		localStorage.setItem("financialData", JSON.stringify(financialData));
-	}, [financialData]);
+		setIsLoading(true);
+		loadSavedData().then((data) => {
+			setFinancialData(data);
+		});
+	}, [currentUser]);
+
+	// Save data whenever it changes
+	useEffect(() => {
+		const saveData = async () => {
+			// Always save to localStorage as a fallback
+			localStorage.setItem(
+				"financialData",
+				JSON.stringify(financialData)
+			);
+
+			// If authenticated, also save to Firebase
+			if (currentUser && !isLoading) {
+				try {
+					await saveFinancialData(currentUser.uid, financialData);
+				} catch (error) {
+					console.error("Error saving to Firebase:", error);
+				}
+			}
+		};
+
+		if (!isLoading) {
+			saveData();
+		}
+	}, [financialData, currentUser, isLoading]);
 
 	// Function to update financial data
 	const updateFinancialData = (newData) => {
@@ -353,6 +406,10 @@ export const FinancialProvider = ({ children }) => {
 	const resetData = () => {
 		localStorage.removeItem("financialData");
 		setFinancialData(initialState);
+
+		if (currentUser) {
+			saveFinancialData(currentUser.uid, initialState);
+		}
 	};
 
 	// Provide the context value
@@ -369,9 +426,15 @@ export const FinancialProvider = ({ children }) => {
 				getMonthName,
 				formatDate,
 				resetData,
+				isLoading,
 			}}
 		>
 			{children}
 		</FinancialContext.Provider>
 	);
+};
+
+// Custom hook to use the financial context
+export const useFinancial = () => {
+	return useContext(FinancialContext);
 };
