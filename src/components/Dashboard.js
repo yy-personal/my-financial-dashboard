@@ -66,10 +66,6 @@ const Dashboard = () => {
 
 		// Parameters
 		let currentSalary = income.currentSalary;
-		const salaryAdjustmentMonth = income.salaryAdjustmentMonth;
-		const salaryAdjustmentYear = income.salaryAdjustmentYear;
-		const newSalary = income.futureSalary;
-
 		const cpfRate = income.cpfRate / 100;
 		const employerCpfRate = income.employerCpfRate / 100;
 		const monthlyExpenses = totalExpenses;
@@ -80,6 +76,24 @@ const Dashboard = () => {
 		// Calculate months
 		let startMonth = personalInfo.projectionStart.month;
 		let startYear = personalInfo.projectionStart.year;
+
+		// Get salary adjustments if available, or create from legacy data
+		const salaryAdjustments = income.salaryAdjustments || [];
+
+		// If using legacy format, convert to array format for compatibility
+		if (!income.salaryAdjustments && income.futureSalary) {
+			salaryAdjustments.push({
+				month: income.salaryAdjustmentMonth,
+				year: income.salaryAdjustmentYear,
+				newSalary: income.futureSalary,
+			});
+		}
+
+		// Sort salary adjustments by date
+		const sortedAdjustments = [...salaryAdjustments].sort((a, b) => {
+			if (a.year !== b.year) return a.year - b.year;
+			return a.month - b.month;
+		});
 
 		// Track milestones
 		let loanPaidOffMonth = null;
@@ -104,12 +118,15 @@ const Dashboard = () => {
 			}
 			const ageStr = `${ageYears}y ${ageMonths}m`;
 
-			// Update salary if adjustment month is reached
-			if (
-				currentMonth === salaryAdjustmentMonth &&
-				currentYear === salaryAdjustmentYear
-			) {
-				currentSalary = newSalary;
+			// Check for salary adjustments
+			for (const adjustment of sortedAdjustments) {
+				if (
+					currentMonth === adjustment.month &&
+					currentYear === adjustment.year
+				) {
+					currentSalary = adjustment.newSalary;
+					break;
+				}
 			}
 
 			// Calculate take-home pay
@@ -513,6 +530,77 @@ const Dashboard = () => {
 									</div>
 								</div>
 
+								{/* Future Salary Adjustments (New) */}
+								{financialData.income.salaryAdjustments &&
+									financialData.income.salaryAdjustments
+										.length > 0 && (
+										<div className="bg-yellow-50 p-3 rounded-lg">
+											<h3 className="font-medium text-yellow-800 mb-2">
+												Future Salary Adjustments
+											</h3>
+											<div className="space-y-1">
+												{financialData.income.salaryAdjustments
+													.sort((a, b) =>
+														a.year !== b.year
+															? a.year - b.year
+															: a.month - b.month
+													)
+													.map(
+														(adjustment, index) => (
+															<InfoItem
+																key={index}
+																label={`From ${getMonthName(
+																	adjustment.month
+																)} ${
+																	adjustment.year
+																}`}
+																value={formatCurrency(
+																	adjustment.newSalary
+																)}
+															/>
+														)
+													)}
+											</div>
+										</div>
+									)}
+
+								{/* Legacy Salary Adjustment (Backward Compatibility) */}
+								{!financialData.income.salaryAdjustments &&
+									financialData.income.futureSalary && (
+										<div className="bg-yellow-50 p-3 rounded-lg">
+											<h3 className="font-medium text-yellow-800 mb-2">
+												Future Salary Adjustment
+											</h3>
+											<div className="space-y-1">
+												<InfoItem
+													label={`From ${getMonthName(
+														financialData.income
+															.salaryAdjustmentMonth
+													)} ${
+														financialData.income
+															.salaryAdjustmentYear
+													}`}
+													value={formatCurrency(
+														financialData.income
+															.futureSalary
+													)}
+												/>
+												<InfoItem
+													label="Estimated Take-Home After Adjustment"
+													value={formatCurrency(
+														financialData.income
+															.futureSalary *
+															(1 -
+																financialData
+																	.income
+																	.cpfRate /
+																	100)
+													)}
+												/>
+											</div>
+										</div>
+									)}
+
 								{/* Expense Breakdown */}
 								<div className="bg-red-50 p-3 rounded-lg">
 									<h3 className="font-medium text-red-800 mb-2">
@@ -576,39 +664,6 @@ const Dashboard = () => {
 										<InfoItem
 											label="Cash Savings Rate (% of Take-Home)"
 											value={formatPercent(savingsRate)}
-										/>
-									</div>
-								</div>
-
-								{/* Future Salary Adjustment */}
-								<div className="bg-purple-50 p-3 rounded-lg">
-									<h3 className="font-medium text-purple-800 mb-2">
-										Future Income
-									</h3>
-									<div className="space-y-1">
-										<InfoItem
-											label={`Salary After ${getMonthName(
-												financialData.income
-													.salaryAdjustmentMonth
-											)} ${
-												financialData.income
-													.salaryAdjustmentYear
-											}`}
-											value={formatCurrency(
-												financialData.income
-													.futureSalary
-											)}
-										/>
-										<InfoItem
-											label="Estimated Take-Home After Adjustment"
-											value={formatCurrency(
-												financialData.income
-													.futureSalary *
-													(1 -
-														financialData.income
-															.cpfRate /
-															100)
-											)}
 										/>
 									</div>
 								</div>
@@ -798,19 +853,9 @@ const Dashboard = () => {
 									></path>
 								</svg>
 								<span>
-									After your salary adjustment in{" "}
-									<strong>
-										{getMonthName(
-											financialData.income
-												.salaryAdjustmentMonth
-										)}{" "}
-										{
-											financialData.income
-												.salaryAdjustmentYear
-										}
-									</strong>
-									, consider increasing your loan payment to
-									accelerate debt repayment
+									After your salary adjustments, consider
+									increasing your loan payment to accelerate
+									debt repayment
 								</span>
 							</li>
 							<li className="flex items-start">
@@ -1605,7 +1650,7 @@ const Dashboard = () => {
 								</thead>
 								<tbody className="bg-white divide-y divide-gray-200">
 									{projection
-										.slice(0, 24)
+										.slice(0, 60) // Show all 60 months of projection
 										.map((month, index) => (
 											<tr
 												key={index}

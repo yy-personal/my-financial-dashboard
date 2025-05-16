@@ -14,38 +14,82 @@ const EditParameters = () => {
 
 	const navigate = useNavigate();
 
+	// Use useRef to keep track of next id for salary adjustments
+	const nextSalaryAdjustmentId = useRef(1);
+
+	// Initialize formData with proper structure for salary adjustments
+	const initializeFormData = () => {
+		// Check if there are salary adjustments in the context
+		const salaryAdjustments = financialData.income.salaryAdjustments || [];
+
+		// If no salary adjustments but there's the old format data, migrate it
+		if (
+			salaryAdjustments.length === 0 &&
+			financialData.income.futureSalary
+		) {
+			salaryAdjustments.push({
+				id: nextSalaryAdjustmentId.current++,
+				month: financialData.income.salaryAdjustmentMonth || 1,
+				year:
+					financialData.income.salaryAdjustmentYear ||
+					new Date().getFullYear() + 1,
+				newSalary: financialData.income.futureSalary,
+			});
+		}
+
+		// Find the largest ID to update the ref
+		if (salaryAdjustments.length > 0) {
+			const maxId = Math.max(...salaryAdjustments.map((adj) => adj.id));
+			nextSalaryAdjustmentId.current = maxId + 1;
+		}
+
+		return {
+			personalInfo: {
+				...financialData.personalInfo,
+				currentSavings: String(
+					financialData.personalInfo.currentSavings
+				),
+				currentCpfBalance: String(
+					financialData.personalInfo.currentCpfBalance || 0
+				),
+				remainingLoan: String(financialData.personalInfo.remainingLoan),
+				interestRate: String(financialData.personalInfo.interestRate),
+				monthlyRepayment: String(
+					financialData.personalInfo.monthlyRepayment
+				),
+				birthday: { ...financialData.personalInfo.birthday },
+				employmentStart: {
+					...financialData.personalInfo.employmentStart,
+				},
+				projectionStart: {
+					...financialData.personalInfo.projectionStart,
+				},
+			},
+			income: {
+				...financialData.income,
+				currentSalary: String(financialData.income.currentSalary),
+				cpfRate: String(financialData.income.cpfRate),
+				employerCpfRate: String(financialData.income.employerCpfRate),
+				salaryAdjustments: salaryAdjustments.map((adj) => ({
+					...adj,
+					newSalary: String(adj.newSalary),
+				})),
+			},
+			expenses: financialData.expenses.map((expense) => ({
+				...expense,
+				amount: String(expense.amount),
+			})),
+			newExpense: { name: "", amount: "" },
+			newSalaryAdjustment: {
+				month: new Date().getMonth() + 1,
+				year: new Date().getFullYear() + 1,
+				newSalary: "",
+			},
+		};
+	};
+
 	// Use a single state object for all form data to prevent re-renders
-	const [formData, setFormData] = useState({
-		personalInfo: {
-			...financialData.personalInfo,
-			currentSavings: String(financialData.personalInfo.currentSavings),
-			currentCpfBalance: String(
-				financialData.personalInfo.currentCpfBalance || 0
-			),
-			remainingLoan: String(financialData.personalInfo.remainingLoan),
-			interestRate: String(financialData.personalInfo.interestRate),
-			monthlyRepayment: String(
-				financialData.personalInfo.monthlyRepayment
-			),
-			birthday: { ...financialData.personalInfo.birthday },
-			employmentStart: { ...financialData.personalInfo.employmentStart },
-			projectionStart: { ...financialData.personalInfo.projectionStart },
-		},
-		income: {
-			...financialData.income,
-			currentSalary: String(financialData.income.currentSalary),
-			futureSalary: String(financialData.income.futureSalary),
-			cpfRate: String(financialData.income.cpfRate),
-			employerCpfRate: String(financialData.income.employerCpfRate),
-			salaryAdjustmentMonth: financialData.income.salaryAdjustmentMonth,
-			salaryAdjustmentYear: financialData.income.salaryAdjustmentYear,
-		},
-		expenses: financialData.expenses.map((expense) => ({
-			...expense,
-			amount: String(expense.amount),
-		})),
-		newExpense: { name: "", amount: "" },
-	});
+	const [formData, setFormData] = useState(initializeFormData);
 
 	// State for active section (for mobile accordion view)
 	const [activeSection, setActiveSection] = useState("personal");
@@ -68,64 +112,142 @@ const EditParameters = () => {
 		label: getMonthName(i + 1),
 	}));
 
-	// Handle form field changes using a unified approach
-	const handleInputChange = (section, field, value) => {
-		setFormData((prevData) => ({
-			...prevData,
-			[section]: {
-				...prevData[section],
-				[field]: value,
-			},
-		}));
+	// Direct input change handler with optimized focus retention
+	const handleDirectInputChange = (e) => {
+		const { name, value } = e.target;
+		const [section, field] = name.split(".");
+
+		if (section && field) {
+			setFormData((prevData) => {
+				// Create a deep copy to avoid unintended references
+				const newData = JSON.parse(JSON.stringify(prevData));
+				// Update only the specific field that changed
+				newData[section][field] = value;
+				return newData;
+			});
+		}
 	};
 
 	// Handle nested date changes (birthday, employmentStart, projectionStart)
 	const handleDateChange = (dateType, field, value) => {
-		setFormData((prevData) => ({
-			...prevData,
-			personalInfo: {
-				...prevData.personalInfo,
+		setFormData((prevData) => {
+			const newData = { ...prevData };
+			newData.personalInfo = {
+				...newData.personalInfo,
 				[dateType]: {
-					...prevData.personalInfo[dateType],
+					...newData.personalInfo[dateType],
 					[field]: parseInt(value) || 0,
 				},
-			},
-		}));
+			};
+			return newData;
+		});
 	};
 
 	// Handle expense field changes
 	const handleExpenseChange = (index, field, value) => {
 		setFormData((prevData) => {
-			const updatedExpenses = [...prevData.expenses];
+			const newData = { ...prevData };
+			const updatedExpenses = [...newData.expenses];
 			updatedExpenses[index] = {
 				...updatedExpenses[index],
 				[field]: value,
 			};
-			return {
-				...prevData,
-				expenses: updatedExpenses,
+			newData.expenses = updatedExpenses;
+			return newData;
+		});
+	};
+
+	// Handle salary adjustment field changes
+	const handleSalaryAdjustmentChange = (index, field, value) => {
+		setFormData((prevData) => {
+			const newData = { ...prevData };
+			const updatedAdjustments = [...newData.income.salaryAdjustments];
+			updatedAdjustments[index] = {
+				...updatedAdjustments[index],
+				[field]: value,
 			};
+			newData.income.salaryAdjustments = updatedAdjustments;
+			return newData;
+		});
+	};
+
+	// Handle changes to new salary adjustment form
+	const handleNewSalaryAdjustmentChange = (field, value) => {
+		setFormData((prevData) => {
+			const newData = { ...prevData };
+			newData.newSalaryAdjustment = {
+				...newData.newSalaryAdjustment,
+				[field]: value,
+			};
+			return newData;
+		});
+	};
+
+	// Handle adding a new salary adjustment
+	const handleAddSalaryAdjustment = (e) => {
+		e.preventDefault();
+
+		const { month, year, newSalary } = formData.newSalaryAdjustment;
+
+		if (newSalary) {
+			const newAdjustment = {
+				id: nextSalaryAdjustmentId.current++,
+				month: parseInt(month),
+				year: parseInt(year),
+				newSalary: newSalary,
+			};
+
+			setFormData((prevData) => {
+				const newData = { ...prevData };
+				newData.income.salaryAdjustments = [
+					...newData.income.salaryAdjustments,
+					newAdjustment,
+				];
+				// Reset the new adjustment form
+				newData.newSalaryAdjustment = {
+					month: new Date().getMonth() + 1,
+					year: new Date().getFullYear() + 1,
+					newSalary: "",
+				};
+				return newData;
+			});
+		}
+	};
+
+	// Handle removing a salary adjustment
+	const handleRemoveSalaryAdjustment = (id) => {
+		setFormData((prevData) => {
+			const newData = { ...prevData };
+			newData.income.salaryAdjustments =
+				newData.income.salaryAdjustments.filter(
+					(adjustment) => adjustment.id !== id
+				);
+			return newData;
 		});
 	};
 
 	// Handle removing an expense
 	const handleRemoveExpense = (id) => {
-		setFormData((prevData) => ({
-			...prevData,
-			expenses: prevData.expenses.filter((expense) => expense.id !== id),
-		}));
+		setFormData((prevData) => {
+			const newData = { ...prevData };
+			newData.expenses = newData.expenses.filter(
+				(expense) => expense.id !== id
+			);
+			return newData;
+		});
 	};
 
 	// Handle new expense input changes
 	const handleNewExpenseChange = (e) => {
 		const { name, value } = e.target;
-		setFormData((prevData) => ({
-			...prevData,
-			newExpense: {
-				...prevData.newExpense,
+		setFormData((prevData) => {
+			const newData = { ...prevData };
+			newData.newExpense = {
+				...newData.newExpense,
 				[name]: value,
-			},
-		}));
+			};
+			return newData;
+		});
 	};
 
 	// Handle adding a new expense
@@ -138,11 +260,12 @@ const EditParameters = () => {
 				amount: formData.newExpense.amount,
 			};
 
-			setFormData((prevData) => ({
-				...prevData,
-				expenses: [...prevData.expenses, newExpenseItem],
-				newExpense: { name: "", amount: "" },
-			}));
+			setFormData((prevData) => {
+				const newData = { ...prevData };
+				newData.expenses = [...newData.expenses, newExpenseItem];
+				newData.newExpense = { name: "", amount: "" };
+				return newData;
+			});
 		}
 	};
 
@@ -168,10 +291,16 @@ const EditParameters = () => {
 			income: {
 				...formData.income,
 				currentSalary: parseFloat(formData.income.currentSalary) || 0,
-				futureSalary: parseFloat(formData.income.futureSalary) || 0,
 				cpfRate: parseFloat(formData.income.cpfRate) || 0,
 				employerCpfRate:
 					parseFloat(formData.income.employerCpfRate) || 0,
+				// Process salary adjustments
+				salaryAdjustments: formData.income.salaryAdjustments.map(
+					(adj) => ({
+						...adj,
+						newSalary: parseFloat(adj.newSalary) || 0,
+					})
+				),
 			},
 		};
 
@@ -190,7 +319,7 @@ const EditParameters = () => {
 		navigate("/");
 	};
 
-	// Create a modern form input component
+	// Create a modern form input component with better focus handling
 	const FormInput = ({
 		label,
 		id,
@@ -202,39 +331,45 @@ const EditParameters = () => {
 		prefix = "",
 		suffix = "",
 		className = "",
-	}) => (
-		<div className={`mb-4 ${className}`}>
-			<label
-				htmlFor={id}
-				className="block text-gray-700 font-medium mb-2"
-			>
-				{label}
-			</label>
-			<div className="relative">
-				{prefix && (
-					<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-						<span className="text-gray-500">{prefix}</span>
-					</div>
-				)}
-				<input
-					type={type}
-					id={id}
-					name={name}
-					value={value}
-					onChange={onChange}
-					placeholder={placeholder}
-					className={`w-full px-3 py-2 ${prefix ? "pl-8" : ""} ${
-						suffix ? "pr-8" : ""
-					} border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
-				/>
-				{suffix && (
-					<div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-						<span className="text-gray-500">{suffix}</span>
-					</div>
-				)}
+	}) => {
+		// Create a unique stable key for this input
+		const inputKey = `${id}-${name}`;
+
+		return (
+			<div className={`mb-4 ${className}`}>
+				<label
+					htmlFor={id}
+					className="block text-gray-700 font-medium mb-2"
+				>
+					{label}
+				</label>
+				<div className="relative">
+					{prefix && (
+						<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+							<span className="text-gray-500">{prefix}</span>
+						</div>
+					)}
+					<input
+						key={inputKey}
+						type={type}
+						id={id}
+						name={name}
+						value={value}
+						onChange={onChange}
+						placeholder={placeholder}
+						className={`w-full px-3 py-2 ${prefix ? "pl-8" : ""} ${
+							suffix ? "pr-8" : ""
+						} border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+					/>
+					{suffix && (
+						<div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+							<span className="text-gray-500">{suffix}</span>
+						</div>
+					)}
+				</div>
 			</div>
-		</div>
-	);
+		);
+	};
 
 	// Create a date dropdown component
 	const DateDropdowns = ({ dateType, label, className = "" }) => (
@@ -373,67 +508,122 @@ const EditParameters = () => {
 									label="Projection Start"
 								/>
 
-								<FormInput
-									label="Current Savings (SGD)"
-									id="currentSavings"
-									name="currentSavings"
-									value={formData.personalInfo.currentSavings}
-									onChange={(e) =>
-										handleInputChange(
-											"personalInfo",
-											"currentSavings",
-											e.target.value
-										)
-									}
-									prefix="$"
-								/>
+								{/* Personal Information inputs - Simple version like expenses */}
+								<div className="mb-4">
+									<label className="block text-gray-700 font-medium mb-2">
+										Current Savings (SGD)
+									</label>
+									<div className="relative">
+										<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+											<span className="text-gray-500">
+												$
+											</span>
+										</div>
+										<input
+											type="text"
+											value={
+												formData.personalInfo
+													.currentSavings
+											}
+											onChange={(e) => {
+												const updatedData = {
+													...formData,
+												};
+												updatedData.personalInfo.currentSavings =
+													e.target.value;
+												setFormData(updatedData);
+											}}
+											className="w-full pl-8 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+										/>
+									</div>
+								</div>
 
-								<FormInput
-									label="Remaining Loan (SGD)"
-									id="remainingLoan"
-									name="remainingLoan"
-									value={formData.personalInfo.remainingLoan}
-									onChange={(e) =>
-										handleInputChange(
-											"personalInfo",
-											"remainingLoan",
-											e.target.value
-										)
-									}
-									prefix="$"
-								/>
+								<div className="mb-4">
+									<label className="block text-gray-700 font-medium mb-2">
+										Remaining Loan (SGD)
+									</label>
+									<div className="relative">
+										<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+											<span className="text-gray-500">
+												$
+											</span>
+										</div>
+										<input
+											type="text"
+											value={
+												formData.personalInfo
+													.remainingLoan
+											}
+											onChange={(e) => {
+												const updatedData = {
+													...formData,
+												};
+												updatedData.personalInfo.remainingLoan =
+													e.target.value;
+												setFormData(updatedData);
+											}}
+											className="w-full pl-8 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+										/>
+									</div>
+								</div>
 
-								<FormInput
-									label="Loan Interest Rate (%)"
-									id="interestRate"
-									name="interestRate"
-									value={formData.personalInfo.interestRate}
-									onChange={(e) =>
-										handleInputChange(
-											"personalInfo",
-											"interestRate",
-											e.target.value
-										)
-									}
-									suffix="%"
-								/>
+								<div className="mb-4">
+									<label className="block text-gray-700 font-medium mb-2">
+										Loan Interest Rate (%)
+									</label>
+									<div className="relative">
+										<input
+											type="text"
+											value={
+												formData.personalInfo
+													.interestRate
+											}
+											onChange={(e) => {
+												const updatedData = {
+													...formData,
+												};
+												updatedData.personalInfo.interestRate =
+													e.target.value;
+												setFormData(updatedData);
+											}}
+											className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+										/>
+										<div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+											<span className="text-gray-500">
+												%
+											</span>
+										</div>
+									</div>
+								</div>
 
-								<FormInput
-									label="Monthly Loan Repayment (SGD)"
-									id="monthlyRepayment"
-									name="monthlyRepayment"
-									value={
-										formData.personalInfo.monthlyRepayment
-									}
-									onChange={(e) =>
-										handleInputChange(
-											"personalInfo",
-											"monthlyRepayment",
-											e.target.value
-										)
-									}
-									prefix="$"
-								/>
+								<div className="mb-4">
+									<label className="block text-gray-700 font-medium mb-2">
+										Monthly Loan Repayment (SGD)
+									</label>
+									<div className="relative">
+										<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+											<span className="text-gray-500">
+												$
+											</span>
+										</div>
+										<input
+											type="text"
+											value={
+												formData.personalInfo
+													.monthlyRepayment
+											}
+											onChange={(e) => {
+												const updatedData = {
+													...formData,
+												};
+												updatedData.personalInfo.monthlyRepayment =
+													e.target.value;
+												setFormData(updatedData);
+											}}
+											className="w-full pl-8 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+										/>
+									</div>
+								</div>
 							</div>
 						</div>
 					)}
@@ -469,99 +659,328 @@ const EditParameters = () => {
 									Income Information
 								</h3>
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<FormInput
-										label="Current Monthly Salary (SGD)"
-										id="currentSalary"
-										name="currentSalary"
-										value={formData.income.currentSalary}
-										onChange={(e) =>
-											handleInputChange(
-												"income",
-												"currentSalary",
-												e.target.value
-											)
-										}
-										prefix="$"
-									/>
-
-									<FormInput
-										label="Future Monthly Salary (SGD)"
-										id="futureSalary"
-										name="futureSalary"
-										value={formData.income.futureSalary}
-										onChange={(e) =>
-											handleInputChange(
-												"income",
-												"futureSalary",
-												e.target.value
-											)
-										}
-										prefix="$"
-									/>
-
+									{/* Current Monthly Salary input - simple version */}
 									<div className="mb-4">
-										<label
-											htmlFor="salaryAdjustmentMonth"
-											className="block text-gray-700 font-medium mb-2"
-										>
-											Salary Adjustment Month
+										<label className="block text-gray-700 font-medium mb-2">
+											Current Monthly Salary (SGD)
 										</label>
-										<select
-											id="salaryAdjustmentMonth"
-											name="salaryAdjustmentMonth"
-											value={
-												formData.income
-													.salaryAdjustmentMonth
-											}
-											onChange={(e) =>
-												handleInputChange(
-													"income",
-													"salaryAdjustmentMonth",
-													parseInt(e.target.value)
-												)
-											}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-										>
-											{monthOptions.map((month) => (
-												<option
-													key={month.value}
-													value={month.value}
-												>
-													{month.label}
-												</option>
-											))}
-										</select>
+										<div className="relative">
+											<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+												<span className="text-gray-500">
+													$
+												</span>
+											</div>
+											<input
+												type="text"
+												value={
+													formData.income
+														.currentSalary
+												}
+												onChange={(e) => {
+													const updatedData = {
+														...formData,
+													};
+													updatedData.income.currentSalary =
+														e.target.value;
+													setFormData(updatedData);
+												}}
+												className="w-full pl-8 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+											/>
+										</div>
 									</div>
 
-									<div className="mb-4">
-										<label
-											htmlFor="salaryAdjustmentYear"
-											className="block text-gray-700 font-medium mb-2"
-										>
-											Salary Adjustment Year
-										</label>
-										<select
-											id="salaryAdjustmentYear"
-											name="salaryAdjustmentYear"
-											value={
-												formData.income
-													.salaryAdjustmentYear
-											}
-											onChange={(e) =>
-												handleInputChange(
-													"income",
-													"salaryAdjustmentYear",
-													parseInt(e.target.value)
-												)
-											}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-										>
-											{yearOptions.map((year) => (
-												<option key={year} value={year}>
-													{year}
-												</option>
-											))}
-										</select>
+									{/* Salary Adjustments Section */}
+									<div className="md:col-span-2 mt-4">
+										<h4 className="font-medium text-blue-700 mb-3">
+											Future Salary Adjustments
+										</h4>
+
+										{/* Existing Salary Adjustments */}
+										{formData.income.salaryAdjustments &&
+										formData.income.salaryAdjustments
+											.length > 0 ? (
+											<div className="mb-4 overflow-x-auto">
+												<table className="w-full border-collapse">
+													<thead>
+														<tr className="bg-gray-50">
+															<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+																Date
+															</th>
+															<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+																New Salary (SGD)
+															</th>
+															<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+																Actions
+															</th>
+														</tr>
+													</thead>
+													<tbody className="bg-white divide-y divide-gray-200">
+														{formData.income.salaryAdjustments.map(
+															(
+																adjustment,
+																index
+															) => (
+																<tr
+																	key={
+																		adjustment.id
+																	}
+																	className="hover:bg-gray-50"
+																>
+																	<td className="px-4 py-2">
+																		<div className="flex space-x-2">
+																			<select
+																				value={
+																					adjustment.month
+																				}
+																				onChange={(
+																					e
+																				) =>
+																					handleSalaryAdjustmentChange(
+																						index,
+																						"month",
+																						parseInt(
+																							e
+																								.target
+																								.value
+																						)
+																					)
+																				}
+																				className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+																			>
+																				{monthOptions.map(
+																					(
+																						month
+																					) => (
+																						<option
+																							key={
+																								month.value
+																							}
+																							value={
+																								month.value
+																							}
+																						>
+																							{
+																								month.label
+																							}
+																						</option>
+																					)
+																				)}
+																			</select>
+																			<select
+																				value={
+																					adjustment.year
+																				}
+																				onChange={(
+																					e
+																				) =>
+																					handleSalaryAdjustmentChange(
+																						index,
+																						"year",
+																						parseInt(
+																							e
+																								.target
+																								.value
+																						)
+																					)
+																				}
+																				className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+																			>
+																				{yearOptions.map(
+																					(
+																						year
+																					) => (
+																						<option
+																							key={
+																								year
+																							}
+																							value={
+																								year
+																							}
+																						>
+																							{
+																								year
+																							}
+																						</option>
+																					)
+																				)}
+																			</select>
+																		</div>
+																	</td>
+																	<td className="px-4 py-2 whitespace-nowrap">
+																		<div className="relative">
+																			<div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+																				<span className="text-gray-500">
+																					$
+																				</span>
+																			</div>
+																			<input
+																				type="text"
+																				value={
+																					adjustment.newSalary
+																				}
+																				onChange={(
+																					e
+																				) =>
+																					handleSalaryAdjustmentChange(
+																						index,
+																						"newSalary",
+																						e
+																							.target
+																							.value
+																					)
+																				}
+																				className="w-full pl-6 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+																			/>
+																		</div>
+																	</td>
+																	<td className="px-4 py-2">
+																		<button
+																			type="button"
+																			onClick={() =>
+																				handleRemoveSalaryAdjustment(
+																					adjustment.id
+																				)
+																			}
+																			className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+																		>
+																			<span className="md:hidden">
+																				✕
+																			</span>
+																			<span className="hidden md:inline">
+																				Remove
+																			</span>
+																		</button>
+																	</td>
+																</tr>
+															)
+														)}
+													</tbody>
+												</table>
+											</div>
+										) : (
+											<p className="text-sm text-gray-600 mb-4">
+												No future salary adjustments
+												added yet.
+											</p>
+										)}
+
+										{/* Add New Salary Adjustment */}
+										<div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+											<h5 className="font-medium text-gray-700 mb-3">
+												Add New Salary Adjustment
+											</h5>
+											<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+												<div className="grid grid-cols-2 gap-2 md:col-span-2">
+													<select
+														value={
+															formData
+																.newSalaryAdjustment
+																.month
+														}
+														onChange={(e) =>
+															handleNewSalaryAdjustmentChange(
+																"month",
+																parseInt(
+																	e.target
+																		.value
+																)
+															)
+														}
+														className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+													>
+														{monthOptions.map(
+															(month) => (
+																<option
+																	key={
+																		month.value
+																	}
+																	value={
+																		month.value
+																	}
+																>
+																	{
+																		month.label
+																	}
+																</option>
+															)
+														)}
+													</select>
+													<select
+														value={
+															formData
+																.newSalaryAdjustment
+																.year
+														}
+														onChange={(e) =>
+															handleNewSalaryAdjustmentChange(
+																"year",
+																parseInt(
+																	e.target
+																		.value
+																)
+															)
+														}
+														className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+													>
+														{yearOptions.map(
+															(year) => (
+																<option
+																	key={year}
+																	value={year}
+																>
+																	{year}
+																</option>
+															)
+														)}
+													</select>
+												</div>
+												<div className="relative">
+													<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+														<span className="text-gray-500">
+															$
+														</span>
+													</div>
+													<input
+														type="text"
+														placeholder="New Salary"
+														value={
+															formData
+																.newSalaryAdjustment
+																.newSalary
+														}
+														onChange={(e) =>
+															handleNewSalaryAdjustmentChange(
+																"newSalary",
+																e.target.value
+															)
+														}
+														className="pl-8 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+													/>
+												</div>
+												<button
+													type="button"
+													onClick={
+														handleAddSalaryAdjustment
+													}
+													className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center justify-center md:col-span-3"
+												>
+													<svg
+														className="w-4 h-4 mr-1"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 24 24"
+													>
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															strokeWidth="2"
+															d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+														/>
+													</svg>
+													Add Salary Adjustment
+												</button>
+											</div>
+										</div>
 									</div>
 								</div>
 							</div>
@@ -613,43 +1032,53 @@ const EditParameters = () => {
 								</div>
 
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<FormInput
-										label="Current CPF Balance (SGD)"
-										id="currentCpfBalance"
-										name="currentCpfBalance"
-										value={
-											formData.personalInfo
-												.currentCpfBalance
-										}
-										onChange={(e) =>
-											handleInputChange(
-												"personalInfo",
-												"currentCpfBalance",
-												e.target.value
-											)
-										}
-										prefix="$"
-									/>
+									{/* Current CPF Balance input - simple version */}
+									<div className="mb-4">
+										<label className="block text-gray-700 font-medium mb-2">
+											Current CPF Balance (SGD)
+										</label>
+										<div className="relative">
+											<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+												<span className="text-gray-500">
+													$
+												</span>
+											</div>
+											<input
+												type="text"
+												value={
+													formData.personalInfo
+														.currentCpfBalance
+												}
+												onChange={(e) => {
+													const updatedData = {
+														...formData,
+													};
+													updatedData.personalInfo.currentCpfBalance =
+														e.target.value;
+													setFormData(updatedData);
+												}}
+												className="w-full pl-8 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+											/>
+										</div>
+									</div>
 
 									<div className="mb-4">
-										<label
-											htmlFor="monthlyCPFContribution"
-											className="block text-gray-700 font-medium mb-2"
-										>
+										{/* CPF Rate input - simple version */}
+										<label className="block text-gray-700 font-medium mb-2">
 											Your Monthly CPF Contribution (%)
 										</label>
 										<div className="relative">
 											<input
 												type="text"
-												id="monthlyCPFContribution"
 												value={formData.income.cpfRate}
-												onChange={(e) =>
-													handleInputChange(
-														"income",
-														"cpfRate",
-														e.target.value
-													)
-												}
+												onChange={(e) => {
+													const updatedData = {
+														...formData,
+													};
+													updatedData.income.cpfRate =
+														e.target.value;
+													setFormData(updatedData);
+												}}
 												className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 											/>
 											<div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -665,27 +1094,25 @@ const EditParameters = () => {
 									</div>
 
 									<div className="mb-4">
-										<label
-											htmlFor="employerCPFContribution"
-											className="block text-gray-700 font-medium mb-2"
-										>
+										{/* Employer CPF Rate input - simple version */}
+										<label className="block text-gray-700 font-medium mb-2">
 											Employer CPF Contribution (%)
 										</label>
 										<div className="relative">
 											<input
 												type="text"
-												id="employerCPFContribution"
 												value={
 													formData.income
 														.employerCpfRate
 												}
-												onChange={(e) =>
-													handleInputChange(
-														"income",
-														"employerCpfRate",
-														e.target.value
-													)
-												}
+												onChange={(e) => {
+													const updatedData = {
+														...formData,
+													};
+													updatedData.income.employerCpfRate =
+														e.target.value;
+													setFormData(updatedData);
+												}}
 												className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 											/>
 											<div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
