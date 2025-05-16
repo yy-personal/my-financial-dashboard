@@ -1,4 +1,4 @@
-import React, { useContext, useState, useRef } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import { FinancialContext } from "../context/FinancialContext";
 import { useNavigate } from "react-router-dom";
 
@@ -14,60 +14,38 @@ const EditParameters = () => {
 
 	const navigate = useNavigate();
 
-	// Create a local state copy for ALL expenses to prevent focus issues
-	const [expenses, setExpenses] = useState(
-		financialData.expenses.map((expense) => ({
+	// Use a single state object for all form data to prevent re-renders
+	const [formData, setFormData] = useState({
+		personalInfo: {
+			...financialData.personalInfo,
+			currentSavings: String(financialData.personalInfo.currentSavings),
+			currentCpfBalance: String(
+				financialData.personalInfo.currentCpfBalance || 0
+			),
+			remainingLoan: String(financialData.personalInfo.remainingLoan),
+			interestRate: String(financialData.personalInfo.interestRate),
+			monthlyRepayment: String(
+				financialData.personalInfo.monthlyRepayment
+			),
+			birthday: { ...financialData.personalInfo.birthday },
+			employmentStart: { ...financialData.personalInfo.employmentStart },
+			projectionStart: { ...financialData.personalInfo.projectionStart },
+		},
+		income: {
+			...financialData.income,
+			currentSalary: String(financialData.income.currentSalary),
+			futureSalary: String(financialData.income.futureSalary),
+			cpfRate: String(financialData.income.cpfRate),
+			employerCpfRate: String(financialData.income.employerCpfRate),
+			salaryAdjustmentMonth: financialData.income.salaryAdjustmentMonth,
+			salaryAdjustmentYear: financialData.income.salaryAdjustmentYear,
+		},
+		expenses: financialData.expenses.map((expense) => ({
 			...expense,
 			amount: String(expense.amount),
-		}))
-	);
-
-	// Create separate state variables for personal info fields to maintain focus
-	const [currentSavings, setCurrentSavings] = useState(
-		String(financialData.personalInfo.currentSavings)
-	);
-	const [currentCpfBalance, setCurrentCpfBalance] = useState(
-		String(financialData.personalInfo.currentCpfBalance || 0)
-	);
-	const [remainingLoan, setRemainingLoan] = useState(
-		String(financialData.personalInfo.remainingLoan)
-	);
-	const [interestRate, setInterestRate] = useState(
-		String(financialData.personalInfo.interestRate)
-	);
-	const [monthlyRepayment, setMonthlyRepayment] = useState(
-		String(financialData.personalInfo.monthlyRepayment)
-	);
-
-	// Create separate state variables for income fields to maintain focus
-	const [currentSalary, setCurrentSalary] = useState(
-		String(financialData.income.currentSalary)
-	);
-	const [futureSalary, setFutureSalary] = useState(
-		String(financialData.income.futureSalary)
-	);
-	const [cpfRate, setCpfRate] = useState(
-		String(financialData.income.cpfRate)
-	);
-	const [employerCpfRate, setEmployerCpfRate] = useState(
-		String(financialData.income.employerCpfRate)
-	);
-	const [salaryAdjustmentMonth, setSalaryAdjustmentMonth] = useState(
-		financialData.income.salaryAdjustmentMonth
-	);
-	const [salaryAdjustmentYear, setSalaryAdjustmentYear] = useState(
-		financialData.income.salaryAdjustmentYear
-	);
-
-	// Create a local form state for date fields only (which don't have focus issues)
-	const [dateFields, setDateFields] = useState({
-		birthday: { ...financialData.personalInfo.birthday },
-		employmentStart: { ...financialData.personalInfo.employmentStart },
-		projectionStart: { ...financialData.personalInfo.projectionStart },
+		})),
+		newExpense: { name: "", amount: "" },
 	});
-
-	// State for new expense
-	const [newExpense, setNewExpense] = useState({ name: "", amount: "" });
 
 	// State for active section (for mobile accordion view)
 	const [activeSection, setActiveSection] = useState("personal");
@@ -90,63 +68,82 @@ const EditParameters = () => {
 		label: getMonthName(i + 1),
 	}));
 
-	// Handle date changes (birthday, employmentStart, projectionStart)
-	const handleDateChange = (dateType, field, value) => {
-		setDateFields((prev) => ({
-			...prev,
-			[dateType]: {
-				...prev[dateType],
-				[field]: parseInt(value) || 0,
+	// Handle form field changes using a unified approach
+	const handleInputChange = (section, field, value) => {
+		setFormData((prevData) => ({
+			...prevData,
+			[section]: {
+				...prevData[section],
+				[field]: value,
 			},
 		}));
 	};
 
-	// Handle select dropdown changes for income - no focus issues with selects
-	const handleSalaryAdjustmentChange = (e) => {
-		const { name, value } = e.target;
-		if (name === "salaryAdjustmentMonth") {
-			setSalaryAdjustmentMonth(parseInt(value));
-		} else if (name === "salaryAdjustmentYear") {
-			setSalaryAdjustmentYear(parseInt(value));
-		}
+	// Handle nested date changes (birthday, employmentStart, projectionStart)
+	const handleDateChange = (dateType, field, value) => {
+		setFormData((prevData) => ({
+			...prevData,
+			personalInfo: {
+				...prevData.personalInfo,
+				[dateType]: {
+					...prevData.personalInfo[dateType],
+					[field]: parseInt(value) || 0,
+				},
+			},
+		}));
 	};
 
 	// Handle expense field changes
 	const handleExpenseChange = (index, field, value) => {
-		const updatedExpenses = [...expenses];
-		updatedExpenses[index] = {
-			...updatedExpenses[index],
-			[field]: value,
-		};
-		setExpenses(updatedExpenses);
+		setFormData((prevData) => {
+			const updatedExpenses = [...prevData.expenses];
+			updatedExpenses[index] = {
+				...updatedExpenses[index],
+				[field]: value,
+			};
+			return {
+				...prevData,
+				expenses: updatedExpenses,
+			};
+		});
 	};
 
 	// Handle removing an expense
 	const handleRemoveExpense = (id) => {
-		setExpenses(expenses.filter((expense) => expense.id !== id));
-	};
-
-	// Handle adding a new expense
-	const handleAddExpense = (e) => {
-		e.preventDefault();
-		if (newExpense.name.trim() && newExpense.amount) {
-			const newExpenseItem = {
-				id: Date.now(), // Use timestamp as a unique identifier
-				name: newExpense.name.trim(),
-				amount: newExpense.amount,
-			};
-			setExpenses([...expenses, newExpenseItem]);
-			setNewExpense({ name: "", amount: "" });
-		}
+		setFormData((prevData) => ({
+			...prevData,
+			expenses: prevData.expenses.filter((expense) => expense.id !== id),
+		}));
 	};
 
 	// Handle new expense input changes
 	const handleNewExpenseChange = (e) => {
 		const { name, value } = e.target;
-		setNewExpense((prev) => ({
-			...prev,
-			[name]: value,
+		setFormData((prevData) => ({
+			...prevData,
+			newExpense: {
+				...prevData.newExpense,
+				[name]: value,
+			},
 		}));
+	};
+
+	// Handle adding a new expense
+	const handleAddExpense = (e) => {
+		e.preventDefault();
+		if (formData.newExpense.name.trim() && formData.newExpense.amount) {
+			const newExpenseItem = {
+				id: Date.now(), // Use timestamp as a unique identifier
+				name: formData.newExpense.name.trim(),
+				amount: formData.newExpense.amount,
+			};
+
+			setFormData((prevData) => ({
+				...prevData,
+				expenses: [...prevData.expenses, newExpenseItem],
+				newExpense: { name: "", amount: "" },
+			}));
+		}
 	};
 
 	// Handle form submission
@@ -156,29 +153,30 @@ const EditParameters = () => {
 		// Reconstruct the data structure expected by the context
 		const processedData = {
 			personalInfo: {
-				...financialData.personalInfo,
-				birthday: dateFields.birthday,
-				employmentStart: dateFields.employmentStart,
-				projectionStart: dateFields.projectionStart,
-				currentSavings: parseFloat(currentSavings) || 0,
-				currentCpfBalance: parseFloat(currentCpfBalance) || 0,
-				remainingLoan: parseFloat(remainingLoan) || 0,
-				interestRate: parseFloat(interestRate) || 0,
-				monthlyRepayment: parseFloat(monthlyRepayment) || 0,
+				...formData.personalInfo,
+				currentSavings:
+					parseFloat(formData.personalInfo.currentSavings) || 0,
+				currentCpfBalance:
+					parseFloat(formData.personalInfo.currentCpfBalance) || 0,
+				remainingLoan:
+					parseFloat(formData.personalInfo.remainingLoan) || 0,
+				interestRate:
+					parseFloat(formData.personalInfo.interestRate) || 0,
+				monthlyRepayment:
+					parseFloat(formData.personalInfo.monthlyRepayment) || 0,
 			},
 			income: {
-				...financialData.income,
-				currentSalary: parseFloat(currentSalary) || 0,
-				futureSalary: parseFloat(futureSalary) || 0,
-				cpfRate: parseFloat(cpfRate) || 0,
-				employerCpfRate: parseFloat(employerCpfRate) || 0,
-				salaryAdjustmentMonth: salaryAdjustmentMonth,
-				salaryAdjustmentYear: salaryAdjustmentYear,
+				...formData.income,
+				currentSalary: parseFloat(formData.income.currentSalary) || 0,
+				futureSalary: parseFloat(formData.income.futureSalary) || 0,
+				cpfRate: parseFloat(formData.income.cpfRate) || 0,
+				employerCpfRate:
+					parseFloat(formData.income.employerCpfRate) || 0,
 			},
 		};
 
 		// Process expenses - convert amount strings to numbers
-		const processedExpenses = expenses.map((expense) => ({
+		const processedExpenses = formData.expenses.map((expense) => ({
 			...expense,
 			amount: parseFloat(expense.amount) || 0,
 		}));
@@ -248,7 +246,7 @@ const EditParameters = () => {
 				<div>
 					<select
 						className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-						value={dateFields[dateType].month}
+						value={formData.personalInfo[dateType].month}
 						onChange={(e) =>
 							handleDateChange(dateType, "month", e.target.value)
 						}
@@ -263,7 +261,7 @@ const EditParameters = () => {
 				<div>
 					<select
 						className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-						value={dateFields[dateType].year}
+						value={formData.personalInfo[dateType].year}
 						onChange={(e) =>
 							handleDateChange(dateType, "year", e.target.value)
 						}
@@ -379,9 +377,13 @@ const EditParameters = () => {
 									label="Current Savings (SGD)"
 									id="currentSavings"
 									name="currentSavings"
-									value={currentSavings}
+									value={formData.personalInfo.currentSavings}
 									onChange={(e) =>
-										setCurrentSavings(e.target.value)
+										handleInputChange(
+											"personalInfo",
+											"currentSavings",
+											e.target.value
+										)
 									}
 									prefix="$"
 								/>
@@ -390,9 +392,13 @@ const EditParameters = () => {
 									label="Remaining Loan (SGD)"
 									id="remainingLoan"
 									name="remainingLoan"
-									value={remainingLoan}
+									value={formData.personalInfo.remainingLoan}
 									onChange={(e) =>
-										setRemainingLoan(e.target.value)
+										handleInputChange(
+											"personalInfo",
+											"remainingLoan",
+											e.target.value
+										)
 									}
 									prefix="$"
 								/>
@@ -401,9 +407,13 @@ const EditParameters = () => {
 									label="Loan Interest Rate (%)"
 									id="interestRate"
 									name="interestRate"
-									value={interestRate}
+									value={formData.personalInfo.interestRate}
 									onChange={(e) =>
-										setInterestRate(e.target.value)
+										handleInputChange(
+											"personalInfo",
+											"interestRate",
+											e.target.value
+										)
 									}
 									suffix="%"
 								/>
@@ -412,9 +422,15 @@ const EditParameters = () => {
 									label="Monthly Loan Repayment (SGD)"
 									id="monthlyRepayment"
 									name="monthlyRepayment"
-									value={monthlyRepayment}
+									value={
+										formData.personalInfo.monthlyRepayment
+									}
 									onChange={(e) =>
-										setMonthlyRepayment(e.target.value)
+										handleInputChange(
+											"personalInfo",
+											"monthlyRepayment",
+											e.target.value
+										)
 									}
 									prefix="$"
 								/>
@@ -457,9 +473,13 @@ const EditParameters = () => {
 										label="Current Monthly Salary (SGD)"
 										id="currentSalary"
 										name="currentSalary"
-										value={currentSalary}
+										value={formData.income.currentSalary}
 										onChange={(e) =>
-											setCurrentSalary(e.target.value)
+											handleInputChange(
+												"income",
+												"currentSalary",
+												e.target.value
+											)
 										}
 										prefix="$"
 									/>
@@ -468,9 +488,13 @@ const EditParameters = () => {
 										label="Future Monthly Salary (SGD)"
 										id="futureSalary"
 										name="futureSalary"
-										value={futureSalary}
+										value={formData.income.futureSalary}
 										onChange={(e) =>
-											setFutureSalary(e.target.value)
+											handleInputChange(
+												"income",
+												"futureSalary",
+												e.target.value
+											)
 										}
 										prefix="$"
 									/>
@@ -485,9 +509,16 @@ const EditParameters = () => {
 										<select
 											id="salaryAdjustmentMonth"
 											name="salaryAdjustmentMonth"
-											value={salaryAdjustmentMonth}
-											onChange={
-												handleSalaryAdjustmentChange
+											value={
+												formData.income
+													.salaryAdjustmentMonth
+											}
+											onChange={(e) =>
+												handleInputChange(
+													"income",
+													"salaryAdjustmentMonth",
+													parseInt(e.target.value)
+												)
 											}
 											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
 										>
@@ -512,9 +543,16 @@ const EditParameters = () => {
 										<select
 											id="salaryAdjustmentYear"
 											name="salaryAdjustmentYear"
-											value={salaryAdjustmentYear}
-											onChange={
-												handleSalaryAdjustmentChange
+											value={
+												formData.income
+													.salaryAdjustmentYear
+											}
+											onChange={(e) =>
+												handleInputChange(
+													"income",
+													"salaryAdjustmentYear",
+													parseInt(e.target.value)
+												)
 											}
 											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
 										>
@@ -579,9 +617,16 @@ const EditParameters = () => {
 										label="Current CPF Balance (SGD)"
 										id="currentCpfBalance"
 										name="currentCpfBalance"
-										value={currentCpfBalance}
+										value={
+											formData.personalInfo
+												.currentCpfBalance
+										}
 										onChange={(e) =>
-											setCurrentCpfBalance(e.target.value)
+											handleInputChange(
+												"personalInfo",
+												"currentCpfBalance",
+												e.target.value
+											)
 										}
 										prefix="$"
 									/>
@@ -597,9 +642,13 @@ const EditParameters = () => {
 											<input
 												type="text"
 												id="monthlyCPFContribution"
-												value={cpfRate}
+												value={formData.income.cpfRate}
 												onChange={(e) =>
-													setCpfRate(e.target.value)
+													handleInputChange(
+														"income",
+														"cpfRate",
+														e.target.value
+													)
 												}
 												className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 											/>
@@ -626,9 +675,14 @@ const EditParameters = () => {
 											<input
 												type="text"
 												id="employerCPFContribution"
-												value={employerCpfRate}
+												value={
+													formData.income
+														.employerCpfRate
+												}
 												onChange={(e) =>
-													setEmployerCpfRate(
+													handleInputChange(
+														"income",
+														"employerCpfRate",
 														e.target.value
 													)
 												}
@@ -721,69 +775,72 @@ const EditParameters = () => {
 										</tr>
 									</thead>
 									<tbody className="bg-white divide-y divide-gray-200">
-										{expenses.map((expense, index) => (
-											<tr
-												key={expense.id}
-												className="hover:bg-gray-50"
-											>
-												<td className="px-4 py-2">
-													<input
-														type="text"
-														value={expense.name}
-														onChange={(e) =>
-															handleExpenseChange(
-																index,
-																"name",
-																e.target.value
-															)
-														}
-														className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-													/>
-												</td>
-												<td className="px-4 py-2 whitespace-nowrap">
-													<div className="relative">
-														<div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-															<span className="text-gray-500">
-																$
-															</span>
-														</div>
+										{formData.expenses.map(
+											(expense, index) => (
+												<tr
+													key={expense.id}
+													className="hover:bg-gray-50"
+												>
+													<td className="px-4 py-2">
 														<input
 															type="text"
-															value={
-																expense.amount
-															}
+															value={expense.name}
 															onChange={(e) =>
 																handleExpenseChange(
 																	index,
-																	"amount",
+																	"name",
 																	e.target
 																		.value
 																)
 															}
-															className="w-full pl-6 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+															className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 														/>
-													</div>
-												</td>
-												<td className="px-4 py-2">
-													<button
-														type="button"
-														onClick={() =>
-															handleRemoveExpense(
-																expense.id
-															)
-														}
-														className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-													>
-														<span className="md:hidden">
-															✕
-														</span>
-														<span className="hidden md:inline">
-															Remove
-														</span>
-													</button>
-												</td>
-											</tr>
-										))}
+													</td>
+													<td className="px-4 py-2 whitespace-nowrap">
+														<div className="relative">
+															<div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+																<span className="text-gray-500">
+																	$
+																</span>
+															</div>
+															<input
+																type="text"
+																value={
+																	expense.amount
+																}
+																onChange={(e) =>
+																	handleExpenseChange(
+																		index,
+																		"amount",
+																		e.target
+																			.value
+																	)
+																}
+																className="w-full pl-6 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+															/>
+														</div>
+													</td>
+													<td className="px-4 py-2">
+														<button
+															type="button"
+															onClick={() =>
+																handleRemoveExpense(
+																	expense.id
+																)
+															}
+															className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+														>
+															<span className="md:hidden">
+																✕
+															</span>
+															<span className="hidden md:inline">
+																Remove
+															</span>
+														</button>
+													</td>
+												</tr>
+											)
+										)}
 									</tbody>
 									<tfoot>
 										<tr className="bg-blue-50 font-medium">
@@ -792,7 +849,7 @@ const EditParameters = () => {
 											</td>
 											<td className="px-4 py-2 text-blue-700">
 												${" "}
-												{expenses
+												{formData.expenses
 													.reduce(
 														(sum, expense) =>
 															sum +
@@ -818,7 +875,7 @@ const EditParameters = () => {
 									<input
 										type="text"
 										name="name"
-										value={newExpense.name}
+										value={formData.newExpense.name}
 										onChange={handleNewExpenseChange}
 										placeholder="Category Name"
 										className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -832,7 +889,7 @@ const EditParameters = () => {
 										<input
 											type="text"
 											name="amount"
-											value={newExpense.amount}
+											value={formData.newExpense.amount}
 											onChange={handleNewExpenseChange}
 											placeholder="Amount"
 											className="pl-8 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"

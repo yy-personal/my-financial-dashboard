@@ -1,4 +1,3 @@
-// src/App.js - Updated with authentication
 import React, { useState, useEffect } from "react";
 import {
 	Routes,
@@ -11,6 +10,7 @@ import {
 import Dashboard from "./components/Dashboard";
 import EditParameters from "./components/EditParameters";
 import Login from "./components/Login";
+import RetirementPlanner from "./components/RetirementPlanner"; // Add this
 import { useAuth } from "./context/AuthContext";
 
 // Protected Route component
@@ -84,6 +84,17 @@ function App() {
 							>
 								Dashboard
 							</Link>
+							
+							<Link
+								to="/retirement"
+								className={`px-4 py-2 rounded-md transition-colors ${
+									location.pathname.endsWith("/retirement")
+										? "bg-blue-900"
+										: "hover:bg-blue-800"
+								}`}
+							>
+								Retirement
+							</Link>
 							<Link
 								to="/edit"
 								className={`px-4 py-2 rounded-md transition-colors ${
@@ -148,6 +159,29 @@ function App() {
 								Dashboard
 							</Link>
 							<Link
+								to="/investments"
+								className={`block px-4 py-2 my-1 rounded-md ${
+									location.pathname.endsWith("/investments")
+										? "bg-blue-900"
+										: "hover:bg-blue-800"
+								}`}
+								onClick={() => setMobileMenuOpen(false)}
+							>
+								Investments
+							</Link>
+							
+							<Link
+								to="/retirement"
+								className={`block px-4 py-2 my-1 rounded-md ${
+									location.pathname.endsWith("/retirement")
+										? "bg-blue-900"
+										: "hover:bg-blue-800"
+								}`}
+								onClick={() => setMobileMenuOpen(false)}
+							>
+								Retirement
+							</Link>
+							<Link
 								to="/edit"
 								className={`block px-4 py-2 my-1 rounded-md ${
 									location.pathname.endsWith("/edit")
@@ -182,6 +216,15 @@ function App() {
 						element={
 							<ProtectedRoute>
 								<Dashboard />
+							</ProtectedRoute>
+						}
+					/>
+					
+					<Route
+						path="/retirement"
+						element={
+							<ProtectedRoute>
+								<RetirementPlanner />
 							</ProtectedRoute>
 						}
 					/>
