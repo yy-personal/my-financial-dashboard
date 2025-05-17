@@ -1,4 +1,4 @@
-// src/context/FinancialContext.js - Updated version with bonus support
+// src/context/FinancialContext.js - Modified for better Firebase syncing
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { saveFinancialData, loadFinancialData } from "../firebase/firebase";
 import { useAuth } from "./AuthContext";
@@ -9,6 +9,10 @@ export const FinancialContext = createContext();
 export const FinancialProvider = ({ children }) => {
 	const { currentUser } = useAuth();
 	const [isLoading, setIsLoading] = useState(true);
+	const [syncStatus, setSyncStatus] = useState({
+		status: "idle",
+		lastSync: null,
+	});
 
 	// Initialize state with default values
 	const initialState = {
@@ -39,14 +43,12 @@ export const FinancialProvider = ({ children }) => {
 			cpfRate: 20, // percentage
 			employerCpfRate: 17, // percentage
 		},
-		// Changed from fixed keys to an array of expense objects
 		expenses: [
 			{ id: 1, name: "Rental", amount: 700 },
 			{ id: 2, name: "Food", amount: 600 },
 			{ id: 3, name: "Transportation", amount: 228 },
 			{ id: 4, name: "Entertainment", amount: 200 },
 		],
-		// New yearly bonuses array
 		yearlyBonuses: [
 			{
 				id: 1,
@@ -56,7 +58,6 @@ export const FinancialProvider = ({ children }) => {
 				description: "Year End Bonus",
 			},
 		],
-		// Default projection display settings
 		projectionSettings: {
 			rowsToDisplay: 36, // Default to 36 months (3 years)
 		},
@@ -64,6 +65,8 @@ export const FinancialProvider = ({ children }) => {
 
 	// Function to migrate old data format to new format
 	const migrateData = (oldData) => {
+		if (!oldData) return initialState;
+
 		// Check if we need to migrate the expenses format from object to array
 		if (oldData && oldData.expenses && !Array.isArray(oldData.expenses)) {
 			console.log("Migrating expenses from object to array format");
@@ -256,39 +259,62 @@ export const FinancialProvider = ({ children }) => {
 	// Load data from Firebase or localStorage depending on authentication state
 	const loadSavedData = async () => {
 		try {
+			setSyncStatus({ status: "loading", lastSync: null });
 			// First check if we're authenticated
 			if (currentUser) {
+				console.log(
+					"User is authenticated, trying to load from Firebase"
+				);
 				// Try to load from Firebase
 				const { data, error } = await loadFinancialData(
 					currentUser.uid
 				);
 				if (data) {
+					console.log("Successfully loaded data from Firebase");
+					setSyncStatus({
+						status: "synced",
+						lastSync: new Date().toISOString(),
+					});
 					return migrateData(data);
 				} else if (error) {
 					console.warn("Error loading from Firebase:", error);
 					// Fall back to localStorage
 					const localData = localStorage.getItem("financialData");
 					if (localData) {
+						console.log(
+							"Using localStorage data and syncing to Firebase"
+						);
 						const parsedData = JSON.parse(localData);
 						// Save the local data to Firebase for future use
 						await saveFinancialData(currentUser.uid, parsedData);
+						setSyncStatus({
+							status: "synced",
+							lastSync: new Date().toISOString(),
+						});
 						return migrateData(parsedData);
+					} else {
+						setSyncStatus({ status: "error", lastSync: null });
 					}
 				}
 			} else {
+				console.log("User not authenticated, using localStorage");
 				// Not authenticated, use localStorage
 				const savedData = localStorage.getItem("financialData");
 				if (savedData) {
+					setSyncStatus({ status: "local", lastSync: null });
 					return migrateData(JSON.parse(savedData));
 				}
 			}
 
 			// If nothing found or error occurred, use initialState
+			console.log("No saved data found, using initial state");
+			setSyncStatus({ status: "new", lastSync: null });
 			return initialState;
 		} catch (error) {
 			console.error("Error loading saved data:", error);
 			// Clear potentially corrupted data
 			localStorage.removeItem("financialData");
+			setSyncStatus({ status: "error", lastSync: null });
 			return initialState;
 		} finally {
 			setIsLoading(false);
@@ -299,11 +325,12 @@ export const FinancialProvider = ({ children }) => {
 
 	// Load data when component mounts or user changes
 	useEffect(() => {
+		console.log("FinancialContext: User status changed, reloading data");
 		setIsLoading(true);
 		loadSavedData().then((data) => {
 			setFinancialData(data);
 		});
-	}, [currentUser]);
+	}, [currentUser]); // This will reload data whenever the user changes
 
 	// Save data whenever it changes
 	useEffect(() => {
@@ -313,14 +340,32 @@ export const FinancialProvider = ({ children }) => {
 				"financialData",
 				JSON.stringify(financialData)
 			);
+			console.log("Saved data to localStorage");
 
 			// If authenticated, also save to Firebase
 			if (currentUser && !isLoading) {
 				try {
+					console.log("Saving data to Firebase");
+					setSyncStatus({
+						status: "saving",
+						lastSync: syncStatus.lastSync,
+					});
 					await saveFinancialData(currentUser.uid, financialData);
+					console.log("Successfully saved data to Firebase");
+					setSyncStatus({
+						status: "synced",
+						lastSync: new Date().toISOString(),
+					});
 				} catch (error) {
 					console.error("Error saving to Firebase:", error);
+					setSyncStatus({
+						status: "error",
+						lastSync: syncStatus.lastSync,
+					});
 				}
+			} else if (!currentUser) {
+				console.log("User not authenticated, data only saved locally");
+				setSyncStatus({ status: "local", lastSync: null });
 			}
 		};
 
@@ -483,7 +528,40 @@ export const FinancialProvider = ({ children }) => {
 		setFinancialData(initialState);
 
 		if (currentUser) {
-			saveFinancialData(currentUser.uid, initialState);
+			saveFinancialData(currentUser.uid, initialState)
+				.then(() => {
+					console.log("Data reset successful");
+					setSyncStatus({
+						status: "synced",
+						lastSync: new Date().toISOString(),
+					});
+				})
+				.catch((error) => {
+					console.error("Error resetting data:", error);
+					setSyncStatus({ status: "error", lastSync: null });
+				});
+		}
+	};
+
+	// Force sync with Firebase (for manual sync button)
+	const forceSyncWithFirebase = async () => {
+		if (!currentUser) {
+			console.warn("Cannot sync: User not authenticated");
+			return { success: false, error: "Not authenticated" };
+		}
+
+		try {
+			setSyncStatus({ status: "saving", lastSync: syncStatus.lastSync });
+			await saveFinancialData(currentUser.uid, financialData);
+			setSyncStatus({
+				status: "synced",
+				lastSync: new Date().toISOString(),
+			});
+			return { success: true, error: null };
+		} catch (error) {
+			console.error("Force sync error:", error);
+			setSyncStatus({ status: "error", lastSync: syncStatus.lastSync });
+			return { success: false, error: error.message };
 		}
 	};
 
@@ -506,6 +584,8 @@ export const FinancialProvider = ({ children }) => {
 				formatDate,
 				resetData,
 				isLoading,
+				syncStatus,
+				forceSyncWithFirebase,
 			}}
 		>
 			{children}

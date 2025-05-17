@@ -1,7 +1,6 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext } from "react";
-import { auth, logoutUser } from "../firebase/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { auth, logoutUser, onAuthStateChange } from "../firebase/firebase";
 
 // Create the auth context
 export const AuthContext = createContext();
@@ -9,13 +8,15 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
 	const [currentUser, setCurrentUser] = useState(null);
 	const [loading, setLoading] = useState(true);
+	const [authError, setAuthError] = useState(null);
 
 	useEffect(() => {
 		console.log("Setting up auth state listener");
-		const unsubscribe = onAuthStateChanged(auth, (user) => {
+		// Use the exported onAuthStateChange function
+		const unsubscribe = onAuthStateChange((user) => {
 			console.log(
 				"Auth state changed:",
-				user ? "User logged in" : "No user"
+				user ? `User logged in: ${user.uid}` : "No user"
 			);
 			setCurrentUser(user);
 			setLoading(false);
@@ -28,19 +29,23 @@ export const AuthProvider = ({ children }) => {
 		};
 	}, []);
 
-	// Logout function
+	// Logout function with improved error handling
 	const logout = async () => {
 		try {
+			setAuthError(null);
 			console.log("Attempting to log out user");
 			const { success, error } = await logoutUser();
 			if (!success) {
 				console.error("Logout error:", error);
+				setAuthError(error);
+				return { success, error };
 			} else {
 				console.log("User logged out successfully");
+				return { success: true, error: null };
 			}
-			return { success, error };
 		} catch (err) {
 			console.error("Exception during logout:", err);
+			setAuthError(err.message);
 			return { success: false, error: err.message };
 		}
 	};
@@ -49,6 +54,7 @@ export const AuthProvider = ({ children }) => {
 		currentUser,
 		isAuthenticated: !!currentUser,
 		loading,
+		authError,
 		logout,
 	};
 

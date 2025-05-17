@@ -9,6 +9,7 @@ const Login = () => {
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
+	const [loginSuccess, setLoginSuccess] = useState(false);
 	const navigate = useNavigate();
 	const { isAuthenticated } = useAuth();
 
@@ -25,16 +26,24 @@ const Login = () => {
 		setError("");
 
 		try {
+			console.log(`Attempting login with email: ${email}`);
 			const { user, error } = await loginWithEmail(email, password);
 			if (error) {
+				console.error("Login error in component:", error);
 				setError(error);
 			} else if (user) {
-				// Successfully logged in, navigate to dashboard
-				navigate("/");
+				// Show success message briefly before redirecting
+				setLoginSuccess(true);
+				console.log("Login successful in component, redirecting...");
+
+				// Small delay to show success message
+				setTimeout(() => {
+					navigate("/");
+				}, 1000);
 			}
 		} catch (err) {
+			console.error("Unexpected login error:", err);
 			setError("Failed to login. Please check your credentials.");
-			console.error("Login error:", err);
 		} finally {
 			setIsLoading(false);
 		}
@@ -51,6 +60,17 @@ const Login = () => {
 						Please sign in to access your financial dashboard
 					</p>
 				</div>
+
+				{loginSuccess && (
+					<div
+						className="bg-green-100 border border-green-300 text-green-700 px-4 py-3 rounded relative"
+						role="alert"
+					>
+						<span className="block sm:inline">
+							Login successful! Redirecting to dashboard...
+						</span>
+					</div>
+				)}
 
 				<form className="mt-8 space-y-6" onSubmit={handleSubmit}>
 					<div className="rounded-md shadow-sm -space-y-px">
@@ -89,8 +109,11 @@ const Login = () => {
 					</div>
 
 					{error && (
-						<div className="text-red-500 text-sm text-center">
-							{error}
+						<div
+							className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded relative"
+							role="alert"
+						>
+							<span className="block sm:inline">{error}</span>
 						</div>
 					)}
 
@@ -104,7 +127,35 @@ const Login = () => {
 									: "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
 							}`}
 						>
-							{isLoading ? "Signing in..." : "Sign in"}
+							{isLoading ? (
+								<>
+									<span className="absolute left-0 inset-y-0 flex items-center pl-3">
+										<svg
+											className="animate-spin h-5 w-5 text-white"
+											xmlns="http://www.w3.org/2000/svg"
+											fill="none"
+											viewBox="0 0 24 24"
+										>
+											<circle
+												className="opacity-25"
+												cx="12"
+												cy="12"
+												r="10"
+												stroke="currentColor"
+												strokeWidth="4"
+											></circle>
+											<path
+												className="opacity-75"
+												fill="currentColor"
+												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+											></path>
+										</svg>
+									</span>
+									Signing in...
+								</>
+							) : (
+								"Sign in"
+							)}
 						</button>
 					</div>
 
