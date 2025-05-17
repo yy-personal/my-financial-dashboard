@@ -17,7 +17,10 @@ const EditParameters = () => {
 	// Use useRef to keep track of next id for salary adjustments
 	const nextSalaryAdjustmentId = useRef(1);
 
-	// Initialize formData with proper structure for salary adjustments
+	// Use useRef to keep track of next id for yearly bonuses
+	const nextYearlyBonusId = useRef(1);
+
+	// Initialize formData with proper structure for salary adjustments and yearly bonuses
 	const initializeFormData = () => {
 		// Check if there are salary adjustments in the context
 		const salaryAdjustments = financialData.income.salaryAdjustments || [];
@@ -37,10 +40,21 @@ const EditParameters = () => {
 			});
 		}
 
-		// Find the largest ID to update the ref
+		// Find the largest ID for salary adjustments to update the ref
 		if (salaryAdjustments.length > 0) {
 			const maxId = Math.max(...salaryAdjustments.map((adj) => adj.id));
 			nextSalaryAdjustmentId.current = maxId + 1;
+		}
+
+		// Check if there are yearly bonuses in the context
+		const yearlyBonuses = financialData.yearlyBonuses || [];
+
+		// Find the largest ID for yearly bonuses to update the ref
+		if (yearlyBonuses.length > 0) {
+			const maxBonusId = Math.max(
+				...yearlyBonuses.map((bonus) => bonus.id)
+			);
+			nextYearlyBonusId.current = maxBonusId + 1;
 		}
 
 		return {
@@ -79,11 +93,21 @@ const EditParameters = () => {
 				...expense,
 				amount: String(expense.amount),
 			})),
+			yearlyBonuses: yearlyBonuses.map((bonus) => ({
+				...bonus,
+				amount: String(bonus.amount),
+			})),
 			newExpense: { name: "", amount: "" },
 			newSalaryAdjustment: {
 				month: new Date().getMonth() + 1,
 				year: new Date().getFullYear() + 1,
 				newSalary: "",
+			},
+			newYearlyBonus: {
+				month: 12, // Default to December
+				year: new Date().getFullYear(),
+				amount: "",
+				description: "Year End Bonus",
 			},
 		};
 	};
@@ -226,6 +250,73 @@ const EditParameters = () => {
 		});
 	};
 
+	// Handle yearly bonus field changes
+	const handleYearlyBonusChange = (index, field, value) => {
+		setFormData((prevData) => {
+			const newData = { ...prevData };
+			const updatedBonuses = [...newData.yearlyBonuses];
+			updatedBonuses[index] = {
+				...updatedBonuses[index],
+				[field]: value,
+			};
+			newData.yearlyBonuses = updatedBonuses;
+			return newData;
+		});
+	};
+
+	// Handle changes to new yearly bonus form
+	const handleNewYearlyBonusChange = (field, value) => {
+		setFormData((prevData) => {
+			const newData = { ...prevData };
+			newData.newYearlyBonus = {
+				...newData.newYearlyBonus,
+				[field]: value,
+			};
+			return newData;
+		});
+	};
+
+	// Handle adding a new yearly bonus
+	const handleAddYearlyBonus = (e) => {
+		e.preventDefault();
+
+		const { month, year, amount, description } = formData.newYearlyBonus;
+
+		if (amount) {
+			const newBonus = {
+				id: nextYearlyBonusId.current++,
+				month: parseInt(month),
+				year: parseInt(year),
+				amount: amount,
+				description: description || "Bonus",
+			};
+
+			setFormData((prevData) => {
+				const newData = { ...prevData };
+				newData.yearlyBonuses = [...newData.yearlyBonuses, newBonus];
+				// Reset the new bonus form
+				newData.newYearlyBonus = {
+					month: 12,
+					year: new Date().getFullYear(),
+					amount: "",
+					description: "Year End Bonus",
+				};
+				return newData;
+			});
+		}
+	};
+
+	// Handle removing a yearly bonus
+	const handleRemoveYearlyBonus = (id) => {
+		setFormData((prevData) => {
+			const newData = { ...prevData };
+			newData.yearlyBonuses = newData.yearlyBonuses.filter(
+				(bonus) => bonus.id !== id
+			);
+			return newData;
+		});
+	};
+
 	// Handle removing an expense
 	const handleRemoveExpense = (id) => {
 		setFormData((prevData) => {
@@ -310,10 +401,19 @@ const EditParameters = () => {
 			amount: parseFloat(expense.amount) || 0,
 		}));
 
+		// Process yearly bonuses - convert strings to proper types
+		const processedBonuses = formData.yearlyBonuses.map((bonus) => ({
+			...bonus,
+			amount: parseFloat(bonus.amount) || 0,
+			year: parseInt(bonus.year) || new Date().getFullYear(),
+			month: parseInt(bonus.month) || 12,
+		}));
+
 		// Update the financial data with properly converted values
 		updateFinancialData({
 			...processedData,
 			expenses: processedExpenses,
+			yearlyBonuses: processedBonuses,
 		});
 
 		navigate("/");
@@ -981,6 +1081,311 @@ const EditParameters = () => {
 												</button>
 											</div>
 										</div>
+									</div>
+								</div>
+							</div>
+
+							{/* Yearly Bonuses Section - NEW */}
+							<div className="mb-6">
+								<h3 className="text-lg font-semibold mb-4 text-green-700 border-b pb-2">
+									Yearly Bonuses
+								</h3>
+
+								{/* Existing Yearly Bonuses */}
+								{formData.yearlyBonuses &&
+								formData.yearlyBonuses.length > 0 ? (
+									<div className="mb-4 overflow-x-auto">
+										<table className="w-full border-collapse">
+											<thead>
+												<tr className="bg-gray-50">
+													<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+														Date
+													</th>
+													<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+														Description
+													</th>
+													<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+														Amount (SGD)
+													</th>
+													<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+														Actions
+													</th>
+												</tr>
+											</thead>
+											<tbody className="bg-white divide-y divide-gray-200">
+												{formData.yearlyBonuses.map(
+													(bonus, index) => (
+														<tr
+															key={bonus.id}
+															className="hover:bg-gray-50"
+														>
+															<td className="px-4 py-2">
+																<div className="flex space-x-2">
+																	<select
+																		value={
+																			bonus.month
+																		}
+																		onChange={(
+																			e
+																		) =>
+																			handleYearlyBonusChange(
+																				index,
+																				"month",
+																				parseInt(
+																					e
+																						.target
+																						.value
+																				)
+																			)
+																		}
+																		className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+																	>
+																		{monthOptions.map(
+																			(
+																				month
+																			) => (
+																				<option
+																					key={
+																						month.value
+																					}
+																					value={
+																						month.value
+																					}
+																				>
+																					{
+																						month.label
+																					}
+																				</option>
+																			)
+																		)}
+																	</select>
+																	<select
+																		value={
+																			bonus.year
+																		}
+																		onChange={(
+																			e
+																		) =>
+																			handleYearlyBonusChange(
+																				index,
+																				"year",
+																				parseInt(
+																					e
+																						.target
+																						.value
+																				)
+																			)
+																		}
+																		className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+																	>
+																		{yearOptions.map(
+																			(
+																				year
+																			) => (
+																				<option
+																					key={
+																						year
+																					}
+																					value={
+																						year
+																					}
+																				>
+																					{
+																						year
+																					}
+																				</option>
+																			)
+																		)}
+																	</select>
+																</div>
+															</td>
+															<td className="px-4 py-2 whitespace-nowrap">
+																<input
+																	type="text"
+																	value={
+																		bonus.description
+																	}
+																	onChange={(
+																		e
+																	) =>
+																		handleYearlyBonusChange(
+																			index,
+																			"description",
+																			e
+																				.target
+																				.value
+																		)
+																	}
+																	className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+																/>
+															</td>
+															<td className="px-4 py-2 whitespace-nowrap">
+																<div className="relative">
+																	<div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+																		<span className="text-gray-500">
+																			$
+																		</span>
+																	</div>
+																	<input
+																		type="text"
+																		value={
+																			bonus.amount
+																		}
+																		onChange={(
+																			e
+																		) =>
+																			handleYearlyBonusChange(
+																				index,
+																				"amount",
+																				e
+																					.target
+																					.value
+																			)
+																		}
+																		className="w-full pl-6 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+																	/>
+																</div>
+															</td>
+															<td className="px-4 py-2">
+																<button
+																	type="button"
+																	onClick={() =>
+																		handleRemoveYearlyBonus(
+																			bonus.id
+																		)
+																	}
+																	className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+																>
+																	<span className="md:hidden">
+																		✕
+																	</span>
+																	<span className="hidden md:inline">
+																		Remove
+																	</span>
+																</button>
+															</td>
+														</tr>
+													)
+												)}
+											</tbody>
+										</table>
+									</div>
+								) : (
+									<p className="text-sm text-gray-600 mb-4">
+										No yearly bonuses added yet.
+									</p>
+								)}
+
+								{/* Add New Yearly Bonus */}
+								<div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+									<h5 className="font-medium text-gray-700 mb-3">
+										Add New Yearly Bonus
+									</h5>
+									<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+										<div className="grid grid-cols-2 gap-2 md:col-span-2">
+											<select
+												value={
+													formData.newYearlyBonus
+														.month
+												}
+												onChange={(e) =>
+													handleNewYearlyBonusChange(
+														"month",
+														parseInt(e.target.value)
+													)
+												}
+												className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+											>
+												{monthOptions.map((month) => (
+													<option
+														key={month.value}
+														value={month.value}
+													>
+														{month.label}
+													</option>
+												))}
+											</select>
+											<select
+												value={
+													formData.newYearlyBonus.year
+												}
+												onChange={(e) =>
+													handleNewYearlyBonusChange(
+														"year",
+														parseInt(e.target.value)
+													)
+												}
+												className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+											>
+												{yearOptions.map((year) => (
+													<option
+														key={year}
+														value={year}
+													>
+														{year}
+													</option>
+												))}
+											</select>
+										</div>
+										<div className="relative md:col-span-3">
+											<input
+												type="text"
+												placeholder="Bonus Description"
+												value={
+													formData.newYearlyBonus
+														.description
+												}
+												onChange={(e) =>
+													handleNewYearlyBonusChange(
+														"description",
+														e.target.value
+													)
+												}
+												className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors mb-3"
+											/>
+										</div>
+										<div className="relative md:col-span-3">
+											<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+												<span className="text-gray-500">
+													$
+												</span>
+											</div>
+											<input
+												type="text"
+												placeholder="Bonus Amount"
+												value={
+													formData.newYearlyBonus
+														.amount
+												}
+												onChange={(e) =>
+													handleNewYearlyBonusChange(
+														"amount",
+														e.target.value
+													)
+												}
+												className="pl-8 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors mb-3"
+											/>
+										</div>
+										<button
+											type="button"
+											onClick={handleAddYearlyBonus}
+											className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center justify-center md:col-span-3"
+										>
+											<svg
+												className="w-4 h-4 mr-1"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth="2"
+													d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+												/>
+											</svg>
+											Add Yearly Bonus
+										</button>
 									</div>
 								</div>
 							</div>

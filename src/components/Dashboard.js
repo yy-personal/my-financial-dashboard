@@ -23,6 +23,8 @@ import {
 const Dashboard = () => {
 	const {
 		financialData,
+		updateFinancialData,
+		updateProjectionSettings,
 		totalExpenses,
 		calculateAge,
 		getMonthName,
@@ -30,6 +32,11 @@ const Dashboard = () => {
 	} = useContext(FinancialContext);
 
 	const [activeTab, setActiveTab] = useState("summary");
+
+	// State for projection rows to display
+	const [rowsToDisplay, setRowsToDisplay] = useState(
+		financialData.projectionSettings?.rowsToDisplay || 36
+	);
 
 	// Format number as currency
 	const formatCurrency = (value) => {
@@ -50,12 +57,21 @@ const Dashboard = () => {
 		}).format(value);
 	};
 
+	// Handle changing the number of rows to display
+	const handleRowsToDisplayChange = (e) => {
+		const value = parseInt(e.target.value);
+		setRowsToDisplay(value);
+		updateProjectionSettings({
+			rowsToDisplay: value,
+		});
+	};
+
 	// Calculate financial projection
 	const calculateProjection = () => {
 		const projection = [];
 
 		// Extract values from context
-		const { personalInfo, income, expenses } = financialData;
+		const { personalInfo, income, expenses, yearlyBonuses } = financialData;
 
 		// Initial values
 		let currentSavings = personalInfo.currentSavings;
@@ -94,6 +110,14 @@ const Dashboard = () => {
 			if (a.year !== b.year) return a.year - b.year;
 			return a.month - b.month;
 		});
+
+		// Get yearly bonuses
+		const sortedBonuses = yearlyBonuses
+			? [...yearlyBonuses].sort((a, b) => {
+					if (a.year !== b.year) return a.year - b.year;
+					return a.month - b.month;
+			  })
+			: [];
 
 		// Track milestones
 		let loanPaidOffMonth = null;
@@ -134,6 +158,22 @@ const Dashboard = () => {
 			const employerCpf = currentSalary * employerCpfRate;
 			const takeHomePay = currentSalary - cpfContribution;
 
+			// Check for yearly bonuses in this month
+			let bonusAmount = 0;
+			let bonusDescription = "";
+
+			for (const bonus of sortedBonuses) {
+				if (
+					currentMonth === bonus.month &&
+					currentYear === bonus.year
+				) {
+					bonusAmount += bonus.amount;
+					bonusDescription = bonusDescription
+						? `${bonusDescription}, ${bonus.description}`
+						: bonus.description;
+				}
+			}
+
 			// Calculate loan payment and remaining balance
 			let actualLoanPayment = loanPayment;
 			let interestForMonth = loanRemaining * monthlyInterestRate;
@@ -156,9 +196,9 @@ const Dashboard = () => {
 				loanPaidOffMonth = month;
 			}
 
-			// Calculate monthly savings
+			// Calculate monthly savings (including any bonuses)
 			const monthlySavings =
-				takeHomePay - monthlyExpenses - actualLoanPayment;
+				takeHomePay - monthlyExpenses - actualLoanPayment + bonusAmount;
 
 			// Update balances
 			cpfBalance += cpfContribution + employerCpf;
@@ -181,6 +221,8 @@ const Dashboard = () => {
 				loanPayment: actualLoanPayment,
 				loanRemaining: loanRemaining,
 				monthlySavings: monthlySavings,
+				bonusAmount: bonusAmount,
+				bonusDescription: bonusDescription,
 				cpfContribution: cpfContribution,
 				employerCpfContribution: employerCpf,
 				totalCpfContribution: cpfContribution + employerCpf,
@@ -192,6 +234,8 @@ const Dashboard = () => {
 						? "Loan Paid Off"
 						: month === savingsGoalReachedMonth
 						? "100K Cash Savings Goal"
+						: bonusAmount > 0
+						? bonusDescription
 						: null,
 			});
 		}
@@ -266,6 +310,14 @@ const Dashboard = () => {
 	const monthlySavings = takeHomePay - monthlyExpenses - loanPayment;
 	const savingsRate = monthlySavings / takeHomePay;
 	const totalMonthlyIncome = currentSalary + employerCpfContribution;
+
+	// Calculate total yearly bonuses for current year
+	const currentYear = new Date().getFullYear();
+	const yearlyBonusesThisYear = financialData.yearlyBonuses
+		? financialData.yearlyBonuses
+				.filter((bonus) => bonus.year === currentYear)
+				.reduce((total, bonus) => total + bonus.amount, 0)
+		: 0;
 
 	// Filtered data for charts (every 3 months)
 	const chartData = projection.filter((item, index) => index % 3 === 0);
@@ -474,6 +526,15 @@ const Dashboard = () => {
 									)}
 									highlighted={true}
 								/>
+								{yearlyBonusesThisYear > 0 && (
+									<InfoItem
+										label={`Bonuses (${currentYear})`}
+										value={formatCurrency(
+											yearlyBonusesThisYear
+										)}
+										highlighted={true}
+									/>
+								)}
 							</div>
 						</Card>
 					</div>
@@ -529,6 +590,43 @@ const Dashboard = () => {
 										/>
 									</div>
 								</div>
+
+								{/* Yearly Bonuses Section - NEW */}
+								{financialData.yearlyBonuses &&
+									financialData.yearlyBonuses.length > 0 && (
+										<div className="bg-green-50 p-3 rounded-lg">
+											<h3 className="font-medium text-green-800 mb-2">
+												Yearly Bonuses
+											</h3>
+											<div className="space-y-1">
+												{financialData.yearlyBonuses
+													.sort((a, b) =>
+														a.year !== b.year
+															? a.year - b.year
+															: a.month - b.month
+													)
+													.map((bonus, index) => (
+														<InfoItem
+															key={index}
+															label={`${getMonthName(
+																bonus.month
+															)} ${
+																bonus.year
+															} - ${
+																bonus.description
+															}`}
+															value={formatCurrency(
+																bonus.amount
+															)}
+															highlighted={
+																bonus.year ===
+																currentYear
+															}
+														/>
+													))}
+											</div>
+										</div>
+									)}
 
 								{/* Future Salary Adjustments (New) */}
 								{financialData.income.salaryAdjustments &&
@@ -1003,6 +1101,59 @@ const Dashboard = () => {
 												: "-"}
 										</td>
 									</tr>
+
+									{/* Yearly Bonuses as Milestones */}
+									{financialData.yearlyBonuses &&
+										financialData.yearlyBonuses.map(
+											(bonus, index) => {
+												// Find projection entry for this bonus
+												const bonusMonth =
+													projection.find((p) =>
+														p.date.includes(
+															`${getMonthName(
+																bonus.month
+															).substring(
+																0,
+																3
+															)} ${bonus.year}`
+														)
+													);
+
+												if (!bonusMonth) return null;
+
+												return (
+													<tr
+														key={`bonus-${index}`}
+														className="hover:bg-gray-50 bg-green-50"
+													>
+														<td className="px-4 py-3 text-sm text-gray-700 font-medium">
+															{bonus.description}
+														</td>
+														<td className="px-4 py-3 text-sm text-gray-700">
+															{bonusMonth.date}
+														</td>
+														<td className="px-4 py-3 text-sm text-gray-700">
+															{Math.floor(
+																bonusMonth.month /
+																	12
+															)}{" "}
+															years{" "}
+															{bonusMonth.month %
+																12}{" "}
+															months
+														</td>
+														<td className="px-4 py-3 text-sm text-gray-700">
+															{bonusMonth.age}
+														</td>
+														<td className="px-4 py-3 text-sm text-gray-700">
+															{formatCurrency(
+																bonus.amount
+															)}
+														</td>
+													</tr>
+												);
+											}
+										)}
 								</tbody>
 							</table>
 						</div>
@@ -1603,6 +1754,11 @@ const Dashboard = () => {
 											name="CPF Contributions (Locked)"
 											fill="#9370DB"
 										/>
+										<Bar
+											dataKey="bonusAmount"
+											name="Bonuses"
+											fill="#2ECC40"
+										/>
 									</BarChart>
 								</ResponsiveContainer>
 							</div>
@@ -1614,6 +1770,63 @@ const Dashboard = () => {
 			{/* Projection Table Tab */}
 			{activeTab === "projection" && (
 				<Card title="Monthly Financial Projection">
+					{/* Rows to Display Control */}
+					<div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+						<div className="flex flex-wrap items-center justify-between">
+							<div className="mr-4 mb-2 sm:mb-0">
+								<label
+									htmlFor="rowsToDisplay"
+									className="block text-sm font-medium text-blue-700 mb-1"
+								>
+									Months to Display:
+								</label>
+								<select
+									id="rowsToDisplay"
+									value={rowsToDisplay}
+									onChange={handleRowsToDisplayChange}
+									className="w-32 px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+								>
+									<option value={12}>
+										12 months (1 year)
+									</option>
+									<option value={24}>
+										24 months (2 years)
+									</option>
+									<option value={36}>
+										36 months (3 years)
+									</option>
+									<option value={48}>
+										48 months (4 years)
+									</option>
+									<option value={60}>
+										60 months (5 years)
+									</option>
+								</select>
+							</div>
+							<div className="flex items-center">
+								<div className="hidden sm:block text-blue-700 mr-2">
+									<svg
+										className="w-5 h-5"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth="2"
+											d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+										></path>
+									</svg>
+								</div>
+								<p className="text-sm text-blue-700">
+									Showing {rowsToDisplay} months of financial
+									projection data
+								</p>
+							</div>
+						</div>
+					</div>
+
 					<div className="overflow-x-auto -mx-4">
 						<div className="inline-block min-w-full align-middle p-4">
 							<table className="min-w-full divide-y divide-gray-200">
@@ -1638,6 +1851,9 @@ const Dashboard = () => {
 											Loan Remaining
 										</th>
 										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+											Bonus
+										</th>
+										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
 											Monthly Savings
 										</th>
 										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -1650,7 +1866,7 @@ const Dashboard = () => {
 								</thead>
 								<tbody className="bg-white divide-y divide-gray-200">
 									{projection
-										.slice(0, 60) // Show all 60 months of projection
+										.slice(0, rowsToDisplay) // Use rowsToDisplay instead of hardcoded 60
 										.map((month, index) => (
 											<tr
 												key={index}
@@ -1688,6 +1904,13 @@ const Dashboard = () => {
 														month.loanRemaining
 													)}
 												</td>
+												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-purple-600">
+													{month.bonusAmount > 0
+														? formatCurrency(
+																month.bonusAmount
+														  )
+														: "-"}
+												</td>
 												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-green-600">
 													{formatCurrency(
 														month.monthlySavings
@@ -1711,7 +1934,9 @@ const Dashboard = () => {
 					</div>
 
 					{/* Show milestone information if available */}
-					{(loanPaidOffMonth || savingsGoalReachedMonth) && (
+					{(loanPaidOffMonth ||
+						savingsGoalReachedMonth ||
+						financialData.yearlyBonuses?.length > 0) && (
 						<div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
 							<h3 className="font-medium text-blue-700 mb-2">
 								Key Milestones:
@@ -1766,6 +1991,57 @@ const Dashboard = () => {
 										</span>
 									</li>
 								)}
+
+								{/* List bonuses as milestones */}
+								{financialData.yearlyBonuses &&
+									financialData.yearlyBonuses.map(
+										(bonus, index) => {
+											// Find date for this bonus
+											const bonusProjectionDate =
+												projection.find((p) =>
+													p.date.includes(
+														`${getMonthName(
+															bonus.month
+														).substring(0, 3)} ${
+															bonus.year
+														}`
+													)
+												)?.date;
+
+											if (!bonusProjectionDate)
+												return null;
+
+											return (
+												<li
+													key={`bonus-milestone-${index}`}
+													className="flex items-start"
+												>
+													<svg
+														className="h-5 w-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 24 24"
+													>
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															strokeWidth="2"
+															d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+														></path>
+													</svg>
+													<span>
+														<span className="font-medium">
+															{bonus.description}:
+														</span>{" "}
+														{bonusProjectionDate} -{" "}
+														{formatCurrency(
+															bonus.amount
+														)}
+													</span>
+												</li>
+											);
+										}
+									)}
 							</ul>
 						</div>
 					)}

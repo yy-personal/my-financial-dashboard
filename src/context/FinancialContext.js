@@ -1,4 +1,4 @@
-// src/context/FinancialContext.js - Updated version with Firebase integration
+// src/context/FinancialContext.js - Updated version with bonus support
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { saveFinancialData, loadFinancialData } from "../firebase/firebase";
 import { useAuth } from "./AuthContext";
@@ -46,6 +46,20 @@ export const FinancialProvider = ({ children }) => {
 			{ id: 3, name: "Transportation", amount: 228 },
 			{ id: 4, name: "Entertainment", amount: 200 },
 		],
+		// New yearly bonuses array
+		yearlyBonuses: [
+			{
+				id: 1,
+				year: 2025,
+				month: 12,
+				amount: 5000,
+				description: "Year End Bonus",
+			},
+		],
+		// Default projection display settings
+		projectionSettings: {
+			rowsToDisplay: 36, // Default to 36 months (3 years)
+		},
 	};
 
 	// Function to migrate old data format to new format
@@ -92,6 +106,16 @@ export const FinancialProvider = ({ children }) => {
 				migratedExpenses.length > 0
 					? migratedExpenses
 					: initialState.expenses;
+		}
+
+		// Add yearlyBonuses if it doesn't exist
+		if (!oldData.yearlyBonuses) {
+			oldData.yearlyBonuses = initialState.yearlyBonuses;
+		}
+
+		// Add projectionSettings if it doesn't exist
+		if (!oldData.projectionSettings) {
+			oldData.projectionSettings = initialState.projectionSettings;
 		}
 
 		// Add currentCpfBalance if it doesn't exist
@@ -313,6 +337,17 @@ export const FinancialProvider = ({ children }) => {
 		}));
 	};
 
+	// Function to update projection settings
+	const updateProjectionSettings = (settings) => {
+		setFinancialData((prev) => ({
+			...prev,
+			projectionSettings: {
+				...prev.projectionSettings,
+				...settings,
+			},
+		}));
+	};
+
 	// Calculate total expenses from the expenses array
 	const totalExpenses = Array.isArray(financialData.expenses)
 		? financialData.expenses.reduce(
@@ -378,6 +413,46 @@ export const FinancialProvider = ({ children }) => {
 		}));
 	};
 
+	// Function to add a new yearly bonus
+	const addYearlyBonus = (year, month, amount, description) => {
+		const newBonus = {
+			id: Date.now(), // Use timestamp as unique ID
+			year: parseInt(year),
+			month: parseInt(month),
+			amount: parseFloat(amount) || 0,
+			description,
+		};
+
+		setFinancialData((prev) => ({
+			...prev,
+			yearlyBonuses: Array.isArray(prev.yearlyBonuses)
+				? [...prev.yearlyBonuses, newBonus]
+				: [newBonus],
+		}));
+	};
+
+	// Function to remove a yearly bonus
+	const removeYearlyBonus = (id) => {
+		setFinancialData((prev) => ({
+			...prev,
+			yearlyBonuses: Array.isArray(prev.yearlyBonuses)
+				? prev.yearlyBonuses.filter((bonus) => bonus.id !== id)
+				: [],
+		}));
+	};
+
+	// Function to update an existing yearly bonus
+	const updateYearlyBonus = (id, updates) => {
+		setFinancialData((prev) => ({
+			...prev,
+			yearlyBonuses: Array.isArray(prev.yearlyBonuses)
+				? prev.yearlyBonuses.map((bonus) =>
+						bonus.id === id ? { ...bonus, ...updates } : bonus
+				  )
+				: [],
+		}));
+	};
+
 	// Get month name
 	const getMonthName = (monthNumber) => {
 		const months = [
@@ -418,11 +493,15 @@ export const FinancialProvider = ({ children }) => {
 			value={{
 				financialData,
 				updateFinancialData,
+				updateProjectionSettings,
 				totalExpenses,
 				calculateAge,
 				addExpense,
 				removeExpense,
 				updateExpense,
+				addYearlyBonus,
+				removeYearlyBonus,
+				updateYearlyBonus,
 				getMonthName,
 				formatDate,
 				resetData,
