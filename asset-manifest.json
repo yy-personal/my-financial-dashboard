@@ -1,13 +1,29 @@
 {
   "files": {
-    "main.css": "/my-financial-dashboard/static/css/main.87e502e9.css",
-    "main.js": "/my-financial-dashboard/static/js/main.9594a231.js",
+    "main.css": "/my-financial-dashboard/static/css/main.310c4044.css",
+    "main.js": "/my-financial-dashboard/static/js/main.dbc77182.js",
+    "static/js/421.d67cc7e2.chunk.js": "/my-financial-dashboard/static/js/421.d67cc7e2.chunk.js",
+    "static/js/517.2589331c.chunk.js": "/my-financial-dashboard/static/js/517.2589331c.chunk.js",
+    "static/js/727.0e20388b.chunk.js": "/my-financial-dashboard/static/js/727.0e20388b.chunk.js",
+    "static/js/249.7c800a7e.chunk.js": "/my-financial-dashboard/static/js/249.7c800a7e.chunk.js",
+    "static/js/267.d4b9161e.chunk.js": "/my-financial-dashboard/static/js/267.d4b9161e.chunk.js",
+    "static/js/745.e08177b4.chunk.js": "/my-financial-dashboard/static/js/745.e08177b4.chunk.js",
+    "static/js/168.f427ff39.chunk.js": "/my-financial-dashboard/static/js/168.f427ff39.chunk.js",
+    "static/js/335.c377ce75.chunk.js": "/my-financial-dashboard/static/js/335.c377ce75.chunk.js",
     "index.html": "/my-financial-dashboard/index.html",
-    "main.87e502e9.css.map": "/my-financial-dashboard/static/css/main.87e502e9.css.map",
-    "main.9594a231.js.map": "/my-financial-dashboard/static/js/main.9594a231.js.map"
+    "main.310c4044.css.map": "/my-financial-dashboard/static/css/main.310c4044.css.map",
+    "main.dbc77182.js.map": "/my-financial-dashboard/static/js/main.dbc77182.js.map",
+    "421.d67cc7e2.chunk.js.map": "/my-financial-dashboard/static/js/421.d67cc7e2.chunk.js.map",
+    "517.2589331c.chunk.js.map": "/my-financial-dashboard/static/js/517.2589331c.chunk.js.map",
+    "727.0e20388b.chunk.js.map": "/my-financial-dashboard/static/js/727.0e20388b.chunk.js.map",
+    "249.7c800a7e.chunk.js.map": "/my-financial-dashboard/static/js/249.7c800a7e.chunk.js.map",
+    "267.d4b9161e.chunk.js.map": "/my-financial-dashboard/static/js/267.d4b9161e.chunk.js.map",
+    "745.e08177b4.chunk.js.map": "/my-financial-dashboard/static/js/745.e08177b4.chunk.js.map",
+    "168.f427ff39.chunk.js.map": "/my-financial-dashboard/static/js/168.f427ff39.chunk.js.map",
+    "335.c377ce75.chunk.js.map": "/my-financial-dashboard/static/js/335.c377ce75.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.87e502e9.css",
-    "static/js/main.9594a231.js"
+    "static/css/main.310c4044.css",
+    "static/js/main.dbc77182.js"
   ]
 }
