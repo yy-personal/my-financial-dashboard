@@ -14,6 +14,8 @@ import RetirementPlanner from "./components/RetirementPlanner";
 import SyncStatusIndicator from "./components/SyncStatusIndicator"; // Import the new component
 import { useAuth } from "./context/AuthContext";
 import { useFinancial } from "./context/FinancialContext"; // Import the financial context
+import LiquidityDashboard from "./components/LiquidityDashboard";
+
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -86,6 +88,16 @@ function App() {
 								}`}
 							>
 								Dashboard
+							</Link>
+							<Link
+								to="/liquidity"
+								className={`px-4 py-2 rounded-md transition-colors ${
+									location.pathname.endsWith("/liquidity")
+										? "bg-blue-900"
+										: "hover:bg-blue-800"
+								}`}
+							>
+								Liquidity
 							</Link>
 
 							<Link
@@ -161,16 +173,17 @@ function App() {
 							>
 								Dashboard
 							</Link>
+
 							<Link
-								to="/investments"
+								to="/liquidity"
 								className={`block px-4 py-2 my-1 rounded-md ${
-									location.pathname.endsWith("/investments")
+									location.pathname.endsWith("/liquidity")
 										? "bg-blue-900"
 										: "hover:bg-blue-800"
 								}`}
 								onClick={() => setMobileMenuOpen(false)}
 							>
-								Investments
+								Liquidity
 							</Link>
 
 							<Link
@@ -259,7 +272,14 @@ function App() {
 							</ProtectedRoute>
 						}
 					/>
-
+					<Route
+						path="/liquidity"
+						element={
+							<ProtectedRoute>
+								<LiquidityDashboard />
+							</ProtectedRoute>
+						}
+					/>
 					<Route
 						path="/retirement"
 						element={

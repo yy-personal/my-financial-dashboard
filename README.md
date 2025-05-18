@@ -1,6 +1,6 @@
 # Financial Dashboard
 
-A personal financial dashboard that provides projections for loan repayment, savings goals, and visualizes your financial journey.
+A personal financial dashboard that provides projections for loan repayment, savings goals, and visualizes your financial journey with a clear distinction between liquid assets and restricted funds like CPF.
 
 ## Live Demo
 
@@ -8,14 +8,51 @@ View the live demo: [https://yy-personal.github.io/my-financial-dashboard](https
 
 ## Features
 
-- Interactive financial dashboard with summary view
-- Visualizations including charts for savings growth, loan repayment, and expense breakdown
-- Detailed monthly projections
-- Key financial milestones tracking
-- Customizable expense categories (add, edit, remove)
-- Automatic age calculation based on birthday
-- Editable financial parameters
-- Data persistence using localStorage
+- **Interactive financial dashboard with summary view**
+  - Visual breakdowns of assets, savings, and expenses
+  - Monthly cash flow analysis
+  - Financial health indicators
+  
+- **Liquidity Dashboard** (New)
+  - Clear separation between accessible assets and CPF funds
+  - Liquid Net Worth tracking (assets you can actually use)
+  - Liquidity Ratio analysis
+  - 12-month projection of available vs. restricted funds
+  - Personalized recommendations for improving your liquidity position
+
+- **Net Worth Tracker**
+  - Track both total net worth and liquid net worth over time
+  - Asset allocation visualization
+  - Customizable update mechanism for recording financial milestones
+
+- **Goal Tracker**
+  - Create and track financial goals with progress visualization
+  - Customizable goal categories (savings, debt repayment, investments)
+  - Priority-based display
+  
+- **Retirement Planner**
+  - Sophisticated retirement calculator with multiple parameters
+  - CPF LIFE integration
+  - Funding ratio visualization
+  - Customizable retirement scenarios
+  
+- **Monthly Projections**
+  - Detailed month-by-month financial forecasting
+  - Loan repayment schedule
+  - Savings growth projection
+  - CPF accumulation tracking
+  
+- **Key Financial Insights**
+  - Milestone tracking (loan payoff, savings targets)
+  - Personalized financial recommendations
+  - Asset and expense breakdowns
+  
+- **Additional Features**
+  - Automatic age calculation based on birthday
+  - Editable financial parameters
+  - Data persistence using localStorage
+  - Optional Firebase integration for cross-device syncing
+  - Responsive design for mobile and desktop
 
 ## Local Development Setup
 
@@ -51,10 +88,19 @@ my-financial-dashboard/
 ├── public/               # Static files
 ├── src/
 │   ├── components/       # React components
-│   │   ├── Dashboard.js  # Main dashboard component
-│   │   └── EditParameters.js  # Form for editing parameters
+│   │   ├── Dashboard.js          # Main dashboard component
+│   │   ├── EditParameters.js     # Form for editing parameters
+│   │   ├── GoalTracker.js        # Goal tracking component
+│   │   ├── RetirementPlanner.js  # Retirement planning component
+│   │   ├── NetWorthTracker.js    # Net worth tracking component
+│   │   ├── LiquidityDashboard.js # Liquid vs restricted assets dashboard
+│   │   ├── Login.js              # Authentication component
+│   │   └── SyncStatusIndicator.js# Syncing status component
 │   ├── context/
-│   │   └── FinancialContext.js  # React context for financial data
+│   │   ├── FinancialContext.js   # React context for financial data
+│   │   └── AuthContext.js        # React context for authentication
+│   ├── firebase/
+│   │   └── firebase.js           # Firebase configuration and utilities
 │   ├── App.js            # Main application component
 │   ├── index.js          # Entry point
 │   └── index.css         # Global styles including Tailwind imports
@@ -124,7 +170,27 @@ You can customize all your financial parameters by clicking on "Edit Parameters"
 - Monthly expenses (fully customizable categories)
 - Loan details (remaining amount, interest rate, monthly repayment)
 
-All changes are automatically saved to your browser's localStorage.
+All changes are automatically saved to your browser's localStorage. If you enable Firebase authentication, your data can be synced across devices.
+
+## Cross-Device Synchronization
+
+The dashboard supports optional cross-device synchronization using Firebase:
+
+1. Log in using the authentication feature
+2. Your financial data will be automatically synced across all your devices
+3. A sync status indicator shows when your data was last synced
+4. You can manually sync your data using the "Sync Now" button if needed
+
+## Understanding CPF vs. Liquid Assets
+
+With the addition of the Liquidity Dashboard, you can now clearly distinguish between:
+
+- **Liquid Assets**: Money you can immediately access and use (cash savings)
+- **Restricted Assets**: Money in CPF accounts that has limitations on usage
+- **Liquid Net Worth**: Your accessible assets minus debts (without CPF)
+- **Total Net Worth**: All assets (including CPF) minus debts
+
+This separation helps you make more realistic financial plans based on what funds are actually available to you.
 
 ## Working with Tailwind CSS
 
@@ -159,6 +225,12 @@ npx tailwindcss init -p
 3. **Data persistence issues**
    - Check localStorage in browser DevTools
    - Clear localStorage if data gets corrupted: `localStorage.removeItem('financialData')`
+   - For Firebase syncing issues, check Authentication status in the footer
+
+4. **Syncing issues**
+   - Ensure you're logged in (check the footer for login status)
+   - Try manual sync using the "Sync Now" button
+   - Check console for any Firebase-related errors
 
 ### Getting Help
 
@@ -170,7 +242,8 @@ If you encounter issues not covered here, please [open an issue](https://github.
 - React Router - Navigation
 - Recharts - Data visualization
 - Tailwind CSS - Styling
-- localStorage - Data persistence
+- Firebase - Authentication and data storage (optional)
+- localStorage - Local data persistence
 
 ## License
 
