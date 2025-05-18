@@ -322,13 +322,99 @@ const Dashboard = () => {
 	// Filtered data for charts (every 3 months)
 	const chartData = projection.filter((item, index) => index % 3 === 0);
 
+	// Calculate asset allocation percentages
+	const liquidCash = financialData.personalInfo.currentSavings;
+	const cpfSavings = financialData.personalInfo.currentCpfBalance || 0;
+	const totalAssets = liquidCash + cpfSavings;
+
+	const liquidCashPercentage =
+		totalAssets > 0 ? (liquidCash / totalAssets) * 100 : 0;
+	const cpfPercentage =
+		totalAssets > 0 ? (cpfSavings / totalAssets) * 100 : 0;
+
+	// Asset allocation data for pie chart
+	const assetAllocationData = [
+		{ name: "Liquid Cash", value: liquidCash },
+		{ name: "CPF (Locked)", value: cpfSavings },
+	];
+
+	// Calculate upcoming financial events (next 3 months)
+	const upcomingEvents = [];
+	const today = new Date();
+	const currentMonth = today.getMonth() + 1;
+	const nextThreeMonths = [
+		{ month: currentMonth, year: currentYear },
+		{
+			month:
+				currentMonth + 1 > 12
+					? currentMonth + 1 - 12
+					: currentMonth + 1,
+			year: currentMonth + 1 > 12 ? currentYear + 1 : currentYear,
+		},
+		{
+			month:
+				currentMonth + 2 > 12
+					? currentMonth + 2 - 12
+					: currentMonth + 2,
+			year: currentMonth + 2 > 12 ? currentYear + 1 : currentYear,
+		},
+	];
+
+	// Find salary adjustments in next 3 months
+	if (financialData.income.salaryAdjustments) {
+		financialData.income.salaryAdjustments.forEach((adjustment) => {
+			const isUpcoming = nextThreeMonths.some(
+				(period) =>
+					period.month === adjustment.month &&
+					period.year === adjustment.year
+			);
+
+			if (isUpcoming) {
+				upcomingEvents.push({
+					type: "Salary Adjustment",
+					date: `${getMonthName(adjustment.month)} ${
+						adjustment.year
+					}`,
+					amount: adjustment.newSalary,
+					description: `Salary changes to ${formatCurrency(
+						adjustment.newSalary
+					)}`,
+				});
+			}
+		});
+	}
+
+	// Find bonuses in next 3 months
+	if (financialData.yearlyBonuses) {
+		financialData.yearlyBonuses.forEach((bonus) => {
+			const isUpcoming = nextThreeMonths.some(
+				(period) =>
+					period.month === bonus.month && period.year === bonus.year
+			);
+
+			if (isUpcoming) {
+				upcomingEvents.push({
+					type: "Bonus",
+					date: `${getMonthName(bonus.month)} ${bonus.year}`,
+					amount: bonus.amount,
+					description: bonus.description,
+				});
+			}
+		});
+	}
+
 	// Custom card component for consistency
-	const Card = ({ children, title, className = "" }) => (
+	const Card = ({
+		children,
+		title,
+		className = "",
+		titleColor = "bg-blue-600",
+	}) => (
 		<div
 			className={`bg-white rounded-lg shadow-md overflow-hidden ${className}`}
 		>
 			{title && (
-				<div className="bg-blue-600 px-4 py-3">
+				<div className={`${titleColor} px-4 py-3`}>
 					<h2 className="text-lg font-semibold text-white">
 						{title}
 					</h2>
@@ -354,12 +440,36 @@ const Dashboard = () => {
 		</div>
 	);
 
+	// Status indicator component
+	const StatusIndicator = ({
+		value,
+		threshold1,
+		threshold2,
+		reverse = false,
+	}) => {
+		let color = "bg-green-500";
+
+		if (reverse) {
+			if (value > threshold1) color = "bg-yellow-500";
+			if (value > threshold2) color = "bg-red-500";
+		} else {
+			if (value < threshold1) color = "bg-yellow-500";
+			if (value < threshold2) color = "bg-red-500";
+		}
+
+		return (
+			<div className="flex items-center">
+				<div className={`w-3 h-3 rounded-full ${color} mr-2`}></div>
+			</div>
+		);
+	};
+
 	return (
 		<div className="bg-gray-50 rounded-lg max-w-6xl mx-auto">
 			{/* Header */}
 			<div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white p-4 rounded-lg mb-6 shadow-md">
 				<h1 className="text-xl md:text-2xl font-bold text-center">
-					PERSONAL FINANCIAL PROJECTION
+					PERSONAL FINANCIAL DASHBOARD
 				</h1>
 			</div>
 
@@ -410,52 +520,391 @@ const Dashboard = () => {
 			{/* Summary Tab */}
 			{activeTab === "summary" && (
 				<div className="space-y-6">
-					{/* Financial Overview Cards */}
+					{/* Financial Snapshot Cards */}
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+						{/* Liquid Cash Card */}
+						<div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-green-500">
+							<div className="flex justify-between items-start">
+								<div>
+									<p className="text-sm text-gray-500">
+										Liquid Cash
+									</p>
+									<p className="text-2xl font-bold text-green-700">
+										{formatCurrency(
+											financialData.personalInfo
+												.currentSavings
+										)}
+									</p>
+									<p className="text-xs text-gray-500">
+										Immediately available
+									</p>
+								</div>
+								<StatusIndicator
+									value={
+										financialData.personalInfo
+											.currentSavings
+									}
+									threshold1={5000}
+									threshold2={2000}
+								/>
+							</div>
+						</div>
+
+						{/* CPF Balance Card */}
+						<div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-purple-500">
+							<div className="flex justify-between items-start">
+								<div>
+									<p className="text-sm text-gray-500">
+										CPF Balance
+									</p>
+									<p className="text-2xl font-bold text-purple-700">
+										{formatCurrency(
+											financialData.personalInfo
+												.currentCpfBalance || 0
+										)}
+									</p>
+									<p className="text-xs text-gray-500">
+										Locked until retirement
+									</p>
+								</div>
+							</div>
+						</div>
+
+						{/* Remaining Loan Card */}
+						<div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-red-500">
+							<div className="flex justify-between items-start">
+								<div>
+									<p className="text-sm text-gray-500">
+										Remaining Loan
+									</p>
+									<p className="text-2xl font-bold text-red-700">
+										{formatCurrency(
+											financialData.personalInfo
+												.remainingLoan
+										)}
+									</p>
+									<p className="text-xs text-gray-500">
+										{timeToPayLoan !==
+										"Not within projection"
+											? `Paid off in ${timeToPayLoan}`
+											: "Long-term loan"}
+									</p>
+								</div>
+								<StatusIndicator
+									value={
+										financialData.personalInfo.remainingLoan
+									}
+									threshold1={20000}
+									threshold2={40000}
+									reverse={true}
+								/>
+							</div>
+						</div>
+
+						{/* Net Worth Card */}
 						<div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500">
 							<p className="text-sm text-gray-500">
-								Cash Savings
+								Total Net Worth
 							</p>
 							<p className="text-2xl font-bold text-blue-700">
 								{formatCurrency(
-									financialData.personalInfo.currentSavings
-								)}
-							</p>
-						</div>
-
-						<div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-purple-500">
-							<p className="text-sm text-gray-500">CPF Balance</p>
-							<p className="text-2xl font-bold text-purple-700">
-								{formatCurrency(
-									financialData.personalInfo
-										.currentCpfBalance || 0
+									financialData.personalInfo.currentSavings +
+										(financialData.personalInfo
+											.currentCpfBalance || 0) -
+										financialData.personalInfo.remainingLoan
 								)}
 							</p>
 							<p className="text-xs text-gray-500">
-								Locked until retirement
-							</p>
-						</div>
-
-						<div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-red-500">
-							<p className="text-sm text-gray-500">
-								Remaining Loan
-							</p>
-							<p className="text-2xl font-bold text-red-700">
-								{formatCurrency(
-									financialData.personalInfo.remainingLoan
-								)}
-							</p>
-						</div>
-
-						<div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-green-500">
-							<p className="text-sm text-gray-500">
-								Monthly Cash Savings
-							</p>
-							<p className="text-2xl font-bold text-green-700">
-								{formatCurrency(monthlySavings)}
+								Assets minus liabilities
 							</p>
 						</div>
 					</div>
+
+					{/* Monthly Overview Card */}
+					<Card title="Monthly Cash Flow" titleColor="bg-green-600">
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+							<div className="bg-blue-50 p-3 rounded-lg">
+								<h3 className="font-medium text-blue-800 mb-2">
+									Monthly Income
+								</h3>
+								<p className="text-2xl font-bold text-blue-700">
+									{formatCurrency(takeHomePay)}
+								</p>
+								<p className="text-sm text-gray-600">
+									Take-home pay after CPF
+								</p>
+							</div>
+
+							<div className="bg-red-50 p-3 rounded-lg">
+								<h3 className="font-medium text-red-800 mb-2">
+									Monthly Expenses
+								</h3>
+								<p className="text-2xl font-bold text-red-700">
+									{formatCurrency(
+										monthlyExpenses + loanPayment
+									)}
+								</p>
+								<p className="text-sm text-gray-600">
+									Including loan payment
+								</p>
+							</div>
+
+							<div className="bg-green-50 p-3 rounded-lg">
+								<h3 className="font-medium text-green-800 mb-2">
+									Monthly Savings
+								</h3>
+								<p className="text-2xl font-bold text-green-700">
+									{formatCurrency(monthlySavings)}
+								</p>
+								<p className="text-sm text-gray-600">
+									{formatPercent(savingsRate)} of take-home
+									pay
+								</p>
+							</div>
+						</div>
+
+						{/* Cash Flow Progress Bar */}
+						<div className="mt-2 mb-6">
+							<div className="flex justify-between text-sm mb-1">
+								<span className="text-blue-600 font-medium">
+									Income
+								</span>
+								<span className="text-gray-600">
+									{formatCurrency(takeHomePay)}
+								</span>
+							</div>
+							<div className="w-full h-6 bg-gray-200 rounded-full overflow-hidden">
+								<div className="flex h-full">
+									<div
+										className="bg-red-500 h-full"
+										style={{
+											width: `${
+												(monthlyExpenses /
+													takeHomePay) *
+												100
+											}%`,
+										}}
+										title="Living Expenses"
+									></div>
+									<div
+										className="bg-orange-500 h-full"
+										style={{
+											width: `${
+												(loanPayment / takeHomePay) *
+												100
+											}%`,
+										}}
+										title="Loan Payment"
+									></div>
+									<div
+										className="bg-green-500 h-full"
+										style={{
+											width: `${
+												(monthlySavings / takeHomePay) *
+												100
+											}%`,
+										}}
+										title="Savings"
+									></div>
+								</div>
+							</div>
+							<div className="flex text-xs mt-1 justify-between">
+								<span className="text-red-600">
+									Expenses: {formatCurrency(monthlyExpenses)}
+								</span>
+								<span className="text-orange-600">
+									Loan: {formatCurrency(loanPayment)}
+								</span>
+								<span className="text-green-600">
+									Savings: {formatCurrency(monthlySavings)}
+								</span>
+							</div>
+						</div>
+					</Card>
+
+					{/* Liquid vs Locked Assets */}
+					<Card title="Asset Allocation" titleColor="bg-purple-600">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+							<div className="space-y-2">
+								<h3 className="font-medium text-gray-800 mb-3">
+									Asset Distribution
+								</h3>
+
+								<div className="flex justify-between">
+									<span className="text-green-700 font-medium">
+										Liquid Cash:
+									</span>
+									<span className="font-medium">
+										{formatCurrency(liquidCash)}
+									</span>
+								</div>
+								<div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+									<div
+										className="bg-green-500 h-2.5 rounded-full"
+										style={{
+											width: `${liquidCashPercentage}%`,
+										}}
+									></div>
+								</div>
+
+								<div className="flex justify-between">
+									<span className="text-purple-700 font-medium">
+										CPF (Locked):
+									</span>
+									<span className="font-medium">
+										{formatCurrency(cpfSavings)}
+									</span>
+								</div>
+								<div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+									<div
+										className="bg-purple-500 h-2.5 rounded-full"
+										style={{ width: `${cpfPercentage}%` }}
+									></div>
+								</div>
+
+								<div className="flex justify-between border-t pt-2">
+									<span className="text-blue-700 font-medium">
+										Total Assets:
+									</span>
+									<span className="text-blue-700 font-medium">
+										{formatCurrency(totalAssets)}
+									</span>
+								</div>
+
+								<div className="p-3 bg-blue-50 rounded-lg mt-4">
+									<p className="text-sm text-blue-800">
+										<span className="font-medium">
+											Liquidity Ratio:{" "}
+										</span>
+										{formatPercent(
+											liquidCash / totalAssets
+										)}
+									</p>
+									<p className="text-xs text-blue-600 mt-1">
+										{liquidCashPercentage > 30
+											? "Good liquidity balance. Consider investing some liquid cash for better returns."
+											: liquidCashPercentage > 15
+											? "Healthy liquidity ratio."
+											: "Low liquidity. Consider building more accessible cash reserves."}
+									</p>
+								</div>
+							</div>
+
+							<div className="h-64">
+								<ResponsiveContainer width="100%" height="100%">
+									<PieChart>
+										<Pie
+											data={assetAllocationData}
+											dataKey="value"
+											nameKey="name"
+											cx="50%"
+											cy="50%"
+											outerRadius={80}
+											label={({ name, percent }) =>
+												`${name}: ${(
+													percent * 100
+												).toFixed(0)}%`
+											}
+										>
+											<Cell fill="#4ade80" />{" "}
+											{/* Green for liquid cash */}
+											<Cell fill="#a855f7" />{" "}
+											{/* Purple for CPF */}
+										</Pie>
+										<Tooltip
+											formatter={(value) =>
+												formatCurrency(value)
+											}
+										/>
+										<Legend />
+									</PieChart>
+								</ResponsiveContainer>
+							</div>
+						</div>
+					</Card>
+
+					{/* Upcoming Financial Events */}
+					<Card
+						title="Upcoming Financial Events"
+						titleColor="bg-yellow-600"
+					>
+						{upcomingEvents.length > 0 ? (
+							<div className="space-y-4">
+								{upcomingEvents.map((event, index) => (
+									<div
+										key={index}
+										className="flex p-3 bg-yellow-50 rounded-lg border border-yellow-200"
+									>
+										<div className="flex-shrink-0 mr-3">
+											<div
+												className={`p-2 rounded-full ${
+													event.type === "Bonus"
+														? "bg-green-100 text-green-600"
+														: "bg-blue-100 text-blue-600"
+												}`}
+											>
+												{event.type === "Bonus" ? (
+													<svg
+														className="w-5 h-5"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 24 24"
+													>
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															strokeWidth="2"
+															d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+														></path>
+													</svg>
+												) : (
+													<svg
+														className="w-5 h-5"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 24 24"
+													>
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															strokeWidth="2"
+															d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+														></path>
+													</svg>
+												)}
+											</div>
+										</div>
+										<div>
+											<div className="flex items-center">
+												<h4 className="font-medium text-gray-800">
+													{event.type}
+												</h4>
+												<span className="ml-2 text-sm text-gray-600">
+													{event.date}
+												</span>
+											</div>
+											<p className="text-sm mt-1">
+												{event.type === "Bonus"
+													? `${
+															event.description
+													  }: ${formatCurrency(
+															event.amount
+													  )}`
+													: event.description}
+											</p>
+										</div>
+									</div>
+								))}
+							</div>
+						) : (
+							<div className="p-4 bg-gray-50 rounded-lg text-center">
+								<p className="text-gray-600">
+									No upcoming financial events in the next 3
+									months.
+								</p>
+							</div>
+						)}
+					</Card>
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 						{/* Personal Information */}
@@ -498,278 +947,8 @@ const Dashboard = () => {
 							</div>
 						</Card>
 
-						{/* Financial Snapshot */}
-						<Card title="Current Financial Snapshot">
-							<div className="space-y-1">
-								<InfoItem
-									label="Current Savings"
-									value={formatCurrency(
-										financialData.personalInfo
-											.currentSavings
-									)}
-								/>
-								<InfoItem
-									label="Remaining Loan"
-									value={formatCurrency(
-										financialData.personalInfo.remainingLoan
-									)}
-								/>
-								<InfoItem
-									label="Loan Interest Rate"
-									value={`${financialData.personalInfo.interestRate}%`}
-								/>
-								<InfoItem
-									label="Monthly Repayment"
-									value={formatCurrency(
-										financialData.personalInfo
-											.monthlyRepayment
-									)}
-									highlighted={true}
-								/>
-								{yearlyBonusesThisYear > 0 && (
-									<InfoItem
-										label={`Bonuses (${currentYear})`}
-										value={formatCurrency(
-											yearlyBonusesThisYear
-										)}
-										highlighted={true}
-									/>
-								)}
-							</div>
-						</Card>
-					</div>
-
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-						{/* Income & Expenses */}
-						<Card
-							title="Monthly Income & Expenses"
-							className="overflow-visible"
-						>
-							<div className="space-y-4">
-								{/* Income Breakdown */}
-								<div className="bg-blue-50 p-3 rounded-lg">
-									<h3 className="font-medium text-blue-800 mb-2">
-										Income
-									</h3>
-									<div className="space-y-1">
-										<InfoItem
-											label="Gross Monthly Salary"
-											value={formatCurrency(
-												financialData.income
-													.currentSalary
-											)}
-											highlighted={true}
-										/>
-										<InfoItem
-											label="Employee CPF Contribution"
-											value={`${formatCurrency(
-												cpfContribution
-											)} (${
-												financialData.income.cpfRate
-											}%)`}
-										/>
-										<InfoItem
-											label="Take-Home Pay"
-											value={formatCurrency(takeHomePay)}
-											highlighted={true}
-										/>
-										<InfoItem
-											label="Employer CPF Contribution"
-											value={`${formatCurrency(
-												employerCpfContribution
-											)} (${
-												financialData.income
-													.employerCpfRate
-											}%)`}
-										/>
-										<InfoItem
-											label="Total Monthly Income"
-											value={formatCurrency(
-												totalMonthlyIncome
-											)}
-										/>
-									</div>
-								</div>
-
-								{/* Yearly Bonuses Section - NEW */}
-								{financialData.yearlyBonuses &&
-									financialData.yearlyBonuses.length > 0 && (
-										<div className="bg-green-50 p-3 rounded-lg">
-											<h3 className="font-medium text-green-800 mb-2">
-												Yearly Bonuses
-											</h3>
-											<div className="space-y-1">
-												{financialData.yearlyBonuses
-													.sort((a, b) =>
-														a.year !== b.year
-															? a.year - b.year
-															: a.month - b.month
-													)
-													.map((bonus, index) => (
-														<InfoItem
-															key={index}
-															label={`${getMonthName(
-																bonus.month
-															)} ${
-																bonus.year
-															} - ${
-																bonus.description
-															}`}
-															value={formatCurrency(
-																bonus.amount
-															)}
-															highlighted={
-																bonus.year ===
-																currentYear
-															}
-														/>
-													))}
-											</div>
-										</div>
-									)}
-
-								{/* Future Salary Adjustments (New) */}
-								{financialData.income.salaryAdjustments &&
-									financialData.income.salaryAdjustments
-										.length > 0 && (
-										<div className="bg-yellow-50 p-3 rounded-lg">
-											<h3 className="font-medium text-yellow-800 mb-2">
-												Future Salary Adjustments
-											</h3>
-											<div className="space-y-1">
-												{financialData.income.salaryAdjustments
-													.sort((a, b) =>
-														a.year !== b.year
-															? a.year - b.year
-															: a.month - b.month
-													)
-													.map(
-														(adjustment, index) => (
-															<InfoItem
-																key={index}
-																label={`From ${getMonthName(
-																	adjustment.month
-																)} ${
-																	adjustment.year
-																}`}
-																value={formatCurrency(
-																	adjustment.newSalary
-																)}
-															/>
-														)
-													)}
-											</div>
-										</div>
-									)}
-
-								{/* Legacy Salary Adjustment (Backward Compatibility) */}
-								{!financialData.income.salaryAdjustments &&
-									financialData.income.futureSalary && (
-										<div className="bg-yellow-50 p-3 rounded-lg">
-											<h3 className="font-medium text-yellow-800 mb-2">
-												Future Salary Adjustment
-											</h3>
-											<div className="space-y-1">
-												<InfoItem
-													label={`From ${getMonthName(
-														financialData.income
-															.salaryAdjustmentMonth
-													)} ${
-														financialData.income
-															.salaryAdjustmentYear
-													}`}
-													value={formatCurrency(
-														financialData.income
-															.futureSalary
-													)}
-												/>
-												<InfoItem
-													label="Estimated Take-Home After Adjustment"
-													value={formatCurrency(
-														financialData.income
-															.futureSalary *
-															(1 -
-																financialData
-																	.income
-																	.cpfRate /
-																	100)
-													)}
-												/>
-											</div>
-										</div>
-									)}
-
-								{/* Expense Breakdown */}
-								<div className="bg-red-50 p-3 rounded-lg">
-									<h3 className="font-medium text-red-800 mb-2">
-										Expenses
-									</h3>
-									<div className="space-y-1">
-										<InfoItem
-											label="Living Expenses"
-											value={formatCurrency(
-												totalExpenses
-											)}
-										/>
-										<InfoItem
-											label="Loan Repayment"
-											value={formatCurrency(
-												financialData.personalInfo
-													.monthlyRepayment
-											)}
-										/>
-										<InfoItem
-											label="Total Monthly Expenses"
-											value={formatCurrency(
-												totalExpenses +
-													financialData.personalInfo
-														.monthlyRepayment
-											)}
-											highlighted={true}
-										/>
-									</div>
-								</div>
-
-								{/* Savings Breakdown */}
-								<div className="bg-green-50 p-3 rounded-lg">
-									<h3 className="font-medium text-green-800 mb-2">
-										Monthly Savings
-									</h3>
-									<div className="space-y-1">
-										<InfoItem
-											label="Cash Savings"
-											value={formatCurrency(
-												monthlySavings
-											)}
-											highlighted={true}
-										/>
-										<InfoItem
-											label="CPF Contributions"
-											value={formatCurrency(
-												cpfContribution +
-													employerCpfContribution
-											)}
-										/>
-										<InfoItem
-											label="Total Monthly Added to Net Worth"
-											value={formatCurrency(
-												monthlySavings +
-													cpfContribution +
-													employerCpfContribution
-											)}
-											highlighted={true}
-										/>
-										<InfoItem
-											label="Cash Savings Rate (% of Take-Home)"
-											value={formatPercent(savingsRate)}
-										/>
-									</div>
-								</div>
-							</div>
-						</Card>
-
 						{/* Key Timeframes */}
-						<Card title="Key Timeframes">
+						<Card title="Financial Milestones">
 							<div className="space-y-1">
 								<InfoItem
 									label="Time to Pay Off Loan"
@@ -1563,8 +1742,8 @@ const Dashboard = () => {
 											type="monotone"
 											dataKey="cashSavings"
 											name="Cash Savings"
-											stroke="#8884d8"
-											fill="#8884d8"
+											stroke="#2FD87B"
+											fill="#2FD87B"
 											fillOpacity={0.3}
 											activeDot={{ r: 6 }}
 										/>
