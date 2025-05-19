@@ -65,7 +65,6 @@ const AppLayout = ({ children }) => {
               >
                 Liquidity
               </Link>
-
               <Link
                 to="/retirement"
                 className={`px-4 py-2 rounded-md transition-colors ${
@@ -75,6 +74,16 @@ const AppLayout = ({ children }) => {
                 }`}
               >
                 Retirement
+              </Link>
+              <Link
+                to="/cpf"
+                className={`px-4 py-2 rounded-md transition-colors ${
+                  location.pathname.endsWith("/cpf")
+                    ? "bg-blue-900"
+                    : "hover:bg-blue-800"
+                }`}
+              >
+                CPF Dashboard
               </Link>
               <Link
                 to="/edit"
@@ -163,6 +172,19 @@ const AppLayout = ({ children }) => {
               >
                 Retirement
               </Link>
+              
+              <Link
+                to="/cpf"
+                className={`block px-4 py-2 my-1 rounded-md ${
+                  location.pathname.endsWith("/cpf")
+                    ? "bg-blue-900"
+                    : "hover:bg-blue-800"
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                CPF Dashboard
+              </Link>
+              
               <Link
                 to="/edit"
                 className={`block px-4 py-2 my-1 rounded-md ${

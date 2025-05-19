@@ -3,7 +3,16 @@ import { useFinancial } from "../context/FinancialContext";
 import useProjection from "./useProjection";
 import useMilestones from "./useMilestones";
 import useErrorHandler from "./useErrorHandler";
-import { safeGet, safeParseNumber, safeDivide, validateFinancialData } from "../utils/errors/ErrorUtils";
+import { mapFinancialDataForCalculations } from "../adapters/FinancialDataAdapter";
+import { 
+  safeGet, 
+  safeParseNumber, 
+  safeDivide, 
+  validateFinancialData,
+  getCPFRatesByAge,
+  allocateCPFContribution,
+  getCPFContributionCaps
+} from "../utils/errors/ErrorUtils";
 
 /**
  * useFinancialCalculations hook
@@ -12,7 +21,7 @@ import { safeGet, safeParseNumber, safeDivide, validateFinancialData } from "../
  * @returns {Object} Financial calculation results and helper functions
  */
 const useFinancialCalculations = () => {
-  const { financialData, updateFinancialData } = useFinancial();
+  const { financialData: contextData, updateFinancialData } = useFinancial();
   const [expenseData, setExpenseData] = useState([]);
   const [assetAllocationData, setAssetAllocationData] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -25,6 +34,11 @@ const useFinancialCalculations = () => {
     clearError,
     tryCatch 
   } = useErrorHandler('useFinancialCalculations');
+
+  // Adapt the financial data to the format expected by this hook
+  const financialData = useMemo(() => {
+    return mapFinancialDataForCalculations(contextData);
+  }, [contextData]);
   
   // Validate financial data
   const { isValid: isDataValid, errors: dataValidationErrors } = 
@@ -46,20 +60,34 @@ const useFinancialCalculations = () => {
     // Use tryCatch to safely extract values
     return tryCatch(() => {
       const { personalInfo = {}, financialInfo = {} } = financialData;
+      const age = safeParseNumber(safeGet(personalInfo, 'age', 35));
       
-      // Default values if data is missing
-      const defaultCpfContributionRate = 20; // 20% employee contribution
-      const defaultEmployerCpfRate = 17; // 17% employer contribution
+      // Get age-based CPF rates
+      const { employeeRate, employerRate } = getCPFRatesByAge(age);
+      
+      // Use specified rates if available, otherwise use age-based defaults
+      const defaultCpfContributionRate = safeParseNumber(safeGet(personalInfo, 'cpfContributionRate', employeeRate));
+      const defaultEmployerCpfRate = safeParseNumber(safeGet(personalInfo, 'employerCpfContributionRate', employerRate));
 
+      // Get CPF account balances
+      const cpfOrdinaryAccount = safeParseNumber(safeGet(financialInfo, 'cpfOrdinaryAccount', 0));
+      const cpfSpecialAccount = safeParseNumber(safeGet(financialInfo, 'cpfSpecialAccount', 0));
+      const cpfMedisaveAccount = safeParseNumber(safeGet(financialInfo, 'cpfMedisaveAccount', 0));
+      const totalCpfBalance = cpfOrdinaryAccount + cpfSpecialAccount + cpfMedisaveAccount;
+      
       return {
         salary: safeParseNumber(safeGet(personalInfo, 'monthlySalary', 0)),
-        cpfContributionRate: safeParseNumber(safeGet(personalInfo, 'cpfContributionRate', defaultCpfContributionRate)),
-        employerCpfContributionRate: safeParseNumber(safeGet(personalInfo, 'employerCpfContributionRate', defaultEmployerCpfRate)),
+        age,
+        cpfContributionRate: defaultCpfContributionRate,
+        employerCpfContributionRate: defaultEmployerCpfRate,
         monthlyExpenses: safeParseNumber(safeGet(financialInfo, 'monthlyExpenses', 0)),
         loanPayment: safeParseNumber(safeGet(personalInfo, 'monthlyRepayment', 0)),
         loanRemaining: safeParseNumber(safeGet(financialInfo, 'housingLoanRemaining', 0)),
         liquidCash: safeParseNumber(safeGet(financialInfo, 'liquidCash', 0)),
-        cpfBalance: safeParseNumber(safeGet(financialInfo, 'cpfOrdinaryAccount', 0)),
+        cpfOrdinaryAccount,
+        cpfSpecialAccount,
+        cpfMedisaveAccount,
+        cpfBalance: totalCpfBalance,
       };
     }, [], { source: 'currentValues calculation' });
   }, [financialData, tryCatch]);
@@ -104,15 +132,31 @@ const useFinancialCalculations = () => {
     return tryCatch(() => {
       const { 
         salary, 
+        age,
         cpfContributionRate, 
         employerCpfContributionRate, 
         monthlyExpenses, 
-        loanPayment 
+        loanPayment,
+        cpfOrdinaryAccount,
+        cpfSpecialAccount,
+        cpfMedisaveAccount,
+        cpfBalance
       } = currentValues;
+
+      // Get CPF contribution caps
+      const cpfCaps = getCPFContributionCaps();
+      const { ordinaryWageCeiling } = cpfCaps;
+      
+      // Apply Ordinary Wage Ceiling to salary for CPF calculation
+      const cpfApplicableSalary = Math.min(salary, ordinaryWageCeiling);
   
       // Calculate CPF contributions
-      const cpfContribution = safeDivide(salary * cpfContributionRate, 100, 0);
-      const employerCpfContribution = safeDivide(salary * employerCpfContributionRate, 100, 0);
+      const cpfContribution = safeDivide(cpfApplicableSalary * cpfContributionRate, 100, 0);
+      const employerCpfContribution = safeDivide(cpfApplicableSalary * employerCpfContributionRate, 100, 0);
+      const totalCpfContribution = cpfContribution + employerCpfContribution;
+      
+      // Allocate CPF contributions to different accounts
+      const cpfAllocation = allocateCPFContribution(totalCpfContribution, age);
       
       // Calculate take-home pay and savings
       const takeHomePay = salary - cpfContribution;
@@ -124,17 +168,50 @@ const useFinancialCalculations = () => {
       
       // Calculate total monthly income including employer CPF
       const totalMonthlyIncome = salary + employerCpfContribution;
+
+      // Calculate CPF percentages
+      const cpfOrdinaryPercentage = safeDivide(cpfOrdinaryAccount, cpfBalance, 0) * 100;
+      const cpfSpecialPercentage = safeDivide(cpfSpecialAccount, cpfBalance, 0) * 100;
+      const cpfMedisavePercentage = safeDivide(cpfMedisaveAccount, cpfBalance, 0) * 100;
+      
+      // Calculate projected CPF after 1 month
+      const projectedOrdinaryAccount = cpfOrdinaryAccount + cpfAllocation.ordinary;
+      const projectedSpecialAccount = cpfSpecialAccount + cpfAllocation.special;
+      const projectedMedisaveAccount = cpfMedisaveAccount + cpfAllocation.medisave;
   
       return {
+        // Basic financial metrics
         currentSalary: salary,
         cpfContribution,
         employerCpfContribution,
+        totalCpfContribution,
         takeHomePay,
         monthlyExpenses,
         loanPayment,
         monthlySavings,
         savingsRate,
-        totalMonthlyIncome
+        totalMonthlyIncome,
+        
+        // CPF details
+        cpfOrdinaryAccount,
+        cpfSpecialAccount,
+        cpfMedisaveAccount,
+        cpfOrdinaryPercentage,
+        cpfSpecialPercentage,
+        cpfMedisavePercentage,
+        
+        // CPF allocations
+        cpfOrdinaryAllocation: cpfAllocation.ordinary,
+        cpfSpecialAllocation: cpfAllocation.special,
+        cpfMedisaveAllocation: cpfAllocation.medisave,
+        
+        // Projected CPF after 1 month
+        projectedOrdinaryAccount,
+        projectedSpecialAccount,
+        projectedMedisaveAccount,
+        
+        // CPF caps and limits
+        cpfCaps
       };
     }, [], { source: 'financialMetrics calculation' });
   }, [currentValues, tryCatch]);
@@ -144,34 +221,53 @@ const useFinancialCalculations = () => {
     if (!currentValues) return;
     
     try {
-      const { liquidCash, cpfBalance } = currentValues;
+      const { 
+        liquidCash, 
+        cpfOrdinaryAccount, 
+        cpfSpecialAccount, 
+        cpfMedisaveAccount 
+      } = currentValues;
+      
       // Use safeParseNumber to ensure we have valid numbers
       const safeLC = safeParseNumber(liquidCash, 0);
-      const safeCPF = safeParseNumber(cpfBalance, 0);
-      const totalAssets = safeLC + safeCPF;
+      const safeOA = safeParseNumber(cpfOrdinaryAccount, 0);
+      const safeSA = safeParseNumber(cpfSpecialAccount, 0);
+      const safeMA = safeParseNumber(cpfMedisaveAccount, 0);
+      
+      // Calculate total assets
+      const totalCPF = safeOA + safeSA + safeMA;
+      const totalAssets = safeLC + totalCPF;
       
       if (totalAssets === 0) {
         setAssetAllocationData([
           { name: "Liquid Cash", value: 0, percentage: 0 },
-          { name: "CPF Savings", value: 0, percentage: 0 }
+          { name: "CPF Ordinary Account", value: 0, percentage: 0, group: "CPF" },
+          { name: "CPF Special Account", value: 0, percentage: 0, group: "CPF" },
+          { name: "CPF Medisave Account", value: 0, percentage: 0, group: "CPF" }
         ]);
         return;
       }
       
       // Calculate percentages safely using safeDivide
       const liquidCashPercentage = safeDivide(safeLC, totalAssets, 0) * 100;
-      const cpfPercentage = safeDivide(safeCPF, totalAssets, 0) * 100;
+      const cpfOAPercentage = safeDivide(safeOA, totalAssets, 0) * 100;
+      const cpfSAPercentage = safeDivide(safeSA, totalAssets, 0) * 100;
+      const cpfMAPercentage = safeDivide(safeMA, totalAssets, 0) * 100;
       
       // Include both the values and percentages in the data
       setAssetAllocationData([
         { name: "Liquid Cash", value: safeLC, percentage: liquidCashPercentage },
-        { name: "CPF Savings", value: safeCPF, percentage: cpfPercentage }
+        { name: "CPF Ordinary Account", value: safeOA, percentage: cpfOAPercentage, group: "CPF" },
+        { name: "CPF Special Account", value: safeSA, percentage: cpfSAPercentage, group: "CPF" },
+        { name: "CPF Medisave Account", value: safeMA, percentage: cpfMAPercentage, group: "CPF" }
       ]);
     } catch (error) {
       handleError(error, { source: 'asset allocation calculation' });
       setAssetAllocationData([
         { name: "Liquid Cash", value: 0, percentage: 0 },
-        { name: "CPF Savings", value: 0, percentage: 0 }
+        { name: "CPF Ordinary Account", value: 0, percentage: 0, group: "CPF" },
+        { name: "CPF Special Account", value: 0, percentage: 0, group: "CPF" },
+        { name: "CPF Medisave Account", value: 0, percentage: 0, group: "CPF" }
       ]);
     }
   }, [currentValues, handleError, safeParseNumber, safeDivide]);
@@ -286,18 +382,53 @@ const useFinancialCalculations = () => {
     
     // Asset details
     liquidCash: currentValues?.liquidCash || 0,
-    cpfSavings: currentValues?.cpfBalance || 0,
+    
+    // CPF details
+    cpfOrdinaryAccount: currentValues?.cpfOrdinaryAccount || 0,
+    cpfSpecialAccount: currentValues?.cpfSpecialAccount || 0,
+    cpfMedisaveAccount: currentValues?.cpfMedisaveAccount || 0,
+    cpfTotalSavings: currentValues?.cpfBalance || 0,
+    
+    // Total assets
     totalAssets: (currentValues?.liquidCash || 0) + (currentValues?.cpfBalance || 0),
+    
+    // CPF account percentages (of total CPF)
+    cpfOrdinaryPercentage: currentValues ? 
+      safeDivide(currentValues.cpfOrdinaryAccount, Math.max(0.01, currentValues.cpfBalance), 0) * 100 : 0,
+    cpfSpecialPercentage: currentValues ? 
+      safeDivide(currentValues.cpfSpecialAccount, Math.max(0.01, currentValues.cpfBalance), 0) * 100 : 0,
+    cpfMedisavePercentage: currentValues ? 
+      safeDivide(currentValues.cpfMedisaveAccount, Math.max(0.01, currentValues.cpfBalance), 0) * 100 : 0,
+    
+    // Asset percentages (of total assets)
     liquidCashPercentage: currentValues ? 
       safeDivide(currentValues.liquidCash, Math.max(0.01, currentValues.liquidCash + currentValues.cpfBalance), 0) * 100 : 0,
     cpfPercentage: currentValues ? 
       safeDivide(currentValues.cpfBalance, Math.max(0.01, currentValues.liquidCash + currentValues.cpfBalance), 0) * 100 : 0,
+    
+    // CPF monthly contributions
+    cpfContribution: financialMetrics.cpfContribution || 0,
+    employerCpfContribution: financialMetrics.employerCpfContribution || 0,
+    totalCpfContribution: financialMetrics.totalCpfContribution || 0,
+    
+    // Monthly CPF allocations
+    cpfOrdinaryAllocation: financialMetrics.cpfOrdinaryAllocation || 0,
+    cpfSpecialAllocation: financialMetrics.cpfSpecialAllocation || 0,
+    cpfMedisaveAllocation: financialMetrics.cpfMedisaveAllocation || 0,
+    
+    // Projected CPF balances (after 1 month)
+    projectedOrdinaryAccount: financialMetrics.projectedOrdinaryAccount || 0,
+    projectedSpecialAccount: financialMetrics.projectedSpecialAccount || 0,
+    projectedMedisaveAccount: financialMetrics.projectedMedisaveAccount || 0,
     
     // Data for UI components
     assetAllocationData,
     expenseData,
     upcomingEvents,
     milestones,
+    
+    // CPF contribution caps
+    cpfContributionCaps: financialMetrics.cpfCaps || getCPFContributionCaps(),
     
     // Settings
     projectionSettings,
