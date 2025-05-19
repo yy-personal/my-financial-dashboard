@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
-import { logError } from "../../utils/errors/ErrorUtils";
+import { logError } from "../../../utils/errors/ErrorUtils";
 
 /**
  * Enhanced ErrorBoundary Component
