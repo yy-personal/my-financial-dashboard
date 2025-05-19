@@ -11,7 +11,6 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const EditParameters = lazy(() => import("./components/EditParameters"));
 const RetirementPlanner = lazy(() => import("./components/RetirementPlanner"));
 const LiquidityDashboard = lazy(() => import("./components/LiquidityDashboard"));
-const CPFDashboard = lazy(() => import("./components/dashboard/CPF/CPFDashboard"));
 
 // Loading component for suspense fallback
 const LoadingFallback = () => (
@@ -116,19 +115,6 @@ function App() {
                     showDetails={process.env.NODE_ENV !== "production"}
                   >
                     <RetirementPlanner />
-                  </ErrorBoundary>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cpf"
-              element={
-                <ProtectedRoute>
-                  <ErrorBoundary 
-                    componentName="CPFDashboard"
-                    showDetails={process.env.NODE_ENV !== "production"}
-                  >
-                    <CPFDashboard />
                   </ErrorBoundary>
                 </ProtectedRoute>
               }

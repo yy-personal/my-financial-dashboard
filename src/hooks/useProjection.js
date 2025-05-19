@@ -1,12 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import useErrorHandler from './useErrorHandler';
-import { 
-  safeParseNumber, 
-  safeDivide, 
-  createFinancialError, 
-  allocateCPFContribution, 
-  getCPFContributionCaps
-} from '../utils/errors/ErrorUtils';
+import { safeParseNumber, safeDivide, createFinancialError } from '../utils/errors/ErrorUtils';
 
 /**
  * Custom hook for generating financial projections
@@ -44,7 +38,7 @@ const useProjection = (initialData, initialSettings) => {
     }
 
     // Check for required fields
-    const requiredFields = ['salary', 'cpfContributionRate', 'employerCpfContributionRate', 'monthlyExpenses', 'age'];
+    const requiredFields = ['salary', 'cpfContributionRate', 'employerCpfContributionRate', 'monthlyExpenses'];
     const missingFields = requiredFields.filter(field => data[field] === undefined);
     
     if (missingFields.length > 0) {
@@ -59,13 +53,10 @@ const useProjection = (initialData, initialSettings) => {
     if (
       (data.salary !== undefined && data.salary < 0) ||
       (data.monthlyExpenses !== undefined && data.monthlyExpenses < 0) ||
-      (data.loanPayment !== undefined && data.loanPayment < 0) ||
-      (data.cpfOrdinaryAccount !== undefined && data.cpfOrdinaryAccount < 0) ||
-      (data.cpfSpecialAccount !== undefined && data.cpfSpecialAccount < 0) ||
-      (data.cpfMedisaveAccount !== undefined && data.cpfMedisaveAccount < 0)
+      (data.loanPayment !== undefined && data.loanPayment < 0)
     ) {
       handleError(createFinancialError(
-        'Negative values are not allowed for financial data', 
+        'Negative values are not allowed for salary, expenses, or loan payments', 
         'negative_value'
       ));
       return false;
@@ -96,17 +87,13 @@ const useProjection = (initialData, initialSettings) => {
       // Extract values from data and settings
       const { 
         salary = 0, 
-        age = 35,
         cpfContributionRate = 20, 
         employerCpfContributionRate = 17, 
         monthlyExpenses = 0, 
         loanPayment = 0, 
         loanRemaining = 0, 
         liquidCash = 0, 
-        cpfOrdinaryAccount = 0,
-        cpfSpecialAccount = 0,
-        cpfMedisaveAccount = 0,
-        cpfBalance = 0
+        cpfBalance = 0 
       } = data;
 
       const { 
@@ -118,10 +105,6 @@ const useProjection = (initialData, initialSettings) => {
         bonusMonths = 2,
         bonusAmount = safeParseNumber(settings.bonusAmount || salary, salary)
       } = settings;
-
-      // Get CPF contribution caps
-      const cpfCaps = getCPFContributionCaps();
-      const { ordinaryWageCeiling } = cpfCaps;
 
       // Convert annual rates to monthly
       const monthlySalaryIncrease = Math.pow(1 + annualSalaryIncrease / 100, 1 / 12) - 1;
@@ -140,10 +123,7 @@ const useProjection = (initialData, initialSettings) => {
       let currentLoanPayment = safeParseNumber(loanPayment);
       let currentLoanRemaining = safeParseNumber(loanRemaining);
       let currentLiquidCash = safeParseNumber(liquidCash);
-      let currentCpfOrdinaryAccount = safeParseNumber(cpfOrdinaryAccount);
-      let currentCpfSpecialAccount = safeParseNumber(cpfSpecialAccount);
-      let currentCpfMedisaveAccount = safeParseNumber(cpfMedisaveAccount);
-      let currentAge = safeParseNumber(age); // Age will increment by 1/12 each month
+      let currentCpfBalance = safeParseNumber(cpfBalance);
       
       // Track milestone months
       let loanPaidOffIndex = null;
@@ -163,16 +143,9 @@ const useProjection = (initialData, initialSettings) => {
           currentExpenses *= (1 + monthlyExpenseIncrease);
         }
         
-        // Apply Ordinary Wage Ceiling to salary for CPF calculation
-        const cpfApplicableSalary = Math.min(currentSalary, ordinaryWageCeiling);
-        
         // Calculate CPF contributions
-        const cpfContribution = safeDivide(cpfApplicableSalary * cpfContributionRate, 100, 0);
-        const employerCpfContribution = safeDivide(cpfApplicableSalary * employerCpfContributionRate, 100, 0);
-        const totalCpfContribution = cpfContribution + employerCpfContribution;
-        
-        // Allocate CPF contributions to different accounts based on age
-        const cpfAllocation = allocateCPFContribution(totalCpfContribution, currentAge);
+        const cpfContribution = safeDivide(currentSalary * cpfContributionRate, 100, 0);
+        const employerCpfContribution = safeDivide(currentSalary * employerCpfContributionRate, 100, 0);
         
         // Calculate take-home pay
         const takeHomePay = currentSalary - cpfContribution;
@@ -205,22 +178,9 @@ const useProjection = (initialData, initialSettings) => {
         // Add new savings and investment returns
         currentLiquidCash += monthlySavings + investmentReturn;
         
-        // Update CPF balances with new contributions plus interest
-        // OA, SA, and MA have different interest rates in reality, but we'll use the same for simplicity
-        const ordinaryAccountInterest = currentCpfOrdinaryAccount * monthlyCpfInterestRate;
-        const specialAccountInterest = currentCpfSpecialAccount * monthlyCpfInterestRate;
-        const medisaveAccountInterest = currentCpfMedisaveAccount * monthlyCpfInterestRate;
-        
-        // Update each CPF account
-        currentCpfOrdinaryAccount += cpfAllocation.ordinary + ordinaryAccountInterest;
-        currentCpfSpecialAccount += cpfAllocation.special + specialAccountInterest;
-        currentCpfMedisaveAccount += cpfAllocation.medisave + medisaveAccountInterest;
-        
-        // Calculate total CPF balance
-        const totalCpfBalance = currentCpfOrdinaryAccount + currentCpfSpecialAccount + currentCpfMedisaveAccount;
-        
-        // Update age (increment by 1/12 month)
-        currentAge += 1/12;
+        // Update CPF balance with new contributions plus interest
+        const cpfInterest = currentCpfBalance * monthlyCpfInterestRate;
+        currentCpfBalance += cpfContribution + employerCpfContribution + cpfInterest;
         
         // Check if savings goal reached
         if (currentLiquidCash >= 100000 && savingsGoalIndex === null) {
@@ -228,7 +188,7 @@ const useProjection = (initialData, initialSettings) => {
         }
         
         // Calculate net worth
-        const totalNetWorth = currentLiquidCash + totalCpfBalance - currentLoanRemaining;
+        const totalNetWorth = currentLiquidCash + currentCpfBalance - currentLoanRemaining;
         
         // Format date (assuming we start from current month)
         const date = new Date();
@@ -252,15 +212,8 @@ const useProjection = (initialData, initialSettings) => {
           loanRemaining: currentLoanRemaining,
           monthlySavings,
           cashSavings: currentLiquidCash,
-          cpfOrdinaryAccount: currentCpfOrdinaryAccount,
-          cpfSpecialAccount: currentCpfSpecialAccount,
-          cpfMedisaveAccount: currentCpfMedisaveAccount,
-          cpfTotalBalance: totalCpfBalance,
-          cpfOrdinaryAllocation: cpfAllocation.ordinary,
-          cpfSpecialAllocation: cpfAllocation.special,
-          cpfMedisaveAllocation: cpfAllocation.medisave,
+          cpfBalance: currentCpfBalance,
           totalNetWorth,
-          age: currentAge,
           isBonus,
           bonusAmount: monthBonusAmount
         });
