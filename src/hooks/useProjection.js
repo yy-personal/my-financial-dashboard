@@ -103,7 +103,7 @@ const useProjection = (initialData, initialSettings) => {
         annualCpfInterestRate = 2.5, 
         projectionYears = 30,
         bonusMonths = 2,
-        bonusAmount = salary
+        bonusAmount = safeParseNumber(settings.bonusAmount || salary, salary)
       } = settings;
 
       // Convert annual rates to monthly
@@ -155,10 +155,11 @@ const useProjection = (initialData, initialSettings) => {
         let actualLoanPayment = currentLoanRemaining > 0 ? currentLoanPayment : 0;
         
         // Calculate interest for the month
-        const interestPayment = currentLoanRemaining * monthlyLoanInterestRate;
+        const interestPayment = currentLoanRemaining > 0 ? currentLoanRemaining * monthlyLoanInterestRate : 0;
         
         // Principal payment is loan payment minus interest
-        const principalPayment = Math.min(currentLoanRemaining, actualLoanPayment - interestPayment);
+        // Ensure principal payment is not negative if interest exceeds payment
+        const principalPayment = Math.min(currentLoanRemaining, Math.max(0, actualLoanPayment - interestPayment));
         
         // Update loan remaining
         currentLoanRemaining = Math.max(0, currentLoanRemaining - principalPayment);
@@ -172,7 +173,9 @@ const useProjection = (initialData, initialSettings) => {
         const monthlySavings = takeHomePay - currentExpenses - actualLoanPayment + monthBonusAmount;
         
         // Update cash savings with new savings plus investment returns
+        // Calculate investment return on current balance before adding new savings
         const investmentReturn = currentLiquidCash * monthlyInvestmentReturn;
+        // Add new savings and investment returns
         currentLiquidCash += monthlySavings + investmentReturn;
         
         // Update CPF balance with new contributions plus interest
@@ -189,8 +192,12 @@ const useProjection = (initialData, initialSettings) => {
         
         // Format date (assuming we start from current month)
         const date = new Date();
-        date.setMonth(date.getMonth() + month);
-        const formattedDate = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+        // Clone the date to avoid modifying the original date
+        const projectionDate = new Date(date);
+        // Add months to the base date
+        projectionDate.setMonth(date.getMonth() + month);
+        // Format the date in a consistent way
+        const formattedDate = `${projectionDate.toLocaleString('default', { month: 'short' })} ${projectionDate.getFullYear()}`;
         
         // Add month to projection
         projection.push({
@@ -223,12 +230,29 @@ const useProjection = (initialData, initialSettings) => {
       
       // Format time to milestones
       const formatTimeToMilestone = (months) => {
-        if (months === null) return 'Not within projection';
-        const years = Math.floor(months / 12);
-        const remainingMonths = months % 12;
-        return years > 0 
-          ? `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''}`
-          : `${remainingMonths} month${remainingMonths > 1 ? 's' : ''}`;
+      if (months === null) return 'Not within projection';
+      // Convert to number to ensure proper calculation
+      const monthsNum = Number(months);
+      if (isNaN(monthsNum)) return 'Not within projection';
+      
+      const years = Math.floor(monthsNum / 12);
+        const remainingMonths = monthsNum % 12;
+        
+        // Handle singular/plural forms correctly
+        if (years > 0) {
+          // Both years and months
+          if (remainingMonths > 0) {
+            return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''}`;
+          }
+          // Only years, no months
+          return `${years} year${years > 1 ? 's' : ''}`;
+        }
+        // Only months, no years
+        if (remainingMonths > 0) {
+          return `${remainingMonths} month${remainingMonths > 1 ? 's' : ''}`;
+        }
+        // Should not happen but handle the case
+        return 'Less than a month';
       };
       
       return {

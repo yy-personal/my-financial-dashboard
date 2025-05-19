@@ -79,6 +79,146 @@ export const createError = (message, type = 'ApplicationError', additionalData =
 };
 
 /**
+ * Creates a financial-specific error with appropriate type
+ * @param {string} message - Error message
+ * @param {string} code - Error code for categorization
+ * @returns {Error} Financial error object
+ */
+export const createFinancialError = (message, code = 'calculation_error') => {
+  const error = new Error(message);
+  error.name = 'FinancialError';
+  error.code = code;
+  return error;
+};
+
+/**
+ * Safely get a nested property from an object without errors
+ * @param {Object} obj - The object to get value from
+ * @param {string} path - The property path (e.g., 'user.profile.name')
+ * @param {any} defaultValue - Default value if property doesn't exist
+ * @returns {any} The property value or default
+ */
+export const safeGet = (obj, path, defaultValue = undefined) => {
+  if (!obj) return defaultValue;
+  
+  try {
+    const keys = path.split('.');
+    let result = obj;
+    
+    for (const key of keys) {
+      result = result[key];
+      if (result === undefined || result === null) {
+        return defaultValue;
+      }
+    }
+    
+    return result;
+  } catch (error) {
+    return defaultValue;
+  }
+};
+
+/**
+ * Safely parse a number from various inputs
+ * @param {any} value - The value to parse
+ * @param {number} defaultValue - Default value if parsing fails
+ * @returns {number} Parsed number or default
+ */
+export const safeParseNumber = (value, defaultValue = 0) => {
+  if (value === undefined || value === null) {
+    return defaultValue;
+  }
+  
+  try {
+    // Handle string inputs
+    if (typeof value === 'string') {
+      // Remove currency symbols, commas, etc.
+      const cleaned = value.replace(/[^-0-9.]/g, '');
+      const parsed = parseFloat(cleaned);
+      return isNaN(parsed) ? defaultValue : parsed;
+    }
+    
+    // Handle numeric inputs
+    if (typeof value === 'number') {
+      return isNaN(value) ? defaultValue : value;
+    }
+    
+    return defaultValue;
+  } catch (error) {
+    return defaultValue;
+  }
+};
+
+/**
+ * Safely divide two numbers without division by zero errors
+ * @param {number} numerator - The numerator
+ * @param {number} denominator - The denominator
+ * @param {number} defaultValue - Default value if division is invalid
+ * @returns {number} Division result or default
+ */
+export const safeDivide = (numerator, denominator, defaultValue = 0) => {
+  if (denominator === 0 || denominator === undefined || denominator === null) {
+    return defaultValue;
+  }
+  
+  try {
+    const result = numerator / denominator;
+    return isNaN(result) || !isFinite(result) ? defaultValue : result;
+  } catch (error) {
+    return defaultValue;
+  }
+};
+
+/**
+ * Validates financial data structure for required fields and valid values
+ * @param {Object} data - Financial data to validate
+ * @returns {Object} Validation result with isValid flag and errors array
+ */
+export const validateFinancialData = (data) => {
+  const errors = [];
+  
+  if (!data) {
+    return { isValid: false, errors: ['No financial data provided'] };
+  }
+  
+  // Check basic structure
+  if (!data.personalInfo) {
+    errors.push('Missing personal information');
+  }
+  
+  if (!data.financialInfo) {
+    errors.push('Missing financial information');
+  }
+  
+  // Check for critical fields if sections exist
+  if (data.personalInfo) {
+    if (data.personalInfo.monthlySalary === undefined) {
+      errors.push('Missing monthly salary');
+    } else if (safeParseNumber(data.personalInfo.monthlySalary) < 0) {
+      errors.push('Monthly salary cannot be negative');
+    }
+  }
+  
+  if (data.financialInfo) {
+    if (data.financialInfo.monthlyExpenses === undefined) {
+      errors.push('Missing monthly expenses');
+    } else if (safeParseNumber(data.financialInfo.monthlyExpenses) < 0) {
+      errors.push('Monthly expenses cannot be negative');
+    }
+    
+    if (data.financialInfo.liquidCash !== undefined && 
+        safeParseNumber(data.financialInfo.liquidCash) < 0) {
+      errors.push('Liquid cash cannot be negative');
+    }
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
+/**
  * Gets fallback UI message based on error type
  * @param {Error} error - The error object 
  * @returns {string} Message to display in fallback UI
@@ -92,6 +232,13 @@ export const getFallbackMessage = (error) => {
     case 'ChartError':
       return 'Unable to display chart. Your data is still safe.';
     case 'CalculationError':
+      return 'Error in financial calculations. Please check your inputs.';
+    case 'FinancialError':
+      if (error.code === 'negative_value') {
+        return 'Financial values cannot be negative. Please check your inputs.';
+      } else if (error.code === 'missing_data') {
+        return 'Some required financial data is missing. Please complete all required fields.';
+      }
       return 'Error in financial calculations. Please check your inputs.';
     default:
       return 'Something went wrong. Please try again.';
