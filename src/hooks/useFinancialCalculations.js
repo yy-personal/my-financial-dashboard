@@ -145,32 +145,36 @@ const useFinancialCalculations = () => {
     
     try {
       const { liquidCash, cpfBalance } = currentValues;
-      const totalAssets = liquidCash + cpfBalance;
+      // Use safeParseNumber to ensure we have valid numbers
+      const safeLC = safeParseNumber(liquidCash, 0);
+      const safeCPF = safeParseNumber(cpfBalance, 0);
+      const totalAssets = safeLC + safeCPF;
       
       if (totalAssets === 0) {
         setAssetAllocationData([
-          { name: "Liquid Cash", value: 0 },
-          { name: "CPF Savings", value: 0 }
+          { name: "Liquid Cash", value: 0, percentage: 0 },
+          { name: "CPF Savings", value: 0, percentage: 0 }
         ]);
         return;
       }
       
-      // Calculate percentages
-      const liquidCashPercentage = (liquidCash / totalAssets) * 100;
-      const cpfPercentage = (cpfBalance / totalAssets) * 100;
+      // Calculate percentages safely using safeDivide
+      const liquidCashPercentage = safeDivide(safeLC, totalAssets, 0) * 100;
+      const cpfPercentage = safeDivide(safeCPF, totalAssets, 0) * 100;
       
+      // Include both the values and percentages in the data
       setAssetAllocationData([
-        { name: "Liquid Cash", value: liquidCash },
-        { name: "CPF Savings", value: cpfBalance }
+        { name: "Liquid Cash", value: safeLC, percentage: liquidCashPercentage },
+        { name: "CPF Savings", value: safeCPF, percentage: cpfPercentage }
       ]);
     } catch (error) {
       handleError(error, { source: 'asset allocation calculation' });
       setAssetAllocationData([
-        { name: "Liquid Cash", value: 0 },
-        { name: "CPF Savings", value: 0 }
+        { name: "Liquid Cash", value: 0, percentage: 0 },
+        { name: "CPF Savings", value: 0, percentage: 0 }
       ]);
     }
-  }, [currentValues, handleError]);
+  }, [currentValues, handleError, safeParseNumber, safeDivide]);
 
   // Calculate expense breakdown data for charts/displays
   useEffect(() => {
@@ -285,9 +289,9 @@ const useFinancialCalculations = () => {
     cpfSavings: currentValues?.cpfBalance || 0,
     totalAssets: (currentValues?.liquidCash || 0) + (currentValues?.cpfBalance || 0),
     liquidCashPercentage: currentValues ? 
-      safeDivide(currentValues.liquidCash, (currentValues.liquidCash + currentValues.cpfBalance), 0) * 100 : 0,
+      safeDivide(currentValues.liquidCash, Math.max(0.01, currentValues.liquidCash + currentValues.cpfBalance), 0) * 100 : 0,
     cpfPercentage: currentValues ? 
-      safeDivide(currentValues.cpfBalance, (currentValues.liquidCash + currentValues.cpfBalance), 0) * 100 : 0,
+      safeDivide(currentValues.cpfBalance, Math.max(0.01, currentValues.liquidCash + currentValues.cpfBalance), 0) * 100 : 0,
     
     // Data for UI components
     assetAllocationData,
