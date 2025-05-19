@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useFinancial } from "../context/FinancialContext";
 import useProjection from "./useProjection";
 import useMilestones from "./useMilestones";
+import useErrorHandler from "./useErrorHandler";
+import { safeGet, safeParseNumber, safeDivide, validateFinancialData } from "../utils/errors/ErrorUtils";
 
 /**
  * useFinancialCalculations hook
@@ -14,28 +16,53 @@ const useFinancialCalculations = () => {
   const [expenseData, setExpenseData] = useState([]);
   const [assetAllocationData, setAssetAllocationData] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
+  
+  // Initialize error handler
+  const { 
+    error: calculationError, 
+    hasError: hasCalculationError,
+    handleError,
+    clearError,
+    tryCatch 
+  } = useErrorHandler('useFinancialCalculations');
+  
+  // Validate financial data
+  const { isValid: isDataValid, errors: dataValidationErrors } = 
+    useMemo(() => validateFinancialData(financialData), [financialData]);
+  
+  // Set error if data is invalid
+  useEffect(() => {
+    if (!isDataValid && dataValidationErrors.length > 0) {
+      handleError(new Error(`Invalid financial data: ${dataValidationErrors.join(', ')}`));
+    } else {
+      clearError();
+    }
+  }, [isDataValid, dataValidationErrors, handleError, clearError]);
 
   // Get current values from financial data
   const currentValues = useMemo(() => {
     if (!financialData) return null;
 
-    const { personalInfo = {}, financialInfo = {} } = financialData;
-    
-    // Default values if data is missing
-    const defaultCpfContributionRate = 20; // 20% employee contribution
-    const defaultEmployerCpfRate = 17; // 17% employer contribution
+    // Use tryCatch to safely extract values
+    return tryCatch(() => {
+      const { personalInfo = {}, financialInfo = {} } = financialData;
+      
+      // Default values if data is missing
+      const defaultCpfContributionRate = 20; // 20% employee contribution
+      const defaultEmployerCpfRate = 17; // 17% employer contribution
 
-    return {
-      salary: personalInfo.monthlySalary || 0,
-      cpfContributionRate: personalInfo.cpfContributionRate || defaultCpfContributionRate,
-      employerCpfContributionRate: personalInfo.employerCpfContributionRate || defaultEmployerCpfRate,
-      monthlyExpenses: financialInfo.monthlyExpenses || 0,
-      loanPayment: personalInfo.monthlyRepayment || 0,
-      loanRemaining: financialInfo.housingLoanRemaining || 0,
-      liquidCash: financialInfo.liquidCash || 0,
-      cpfBalance: financialInfo.cpfOrdinaryAccount || 0,
-    };
-  }, [financialData]);
+      return {
+        salary: safeParseNumber(safeGet(personalInfo, 'monthlySalary', 0)),
+        cpfContributionRate: safeParseNumber(safeGet(personalInfo, 'cpfContributionRate', defaultCpfContributionRate)),
+        employerCpfContributionRate: safeParseNumber(safeGet(personalInfo, 'employerCpfContributionRate', defaultEmployerCpfRate)),
+        monthlyExpenses: safeParseNumber(safeGet(financialInfo, 'monthlyExpenses', 0)),
+        loanPayment: safeParseNumber(safeGet(personalInfo, 'monthlyRepayment', 0)),
+        loanRemaining: safeParseNumber(safeGet(financialInfo, 'housingLoanRemaining', 0)),
+        liquidCash: safeParseNumber(safeGet(financialInfo, 'liquidCash', 0)),
+        cpfBalance: safeParseNumber(safeGet(financialInfo, 'cpfOrdinaryAccount', 0)),
+      };
+    }, [], { source: 'currentValues calculation' });
+  }, [financialData, tryCatch]);
 
   // Default projection settings
   const defaultSettings = {
@@ -73,164 +100,202 @@ const useFinancialCalculations = () => {
   const financialMetrics = useMemo(() => {
     if (!currentValues) return {};
     
-    const { 
-      salary, 
-      cpfContributionRate, 
-      employerCpfContributionRate, 
-      monthlyExpenses, 
-      loanPayment 
-    } = currentValues;
-
-    // Calculate CPF contributions
-    const cpfContribution = (salary * cpfContributionRate) / 100;
-    const employerCpfContribution = (salary * employerCpfContributionRate) / 100;
-    
-    // Calculate take-home pay and savings
-    const takeHomePay = salary - cpfContribution;
-    const monthlySavings = takeHomePay - monthlyExpenses - loanPayment;
-    
-    // Calculate savings rate as a percentage of take-home pay
-    const savingsRate = (monthlySavings / takeHomePay) * 100;
-    
-    // Calculate total monthly income including employer CPF
-    const totalMonthlyIncome = salary + employerCpfContribution;
-
-    return {
-      currentSalary: salary,
-      cpfContribution,
-      employerCpfContribution,
-      takeHomePay,
-      monthlyExpenses,
-      loanPayment,
-      monthlySavings,
-      savingsRate,
-      totalMonthlyIncome
-    };
-  }, [currentValues]);
+    // Use tryCatch to safely perform calculations
+    return tryCatch(() => {
+      const { 
+        salary, 
+        cpfContributionRate, 
+        employerCpfContributionRate, 
+        monthlyExpenses, 
+        loanPayment 
+      } = currentValues;
+  
+      // Calculate CPF contributions
+      const cpfContribution = safeDivide(salary * cpfContributionRate, 100, 0);
+      const employerCpfContribution = safeDivide(salary * employerCpfContributionRate, 100, 0);
+      
+      // Calculate take-home pay and savings
+      const takeHomePay = salary - cpfContribution;
+      const monthlySavings = takeHomePay - monthlyExpenses - loanPayment;
+      
+      // Calculate savings rate as a percentage of take-home pay
+      // Use safeDivide to avoid division by zero
+      const savingsRate = safeDivide(monthlySavings, takeHomePay, 0) * 100;
+      
+      // Calculate total monthly income including employer CPF
+      const totalMonthlyIncome = salary + employerCpfContribution;
+  
+      return {
+        currentSalary: salary,
+        cpfContribution,
+        employerCpfContribution,
+        takeHomePay,
+        monthlyExpenses,
+        loanPayment,
+        monthlySavings,
+        savingsRate,
+        totalMonthlyIncome
+      };
+    }, [], { source: 'financialMetrics calculation' });
+  }, [currentValues, tryCatch]);
 
   // Calculate asset allocation data for charts/displays
   useEffect(() => {
     if (!currentValues) return;
     
-    const { liquidCash, cpfBalance } = currentValues;
-    const totalAssets = liquidCash + cpfBalance;
-    
-    if (totalAssets === 0) {
+    try {
+      const { liquidCash, cpfBalance } = currentValues;
+      const totalAssets = liquidCash + cpfBalance;
+      
+      if (totalAssets === 0) {
+        setAssetAllocationData([
+          { name: "Liquid Cash", value: 0 },
+          { name: "CPF Savings", value: 0 }
+        ]);
+        return;
+      }
+      
+      // Calculate percentages
+      const liquidCashPercentage = (liquidCash / totalAssets) * 100;
+      const cpfPercentage = (cpfBalance / totalAssets) * 100;
+      
+      setAssetAllocationData([
+        { name: "Liquid Cash", value: liquidCash },
+        { name: "CPF Savings", value: cpfBalance }
+      ]);
+    } catch (error) {
+      handleError(error, { source: 'asset allocation calculation' });
       setAssetAllocationData([
         { name: "Liquid Cash", value: 0 },
         { name: "CPF Savings", value: 0 }
       ]);
-      return;
     }
-    
-    // Calculate percentages
-    const liquidCashPercentage = (liquidCash / totalAssets) * 100;
-    const cpfPercentage = (cpfBalance / totalAssets) * 100;
-    
-    setAssetAllocationData([
-      { name: "Liquid Cash", value: liquidCash },
-      { name: "CPF Savings", value: cpfBalance }
-    ]);
-  }, [currentValues]);
+  }, [currentValues, handleError]);
 
   // Calculate expense breakdown data for charts/displays
   useEffect(() => {
-    if (!financialData || !financialData.expenseItems) {
-      setExpenseData([{ name: "No Data", value: 0 }]);
-      return;
+    try {
+      if (!financialData || !financialData.expenseItems) {
+        setExpenseData([{ name: "No Data", value: 0 }]);
+        return;
+      }
+      
+      // Map expense items to chart format
+      const expenses = financialData.expenseItems.map(item => ({
+        name: item.category,
+        value: safeParseNumber(item.amount, 0)
+      }));
+      
+      // Add loan payment if available
+      if (currentValues?.loanPayment) {
+        expenses.push({
+          name: "Loan Payment",
+          value: currentValues.loanPayment
+        });
+      }
+      
+      setExpenseData(expenses);
+    } catch (error) {
+      handleError(error, { source: 'expense breakdown calculation' });
+      setExpenseData([{ name: "Error", value: 0 }]);
     }
-    
-    // Map expense items to chart format
-    const expenses = financialData.expenseItems.map(item => ({
-      name: item.category,
-      value: item.amount
-    }));
-    
-    // Add loan payment if available
-    if (currentValues?.loanPayment) {
-      expenses.push({
-        name: "Loan Payment",
-        value: currentValues.loanPayment
-      });
-    }
-    
-    setExpenseData(expenses);
-  }, [financialData, currentValues]);
+  }, [financialData, currentValues, handleError]);
 
   // Generate upcoming financial events
   useEffect(() => {
-    if (!loanPaidOffMonth && !savingsGoalReachedMonth && !projectionData) {
-      setUpcomingEvents([]);
-      return;
-    }
-    
-    const events = [];
-    
-    // Add loan payoff event
-    if (loanPaidOffMonth) {
-      events.push({
-        id: "loan-payoff",
-        title: "Loan Paid Off",
-        date: loanPaidOffMonth.date,
-        type: "milestone",
-        importance: "high"
-      });
-    }
-    
-    // Add savings goal event
-    if (savingsGoalReachedMonth) {
-      events.push({
-        id: "savings-goal",
-        title: "$100K Savings Goal Reached",
-        date: savingsGoalReachedMonth.date,
-        type: "milestone",
-        importance: "high"
-      });
-    }
-    
-    // Add bonus month events (next 12 months only)
-    if (projectionData && projectionData.length > 0) {
-      projectionData
-        .slice(0, 12) // Look at next 12 months only
-        .filter(month => month.isBonus && month.bonusAmount > 0)
-        .forEach(month => {
-          events.push({
-            id: `bonus-${month.date}`,
-            title: `Bonus Payment: ${month.bonusAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`,
-            date: month.date,
-            type: "income",
-            importance: "medium"
-          });
+    try {
+      if (!loanPaidOffMonth && !savingsGoalReachedMonth && !projectionData) {
+        setUpcomingEvents([]);
+        return;
+      }
+      
+      const events = [];
+      
+      // Add loan payoff event
+      if (loanPaidOffMonth) {
+        events.push({
+          id: "loan-payoff",
+          title: "Loan Paid Off",
+          date: loanPaidOffMonth.date,
+          type: "milestone",
+          importance: "high"
         });
+      }
+      
+      // Add savings goal event
+      if (savingsGoalReachedMonth) {
+        events.push({
+          id: "savings-goal",
+          title: "$100K Savings Goal Reached",
+          date: savingsGoalReachedMonth.date,
+          type: "milestone",
+          importance: "high"
+        });
+      }
+      
+      // Add bonus month events (next 12 months only)
+      if (projectionData && projectionData.length > 0) {
+        projectionData
+          .slice(0, 12) // Look at next 12 months only
+          .filter(month => month.isBonus && month.bonusAmount > 0)
+          .forEach(month => {
+            events.push({
+              id: `bonus-${month.date}`,
+              title: `Bonus Payment: ${month.bonusAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`,
+              date: month.date,
+              type: "income",
+              importance: "medium"
+            });
+          });
+      }
+      
+      // Sort events by date
+      events.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateA - dateB;
+      });
+      
+      setUpcomingEvents(events);
+    } catch (error) {
+      handleError(error, { source: 'upcoming events calculation' });
+      setUpcomingEvents([]);
     }
-    
-    // Sort events by date
-    events.sort((a, b) => {
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
-      return dateA - dateB;
-    });
-    
-    setUpcomingEvents(events);
-  }, [loanPaidOffMonth, savingsGoalReachedMonth, projectionData]);
+  }, [loanPaidOffMonth, savingsGoalReachedMonth, projectionData, handleError]);
 
   return {
+    // Error state
+    calculationError,
+    hasCalculationError,
+    clearCalculationError: clearError,
+    
+    // Financial metrics
     ...financialMetrics,
+    
+    // Projection data
     projection: projectionData,
-    chartData: projectionData.slice(0, 60), // First 5 years for charts
+    chartData: projectionData ? projectionData.slice(0, 60) : [], // First 5 years for charts
     loanPaidOffMonth,
     savingsGoalReachedMonth,
     timeToPayLoan,
     timeToSavingsGoal,
+    
+    // Asset details
     liquidCash: currentValues?.liquidCash || 0,
     cpfSavings: currentValues?.cpfBalance || 0,
     totalAssets: (currentValues?.liquidCash || 0) + (currentValues?.cpfBalance || 0),
-    liquidCashPercentage: currentValues?.liquidCash / ((currentValues?.liquidCash || 0) + (currentValues?.cpfBalance || 0)) * 100 || 0,
-    cpfPercentage: currentValues?.cpfBalance / ((currentValues?.liquidCash || 0) + (currentValues?.cpfBalance || 0)) * 100 || 0,
+    liquidCashPercentage: currentValues ? 
+      safeDivide(currentValues.liquidCash, (currentValues.liquidCash + currentValues.cpfBalance), 0) * 100 : 0,
+    cpfPercentage: currentValues ? 
+      safeDivide(currentValues.cpfBalance, (currentValues.liquidCash + currentValues.cpfBalance), 0) * 100 : 0,
+    
+    // Data for UI components
     assetAllocationData,
     expenseData,
     upcomingEvents,
     milestones,
+    
+    // Settings
     projectionSettings,
     updateProjectionSettings: updateSettings
   };
