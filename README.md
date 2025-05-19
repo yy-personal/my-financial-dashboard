@@ -1,250 +1,180 @@
-# Financial Dashboard
+# Financial Dashboard Application
 
-A personal financial dashboard that provides projections for loan repayment, savings goals, and visualizes your financial journey with a clear distinction between liquid assets and restricted funds like CPF.
+A comprehensive React application for tracking, visualizing, and projecting personal financial data.
 
-## Live Demo
+## Overview
 
-View the live demo: [https://yy-personal.github.io/my-financial-dashboard](https://yy-personal.github.io/my-financial-dashboard)
+This Financial Dashboard provides users with a detailed view of their financial situation, including asset allocation, expense breakdown, projected growth, and financial milestones. It features dynamic charts, customizable projections, and an intuitive user interface.
 
 ## Features
 
-- **Interactive financial dashboard with summary view**
-  - Visual breakdowns of assets, savings, and expenses
-  - Monthly cash flow analysis
-  - Financial health indicators
-  
-- **Liquidity Dashboard** (New)
-  - Clear separation between accessible assets and CPF funds
-  - Liquid Net Worth tracking (assets you can actually use)
-  - Liquidity Ratio analysis
-  - 12-month projection of available vs. restricted funds
-  - Personalized recommendations for improving your liquidity position
+- **Financial Summary**: Overview of key financial metrics including net worth, savings, expenses, and more
+- **Asset Allocation**: Visual breakdown of asset distribution with interactive charts
+- **Expense Analysis**: Detailed categorization and visualization of monthly expenses
+- **Cash Flow Management**: Tracking of income, expenses, and savings over time
+- **Financial Projections**: Customizable projections based on adjustable parameters
+- **Milestones Tracking**: Visual timeline of financial goals and milestones
+- **Multiple Data Visualizations**: Various chart types to analyze financial data
+- **Dark/Light Theme Support**: User preference-based UI theming
+- **Responsive Design**: Mobile-friendly interface that works on all devices
 
-- **Net Worth Tracker**
-  - Track both total net worth and liquid net worth over time
-  - Asset allocation visualization
-  - Customizable update mechanism for recording financial milestones
+## Tech Stack
 
-- **Goal Tracker**
-  - Create and track financial goals with progress visualization
-  - Customizable goal categories (savings, debt repayment, investments)
-  - Priority-based display
-  
-- **Retirement Planner**
-  - Sophisticated retirement calculator with multiple parameters
-  - CPF LIFE integration
-  - Funding ratio visualization
-  - Customizable retirement scenarios
-  
-- **Monthly Projections**
-  - Detailed month-by-month financial forecasting
-  - Loan repayment schedule
-  - Savings growth projection
-  - CPF accumulation tracking
-  
-- **Key Financial Insights**
-  - Milestone tracking (loan payoff, savings targets)
-  - Personalized financial recommendations
-  - Asset and expense breakdowns
-  
-- **Additional Features**
-  - Automatic age calculation based on birthday
-  - Editable financial parameters
-  - Data persistence using localStorage
-  - Optional Firebase integration for cross-device syncing
-  - Responsive design for mobile and desktop
+- **React**: UI library for building component-based interfaces
+- **Recharts**: Composable charting library for responsive visualizations
+- **Tailwind CSS**: Utility-first CSS framework for styling
+- **Jest & React Testing Library**: Testing framework and utilities
+- **React Hooks**: Custom hooks for complex state management
+- **Context API**: For global state management across the application
 
-## Local Development Setup
-
-### Prerequisites
-
-- Node.js (v14 or later)
-- npm (v6 or later)
-
-### Installation
-
-1. Clone this repository:
-```bash
-git clone https://github.com/yy-personal/my-financial-dashboard.git
-cd my-financial-dashboard
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Start the development server:
-```bash
-npm start
-```
-
-4. Open your browser and visit [http://localhost:3000](http://localhost:3000)
-
-### Project Structure
+## Project Structure
 
 ```
 my-financial-dashboard/
-├── public/               # Static files
-├── src/
-│   ├── components/       # React components
-│   │   ├── Dashboard.js          # Main dashboard component
-│   │   ├── EditParameters.js     # Form for editing parameters
-│   │   ├── GoalTracker.js        # Goal tracking component
-│   │   ├── RetirementPlanner.js  # Retirement planning component
-│   │   ├── NetWorthTracker.js    # Net worth tracking component
-│   │   ├── LiquidityDashboard.js # Liquid vs restricted assets dashboard
-│   │   ├── Login.js              # Authentication component
-│   │   └── SyncStatusIndicator.js# Syncing status component
-│   ├── context/
-│   │   ├── FinancialContext.js   # React context for financial data
-│   │   └── AuthContext.js        # React context for authentication
-│   ├── firebase/
-│   │   └── firebase.js           # Firebase configuration and utilities
-│   ├── App.js            # Main application component
-│   ├── index.js          # Entry point
-│   └── index.css         # Global styles including Tailwind imports
-├── tailwind.config.js    # Tailwind CSS configuration
-├── postcss.config.js     # PostCSS configuration for Tailwind
-├── package.json          # Dependencies and scripts
-└── README.md             # This file
+├── public/              # Static files
+├── src/                 # Source code
+│   ├── assets/          # Images, fonts, etc.
+│   ├── components/      # React components
+│   │   ├── common/      # Shared UI components
+│   │   └── dashboard/   # Dashboard-specific components
+│   ├── context/         # React Context providers
+│   ├── hooks/           # Custom React hooks
+│   ├── pages/           # Page components
+│   ├── services/        # Utility services
+│   │   ├── calculations/  # Financial calculation utilities
+│   │   └── formatters/    # Data formatting utilities
+│   ├── utils/           # Helper functions
+│   ├── App.js           # Main App component
+│   └── index.js         # Entry point
+├── .gitignore           # Git ignore file
+├── package.json         # Dependencies and scripts
+└── README.md            # Project documentation
 ```
 
-## Deployment to GitHub Pages
+## Key Components
 
-### Automatic Deployment
+### Dashboard Components
 
-The easiest way to deploy updates is to use the deployment script:
+- **FinancialSummary**: Displays key financial metrics in an organized summary
+- **AssetAllocation**: Visualizes distribution of assets with interactive charts
+- **ExpenseBreakdown**: Displays categorized monthly expenses
+- **MonthlyCashFlow**: Shows income, expenses, and savings flow
+- **UpcomingEvents**: Displays upcoming financial events and milestones
+- **MilestonesDashboard**: Comprehensive view of financial milestones and goals
+- **ProjectionDashboard**: Financial projections with customizable parameters
 
-1. Make your changes locally and commit them
-2. Push to GitHub:
-```bash
-git add .
-git commit -m "Your update message"
-git push origin main
+### Chart Components
+
+- **NetWorthChart**: Visualizes growth of net worth over time
+- **SavingsGrowthChart**: Projects savings growth based on current trends
+- **CashFlowChart**: Displays monthly cash flow breakdown
+
+### Common Components
+
+- **Card**: Consistently styled container component
+- **InfoItem**: Standardized information display component
+- **StatusIndicator**: Displays sync and update status
+- **ErrorBoundary**: Handles component errors gracefully
+
+## Custom Hooks
+
+- **useFinancialCalculations**: Centralized financial calculations and data processing
+- **useProjection**: Generates financial projections based on current data and settings
+- **useMilestones**: Manages financial milestones and goals
+- **useUIPreferences**: Manages UI theme and display preferences
+
+## Installation and Setup
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/my-financial-dashboard.git
+   cd my-financial-dashboard
+   ```
+
+2. Install dependencies:
+   ```
+   npm install
+   ```
+
+3. Start the development server:
+   ```
+   npm start
+   ```
+
+4. Open your browser to `http://localhost:3000`
+
+## Development Workflow
+
+### Running Tests
+
+```
+npm test                 # Run all tests
+npm test -- --watch      # Run tests in watch mode
+npm test -- --coverage   # Generate test coverage report
 ```
 
-3. Run the deployment script:
-```bash
-npm run deploy
+### Building for Production
+
+```
+npm run build
 ```
 
-4. Your changes will be live at [https://yy-personal.github.io/my-financial-dashboard](https://yy-personal.github.io/my-financial-dashboard) within a few minutes
+### Code Style and Quality
 
-### Manual Setup (If Starting From Scratch)
+We follow established React best practices:
 
-If you're setting up GitHub Pages for the first time:
+- Functional components with hooks
+- Component composition for reusability
+- Clear separation of concerns
+- Comprehensive error handling
+- Thorough testing
 
-1. Ensure your `package.json` has the correct homepage URL:
-```json
-"homepage": "https://yy-personal.github.io/my-financial-dashboard"
-```
+## Best Practices Implemented
 
-2. Make sure you have the gh-pages package installed:
-```bash
-npm install --save-dev gh-pages
-```
+1. **Custom Hooks for Complex Logic**
+   - Abstracted complex state management into reusable hooks
+   - Separated UI from business logic for better testability
 
-3. Add these scripts to your `package.json`:
-```json
-"scripts": {
-  "predeploy": "npm run build",
-  "deploy": "gh-pages -d build",
-  // other existing scripts...
-}
-```
+2. **Component Composition**
+   - Used smaller, single-responsibility components
+   - Composed complex UIs from simple building blocks
 
-4. Deploy for the first time:
-```bash
-npm run deploy
-```
+3. **Error Handling**
+   - Implemented error boundaries at strategic points
+   - Graceful degradation when components fail
 
-5. Go to your GitHub repository settings, navigate to Pages, and ensure it's set to deploy from the gh-pages branch
+4. **Performance Optimization**
+   - Memoization of expensive calculations
+   - Optimized rendering with React hooks
 
-## Customization
+5. **Testing Strategy**
+   - Unit tests for individual components and hooks
+   - Integration tests for user flows
+   - Mocked external dependencies for predictable tests
 
-You can customize all your financial parameters by clicking on "Edit Parameters" in the navigation bar. The dashboard includes:
+## Future Improvements
 
-- Personal information (birthday, employment start, current savings, etc.)
-- Income details (current and future salary, CPF rates)
-- Monthly expenses (fully customizable categories)
-- Loan details (remaining amount, interest rate, monthly repayment)
+- **Data Synchronization**: Real-time data sync with backend systems
+- **Enhanced Visualizations**: Additional chart types for deeper financial analysis
+- **Internationalization**: Support for multiple languages and currencies
+- **Machine Learning Insights**: Predictive analysis based on historical patterns
+- **Mobile App**: Native mobile application for iOS and Android
 
-All changes are automatically saved to your browser's localStorage. If you enable Firebase authentication, your data can be synced across devices.
+## Contributing
 
-## Cross-Device Synchronization
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-The dashboard supports optional cross-device synchronization using Firebase:
-
-1. Log in using the authentication feature
-2. Your financial data will be automatically synced across all your devices
-3. A sync status indicator shows when your data was last synced
-4. You can manually sync your data using the "Sync Now" button if needed
-
-## Understanding CPF vs. Liquid Assets
-
-With the addition of the Liquidity Dashboard, you can now clearly distinguish between:
-
-- **Liquid Assets**: Money you can immediately access and use (cash savings)
-- **Restricted Assets**: Money in CPF accounts that has limitations on usage
-- **Liquid Net Worth**: Your accessible assets minus debts (without CPF)
-- **Total Net Worth**: All assets (including CPF) minus debts
-
-This separation helps you make more realistic financial plans based on what funds are actually available to you.
-
-## Working with Tailwind CSS
-
-If you make changes to the Tailwind configuration or encounter CSS issues:
-
-1. Make sure you have the proper configuration files:
-   - `tailwind.config.js` in the root directory
-   - `postcss.config.js` in the root directory
-   - Tailwind directives (`@tailwind`) in your `src/index.css`
-
-2. If you encounter build issues related to Tailwind, try:
-```bash
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
-```
-
-3. Restart your development server
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Blank page after deployment**
-   - Check browser console for errors
-   - Verify that the homepage URL in package.json matches your GitHub Pages URL
-   - Make sure the BrowserRouter has the correct basename (`basename={process.env.PUBLIC_URL}`)
-
-2. **Styling issues**
-   - Ensure Tailwind CSS is properly configured with PostCSS
-   - Check that the build process is completing successfully
-
-3. **Data persistence issues**
-   - Check localStorage in browser DevTools
-   - Clear localStorage if data gets corrupted: `localStorage.removeItem('financialData')`
-   - For Firebase syncing issues, check Authentication status in the footer
-
-4. **Syncing issues**
-   - Ensure you're logged in (check the footer for login status)
-   - Try manual sync using the "Sync Now" button
-   - Check console for any Firebase-related errors
-
-### Getting Help
-
-If you encounter issues not covered here, please [open an issue](https://github.com/yy-personal/my-financial-dashboard/issues) on the GitHub repository.
-
-## Technologies Used
-
-- React.js - UI framework
-- React Router - Navigation
-- Recharts - Data visualization
-- Tailwind CSS - Styling
-- Firebase - Authentication and data storage (optional)
-- localStorage - Local data persistence
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add some amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- All the open-source libraries and tools that made this project possible
+- Financial modeling best practices that informed our projection algorithms
