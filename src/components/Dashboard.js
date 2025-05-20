@@ -1,6 +1,9 @@
 import React, { useContext, useState } from "react";
 import CpfDashboard from "./CpfDashboard";
 import { FinancialContext } from "../context/FinancialContext";
+
+// Add a console log to check if Dashboard.js is loaded
+console.log('Dashboard component loaded and rendering');
 import {
 	LineChart,
 	Line,
@@ -2239,7 +2242,12 @@ const Dashboard = () => {
 			)}
 
 			{/* CPF Calculator Tab */}
-			{activeTab === "cpf" && <CpfDashboard />}
+			{activeTab === "cpf" && (
+				<>
+				{console.log('Rendering CPF tab')}
+				<CpfDashboard />
+				</>
+			)}
 		</div>
 	);
 };

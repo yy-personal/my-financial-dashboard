@@ -8,6 +8,7 @@ import {
 } from "../components/dashboard/charts";
 import Card from "../components/common/Card";
 import { formatCurrency, formatPercent } from "../services/formatters/currencyFormatters";
+import CpfDashboard from "../components/CpfDashboard";
 
 /**
  * Dashboard Page Component
@@ -450,6 +451,16 @@ const Dashboard = () => {
           onClick={() => setActiveTab("projection")}
         >
           Projection
+        </button>
+        <button
+          className={`py-3 px-4 font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
+            activeTab === "cpf"
+              ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+              : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
+          }`}
+          onClick={() => setActiveTab("cpf")}
+        >
+          CPF
         </button>
       </div>
 
@@ -1447,6 +1458,9 @@ const Dashboard = () => {
           )}
         </Card>
       )}
+
+      {/* CPF Tab */}
+      {activeTab === "cpf" && <CpfDashboard />}
     </div>
   );
 };

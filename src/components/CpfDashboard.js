@@ -10,11 +10,14 @@ import { EMPLOYEE_TYPE } from '../services/calculations/cpf';
  * financial dashboard application.
  */
 const CpfDashboard = () => {
+  console.log('CpfDashboard component mounted');
   const { 
     financialData, 
     updateFinancialData,
     calculateAge
   } = useFinancial();
+  
+  console.log('Financial data loaded in CpfDashboard:', financialData);
   
   // Local state to track changes before committing to global state
   const [localCpfData, setLocalCpfData] = useState({
