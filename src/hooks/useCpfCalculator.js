@@ -5,8 +5,6 @@ import {
   EMPLOYEE_TYPE 
 } from '../services/calculations/cpf';
 
-console.log('useCpfCalculator hook loaded with correct CPF utilities import');
-
 /**
  * Custom hook for managing CPF-related calculations and state
  * 

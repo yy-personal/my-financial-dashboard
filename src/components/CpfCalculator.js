@@ -97,15 +97,15 @@ const CpfCalculator = ({ initialData = {}, onChange }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
+    <div className="bg-white rounded-lg shadow p-6">
+      <h2 className="text-xl font-semibold mb-4 text-gray-800">
         CPF Calculator
       </h2>
       
       {/* Input section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Monthly Salary
           </label>
           <div className="relative rounded-md shadow-sm">
@@ -116,7 +116,7 @@ const CpfCalculator = ({ initialData = {}, onChange }) => {
               type="number"
               value={cpfInputs.salary}
               onChange={handleSalaryChange}
-              className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className="focus:ring-green-500 focus:border-green-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md bg-white text-gray-900"
               placeholder="0.00"
               min="0"
               step="50"
@@ -125,14 +125,14 @@ const CpfCalculator = ({ initialData = {}, onChange }) => {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Age
           </label>
           <input
             type="number"
             value={cpfInputs.age}
             onChange={handleAgeChange}
-            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="focus:ring-green-500 focus:border-green-500 block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md bg-white text-gray-900"
             placeholder="30"
             min="0"
             max="100"
@@ -140,13 +140,13 @@ const CpfCalculator = ({ initialData = {}, onChange }) => {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Employment Status
           </label>
           <select
             value={cpfInputs.employeeType}
             onChange={handleEmployeeTypeChange}
-            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="focus:ring-green-500 focus:border-green-500 block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md bg-white text-gray-900"
           >
             <option value={EMPLOYEE_TYPE.SINGAPOREAN}>Singaporean Citizen</option>
             <option value={EMPLOYEE_TYPE.PR_FIRST_YEAR}>PR (1st Year)</option>
@@ -156,14 +156,14 @@ const CpfCalculator = ({ initialData = {}, onChange }) => {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Annual Bonus (Months)
           </label>
           <input
             type="number"
             value={cpfInputs.bonusMonths}
             onChange={handleBonusMonthsChange}
-            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="focus:ring-green-500 focus:border-green-500 block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md bg-white text-gray-900"
             placeholder="0"
             min="0"
             step="0.5"
@@ -172,29 +172,29 @@ const CpfCalculator = ({ initialData = {}, onChange }) => {
       </div>
       
       {/* Results section */}
-      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
-        <h3 className="font-medium text-gray-900 dark:text-white mb-3">
+      <div className="bg-gray-50 rounded-lg p-4 mb-4">
+        <h3 className="font-medium text-gray-900 mb-3">
           Monthly CPF Contributions
         </h3>
         
         <div className="grid grid-cols-2 gap-y-2 text-sm">
-          <div className="text-gray-600 dark:text-gray-300">Your Contribution:</div>
-          <div className="text-gray-900 dark:text-white font-medium">
+          <div className="text-gray-600">Your Contribution:</div>
+          <div className="text-gray-900 font-medium">
             {formatCurrency(monthlyCpf.employeeContribution)} ({formatPercentage(employeeRate)})
           </div>
           
-          <div className="text-gray-600 dark:text-gray-300">Employer Contribution:</div>
-          <div className="text-gray-900 dark:text-white font-medium">
+          <div className="text-gray-600">Employer Contribution:</div>
+          <div className="text-gray-900 font-medium">
             {formatCurrency(monthlyCpf.employerContribution)} ({formatPercentage(employerRate)})
           </div>
           
-          <div className="text-gray-600 dark:text-gray-300">Total CPF Contribution:</div>
-          <div className="text-gray-900 dark:text-white font-medium">
+          <div className="text-gray-600">Total CPF Contribution:</div>
+          <div className="text-gray-900 font-medium">
             {formatCurrency(monthlyCpf.totalContribution)}
           </div>
           
-          <div className="text-gray-600 dark:text-gray-300">Take-Home Pay:</div>
-          <div className="text-gray-900 dark:text-white font-medium">
+          <div className="text-gray-600">Take-Home Pay:</div>
+          <div className="text-gray-900 font-medium">
             {formatCurrency(monthlyCpf.takeHomePay)}
           </div>
         </div>
@@ -204,7 +204,7 @@ const CpfCalculator = ({ initialData = {}, onChange }) => {
       <button
         type="button"
         onClick={() => setShowAdvanced(!showAdvanced)}
-        className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium flex items-center mb-4"
+        className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center mb-4"
       >
         {showAdvanced ? 'Hide' : 'Show'} Advanced Details
         <svg 
@@ -221,24 +221,24 @@ const CpfCalculator = ({ initialData = {}, onChange }) => {
       {showAdvanced && (
         <>
           {/* Yearly estimates */}
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
-            <h3 className="font-medium text-gray-900 dark:text-white mb-3">
+          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+            <h3 className="font-medium text-gray-900 mb-3">
               Yearly Estimates
             </h3>
             
             <div className="grid grid-cols-2 gap-y-2 text-sm">
-              <div className="text-gray-600 dark:text-gray-300">Your Yearly Contribution:</div>
-              <div className="text-gray-900 dark:text-white font-medium">
+              <div className="text-gray-600">Your Yearly Contribution:</div>
+              <div className="text-gray-900 font-medium">
                 {formatCurrency(yearlyCpf.yearlyEmployeeContribution)}
               </div>
               
-              <div className="text-gray-600 dark:text-gray-300">Employer Yearly Contribution:</div>
-              <div className="text-gray-900 dark:text-white font-medium">
+              <div className="text-gray-600">Employer Yearly Contribution:</div>
+              <div className="text-gray-900 font-medium">
                 {formatCurrency(yearlyCpf.yearlyEmployerContribution)}
               </div>
               
-              <div className="text-gray-600 dark:text-gray-300">Total Yearly CPF:</div>
-              <div className="text-gray-900 dark:text-white font-medium">
+              <div className="text-gray-600">Total Yearly CPF:</div>
+              <div className="text-gray-900 font-medium">
                 {formatCurrency(yearlyCpf.yearlyTotalContribution)}
               </div>
             </div>
@@ -246,29 +246,29 @@ const CpfCalculator = ({ initialData = {}, onChange }) => {
           
           {/* Bonus details (if applicable) */}
           {cpfInputs.bonusMonths > 0 && (
-            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
-              <h3 className="font-medium text-gray-900 dark:text-white mb-3">
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <h3 className="font-medium text-gray-900 mb-3">
                 Bonus CPF Contributions
               </h3>
               
               <div className="grid grid-cols-2 gap-y-2 text-sm">
-                <div className="text-gray-600 dark:text-gray-300">Bonus Amount:</div>
-                <div className="text-gray-900 dark:text-white font-medium">
+                <div className="text-gray-600">Bonus Amount:</div>
+                <div className="text-gray-900 font-medium">
                   {formatCurrency(cpfInputs.salary * cpfInputs.bonusMonths)}
                 </div>
                 
-                <div className="text-gray-600 dark:text-gray-300">Your Contribution:</div>
-                <div className="text-gray-900 dark:text-white font-medium">
+                <div className="text-gray-600">Your Contribution:</div>
+                <div className="text-gray-900 font-medium">
                   {formatCurrency(bonusCpf.employeeContribution)}
                 </div>
                 
-                <div className="text-gray-600 dark:text-gray-300">Employer Contribution:</div>
-                <div className="text-gray-900 dark:text-white font-medium">
+                <div className="text-gray-600">Employer Contribution:</div>
+                <div className="text-gray-900 font-medium">
                   {formatCurrency(bonusCpf.employerContribution)}
                 </div>
                 
-                <div className="text-gray-600 dark:text-gray-300">Total Bonus CPF:</div>
-                <div className="text-gray-900 dark:text-white font-medium">
+                <div className="text-gray-600">Total Bonus CPF:</div>
+                <div className="text-gray-900 font-medium">
                   {formatCurrency(bonusCpf.totalContribution)}
                 </div>
               </div>
@@ -276,37 +276,37 @@ const CpfCalculator = ({ initialData = {}, onChange }) => {
           )}
           
           {/* CPF allocation information */}
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 dark:text-white mb-3">
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-3">
               CPF Allocation Information
             </h3>
             
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            <p className="text-xs text-gray-500 mb-2">
               Below age 55, CPF contributions are typically allocated to these accounts:
             </p>
             
             <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded">
-                <div className="font-medium text-blue-800 dark:text-blue-200">Ordinary Account</div>
-                <div className="text-blue-600 dark:text-blue-300">
+              <div className="bg-blue-100 p-2 rounded">
+                <div className="font-medium text-blue-800">Ordinary Account</div>
+                <div className="text-blue-600">
                   For housing, insurance, investment and education
                 </div>
               </div>
               
-              <div className="bg-green-100 dark:bg-green-900 p-2 rounded">
-                <div className="font-medium text-green-800 dark:text-green-200">
+              <div className="bg-green-100 p-2 rounded">
+                <div className="font-medium text-green-800">
                   Special Account
                 </div>
-                <div className="text-green-600 dark:text-green-300">
+                <div className="text-green-600">
                   For retirement and investment in retirement-related financial products
                 </div>
               </div>
               
-              <div className="bg-purple-100 dark:bg-purple-900 p-2 rounded">
-                <div className="font-medium text-purple-800 dark:text-purple-200">
+              <div className="bg-purple-100 p-2 rounded">
+                <div className="font-medium text-purple-800">
                   MediSave Account
                 </div>
-                <div className="text-purple-600 dark:text-purple-300">
+                <div className="text-purple-600">
                   For hospitalization expenses and approved medical insurance
                 </div>
               </div>
@@ -316,7 +316,7 @@ const CpfCalculator = ({ initialData = {}, onChange }) => {
       )}
       
       {/* Disclaimer */}
-      <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+      <div className="mt-4 text-xs text-gray-500">
         <p>
           <strong>Disclaimer:</strong> This calculator provides estimates based on standard CPF 
           contribution rates. For the most accurate information, please refer to the 
