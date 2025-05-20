@@ -83,6 +83,8 @@ my-financial-dashboard/
 - **useMilestones**: Manages financial milestones and goals
 - **useUIPreferences**: Manages UI theme and display preferences
 
+For detailed documentation of these hooks, please see the [HOOKS.md](./HOOKS.md) file.
+
 ## Installation and Setup
 
 1. Clone the repository:
@@ -119,6 +121,39 @@ npm test -- --coverage   # Generate test coverage report
 npm run build
 ```
 
+### Deploying to GitHub Pages
+
+To deploy this application to GitHub Pages:
+
+1. Install the GitHub Pages package as a dev dependency:
+   ```
+   npm install --save-dev gh-pages
+   ```
+
+2. Add the following fields to your `package.json`:
+   ```json
+   {
+     "homepage": "https://yourusername.github.io/my-financial-dashboard",
+     "scripts": {
+       "predeploy": "npm run build",
+       "deploy": "gh-pages -d build"
+     }
+   }
+   ```
+
+3. Deploy the application:
+   ```
+   npm run deploy
+   ```
+
+4. Access your deployed application at the URL specified in the homepage field
+
+#### Troubleshooting GitHub Pages Deployment
+
+- Ensure your repository is set to use GitHub Pages in the repository settings
+- For a project site, set the source to the `gh-pages` branch
+- If using a custom domain, configure it in the GitHub repository settings
+
 ### Code Style and Quality
 
 We follow established React best practices:
@@ -146,19 +181,31 @@ We follow established React best practices:
 4. **Performance Optimization**
    - Memoization of expensive calculations
    - Optimized rendering with React hooks
+   - Code splitting for improved loading times
 
 5. **Testing Strategy**
    - Unit tests for individual components and hooks
    - Integration tests for user flows
    - Mocked external dependencies for predictable tests
 
-## Future Improvements
+## Roadmap
 
-- **Data Synchronization**: Real-time data sync with backend systems
-- **Enhanced Visualizations**: Additional chart types for deeper financial analysis
-- **Internationalization**: Support for multiple languages and currencies
-- **Machine Learning Insights**: Predictive analysis based on historical patterns
-- **Mobile App**: Native mobile application for iOS and Android
+For detailed information about future development plans, please refer to the [ROADMAP.md](./ROADMAP.md) file, which includes:
+
+- Short-term goals (1-3 months)
+- Medium-term goals (3-6 months)
+- Long-term vision (6+ months)
+- Technical debt management and maintenance plans
+
+## Architecture
+
+For a deeper understanding of the application architecture, check the [ARCHITECTURE.md](./ARCHITECTURE.md) file, which includes:
+
+- Component architecture
+- Data flow diagrams
+- Design patterns used
+- State management approach
+- Testing strategy
 
 ## Contributing
 
@@ -169,6 +216,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3. Commit your changes: `git commit -m 'Add some amazing feature'`
 4. Push to the branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
+
+Please review our roadmap before contributing to ensure your work aligns with project direction.
 
 ## License
 
