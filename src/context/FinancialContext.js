@@ -42,6 +42,7 @@ export const FinancialProvider = ({ children }) => {
 			salaryAdjustmentYear: 2025,
 			cpfRate: 20, // percentage
 			employerCpfRate: 17, // percentage
+			employeeType: 'singaporean', // CPF employee type
 		},
 		expenses: [
 			{ id: 1, name: "Rental", amount: 700 },
@@ -129,6 +130,15 @@ export const FinancialProvider = ({ children }) => {
 		) {
 			oldData.personalInfo.currentCpfBalance =
 				initialState.personalInfo.currentCpfBalance;
+		}
+		
+		// Add employeeType if it doesn't exist
+		if (
+			oldData &&
+			oldData.income &&
+			typeof oldData.income.employeeType === "undefined"
+		) {
+			oldData.income.employeeType = initialState.income.employeeType;
 		}
 
 		// Ensure personalInfo date fields are objects with month and year

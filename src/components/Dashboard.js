@@ -1,4 +1,5 @@
 import React, { useContext, useState } from "react";
+import CpfDashboard from "./CpfDashboard";
 import { FinancialContext } from "../context/FinancialContext";
 import {
 	LineChart,
@@ -514,6 +515,16 @@ const Dashboard = () => {
 					onClick={() => setActiveTab("projection")}
 				>
 					Projection
+				</button>
+				<button
+					className={`py-3 px-4 font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
+						activeTab === "cpf"
+							? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+							: "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
+					}`}
+					onClick={() => setActiveTab("cpf")}
+				>
+					CPF
 				</button>
 			</div>
 
@@ -2226,6 +2237,9 @@ const Dashboard = () => {
 					)}
 				</Card>
 			)}
+
+			{/* CPF Calculator Tab */}
+			{activeTab === "cpf" && <CpfDashboard />}
 		</div>
 	);
 };
