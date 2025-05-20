@@ -1,8 +1,8 @@
 {
   "files": {
-    "main.css": "/my-financial-dashboard/static/css/main.5faa6c05.css",
-    "main.js": "/my-financial-dashboard/static/js/main.d617c933.js",
-    "static/js/421.d67cc7e2.chunk.js": "/my-financial-dashboard/static/js/421.d67cc7e2.chunk.js",
+    "main.css": "/my-financial-dashboard/static/css/main.4d56ea91.css",
+    "main.js": "/my-financial-dashboard/static/js/main.2a492f59.js",
+    "static/js/572.c74f86f8.chunk.js": "/my-financial-dashboard/static/js/572.c74f86f8.chunk.js",
     "static/js/517.2589331c.chunk.js": "/my-financial-dashboard/static/js/517.2589331c.chunk.js",
     "static/js/727.0e20388b.chunk.js": "/my-financial-dashboard/static/js/727.0e20388b.chunk.js",
     "static/js/249.7c800a7e.chunk.js": "/my-financial-dashboard/static/js/249.7c800a7e.chunk.js",
@@ -11,9 +11,9 @@
     "static/js/168.f427ff39.chunk.js": "/my-financial-dashboard/static/js/168.f427ff39.chunk.js",
     "static/js/335.c377ce75.chunk.js": "/my-financial-dashboard/static/js/335.c377ce75.chunk.js",
     "index.html": "/my-financial-dashboard/index.html",
-    "main.5faa6c05.css.map": "/my-financial-dashboard/static/css/main.5faa6c05.css.map",
-    "main.d617c933.js.map": "/my-financial-dashboard/static/js/main.d617c933.js.map",
-    "421.d67cc7e2.chunk.js.map": "/my-financial-dashboard/static/js/421.d67cc7e2.chunk.js.map",
+    "main.4d56ea91.css.map": "/my-financial-dashboard/static/css/main.4d56ea91.css.map",
+    "main.2a492f59.js.map": "/my-financial-dashboard/static/js/main.2a492f59.js.map",
+    "572.c74f86f8.chunk.js.map": "/my-financial-dashboard/static/js/572.c74f86f8.chunk.js.map",
     "517.2589331c.chunk.js.map": "/my-financial-dashboard/static/js/517.2589331c.chunk.js.map",
     "727.0e20388b.chunk.js.map": "/my-financial-dashboard/static/js/727.0e20388b.chunk.js.map",
     "249.7c800a7e.chunk.js.map": "/my-financial-dashboard/static/js/249.7c800a7e.chunk.js.map",
@@ -23,7 +23,7 @@
     "335.c377ce75.chunk.js.map": "/my-financial-dashboard/static/js/335.c377ce75.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.5faa6c05.css",
-    "static/js/main.d617c933.js"
+    "static/css/main.4d56ea91.css",
+    "static/js/main.2a492f59.js"
   ]
 }
