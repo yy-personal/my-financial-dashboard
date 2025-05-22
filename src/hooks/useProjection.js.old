@@ -3,19 +3,15 @@ import useErrorHandler from './useErrorHandler';
 import { safeParseNumber, safeDivide, createFinancialError } from '../utils/errors/ErrorUtils';
 
 /**
- * Enhanced useProjection hook with accurate salary timing
- * Accounts for salary received on 22-24th of each month
+ * Custom hook for generating financial projections
  * 
  * @param {Object} initialData - Initial financial data
  * @param {Object} initialSettings - Projection settings
- * @returns {Object} - Enhanced projection data and utility functions
+ * @returns {Object} - Projection data and utility functions
  */
 const useProjection = (initialData, initialSettings) => {
   const [data, setData] = useState(initialData || {});
-  const [settings, setSettings] = useState({
-    salaryDay: 23, // Default to 23rd of month
-    ...initialSettings
-  });
+  const [settings, setSettings] = useState(initialSettings || {});
   const [projectionData, setProjectionData] = useState([]);
   const [loanPaidOffMonth, setLoanPaidOffMonth] = useState(null);
   const [savingsGoalReachedMonth, setSavingsGoalReachedMonth] = useState(null);
@@ -66,17 +62,8 @@ const useProjection = (initialData, initialSettings) => {
       return false;
     }
 
-    // Validate salary day
-    if (settings.salaryDay < 1 || settings.salaryDay > 28) {
-      handleError(createFinancialError(
-        'Salary day must be between 1 and 28', 
-        'invalid_salary_day'
-      ));
-      return false;
-    }
-
     return true;
-  }, [data, settings, handleError]);
+  }, [data, handleError]);
 
   // Update settings
   const updateSettings = useCallback((newSettings) => {
@@ -88,31 +75,16 @@ const useProjection = (initialData, initialSettings) => {
     }
   }, [handleError, clearError]);
 
-  // Calculate days in month
-  const getDaysInMonth = useCallback((year, month) => {
-    return new Date(year, month, 0).getDate();
-  }, []);
-
-  // Calculate pro-rated amounts based on salary timing
-  const calculateProRatedAmounts = useCallback((year, month, amount, salaryDay) => {
-    const daysInMonth = getDaysInMonth(year, month);
-    const daysAfterSalary = daysInMonth - salaryDay + 1;
-    const proRatedRatio = daysAfterSalary / daysInMonth;
-    
-    return {
-      currentMonthAmount: amount * proRatedRatio,
-      nextMonthAmount: amount * (1 - proRatedRatio),
-      proRatedRatio
-    };
-  }, [getDaysInMonth]);
-
-  // Generate enhanced projection with accurate salary timing
+  // Generate projection based on current data and settings
   const generateProjection = useCallback(() => {
+    // First validate inputs
     if (!validateInputs()) {
       return [];
     }
 
+    // Use tryCatch to safely perform projection calculations
     return tryCatch(() => {
+      // Extract values from data and settings
       const { 
         salary = 0, 
         cpfContributionRate = 20, 
@@ -131,8 +103,7 @@ const useProjection = (initialData, initialSettings) => {
         annualCpfInterestRate = 2.5, 
         projectionYears = 30,
         bonusMonths = 2,
-        bonusAmount = safeParseNumber(settings.bonusAmount || salary, salary),
-        salaryDay = 23
+        bonusAmount = safeParseNumber(settings.bonusAmount || salary, salary)
       } = settings;
 
       // Convert annual rates to monthly
@@ -160,80 +131,51 @@ const useProjection = (initialData, initialSettings) => {
       
       // Calculate projection for specified number of years (in months)
       const totalMonths = projectionYears * 12;
-      const currentDate = new Date();
       
       for (let month = 0; month < totalMonths; month++) {
-        // Calculate the projection date
-        const projectionDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + month, 1);
-        const year = projectionDate.getFullYear();
-        const monthIndex = projectionDate.getMonth();
-        
-        // Check if this is a bonus month (typically December and February)
-        const isDecember = monthIndex === 11;
-        const isFebruary = monthIndex === 1;
-        const isBonus = bonusMonths > 0 && (
-          (bonusMonths >= 1 && isDecember) || 
-          (bonusMonths >= 2 && isFebruary)
-        );
+        // Check if this is a bonus month (typically months 6 and 12)
+        const isBonus = bonusMonths > 0 && (month + 1) % 12 === 0; // End of year bonus
         const monthBonusAmount = isBonus ? bonusAmount : 0;
         
-        // Increment salary and expenses with monthly increases (if any)
+        // Increment salary with monthly increases (if any)
         if (month > 0) {
           currentSalary *= (1 + monthlySalaryIncrease);
           currentExpenses *= (1 + monthlyExpenseIncrease);
         }
         
-        // Calculate salary timing impact
-        const salaryTiming = calculateProRatedAmounts(year, monthIndex + 1, currentSalary, salaryDay);
-        
-        // For the first month, we need to check if salary has already been received this month
-        let effectiveSalary = currentSalary;
-        let salaryNote = '';
-        
-        if (month === 0) {
-          const today = new Date();
-          const todayDay = today.getDate();
-          
-          if (todayDay < salaryDay) {
-            // Salary hasn't been received yet this month
-            effectiveSalary = salaryTiming.currentMonthAmount;
-            salaryNote = `Pro-rated from ${salaryDay}th`;
-          } else {
-            // Salary has been received, use full amount
-            effectiveSalary = currentSalary;
-            salaryNote = 'Full month (salary received)';
-          }
-        }
-        
-        // Calculate CPF contributions based on effective salary
-        const cpfContribution = safeDivide(effectiveSalary * cpfContributionRate, 100, 0);
-        const employerCpfContribution = safeDivide(effectiveSalary * employerCpfContributionRate, 100, 0);
+        // Calculate CPF contributions
+        const cpfContribution = safeDivide(currentSalary * cpfContributionRate, 100, 0);
+        const employerCpfContribution = safeDivide(currentSalary * employerCpfContributionRate, 100, 0);
         
         // Calculate take-home pay
-        const takeHomePay = effectiveSalary - cpfContribution;
+        const takeHomePay = currentSalary - cpfContribution;
         
         // Calculate loan payment and remaining balance
+        // If loan is paid off, payment becomes 0
         let actualLoanPayment = currentLoanRemaining > 0 ? currentLoanPayment : 0;
         
         // Calculate interest for the month
         const interestPayment = currentLoanRemaining > 0 ? currentLoanRemaining * monthlyLoanInterestRate : 0;
         
         // Principal payment is loan payment minus interest
+        // Ensure principal payment is not negative if interest exceeds payment
         const principalPayment = Math.min(currentLoanRemaining, Math.max(0, actualLoanPayment - interestPayment));
         
         // Update loan remaining
         currentLoanRemaining = Math.max(0, currentLoanRemaining - principalPayment);
         
-        // Record loan payoff milestone
+        // If loan was just paid off, record the milestone
         if (currentLoanRemaining === 0 && loanPaidOffIndex === null && month > 0) {
           loanPaidOffIndex = month;
         }
         
-        // Calculate monthly savings (take-home minus expenses and loan payment, plus bonus)
+        // Calculate monthly savings (take-home minus expenses and loan payment)
         const monthlySavings = takeHomePay - currentExpenses - actualLoanPayment + monthBonusAmount;
         
         // Update cash savings with new savings plus investment returns
+        // Calculate investment return on current balance before adding new savings
         const investmentReturn = currentLiquidCash * monthlyInvestmentReturn;
+        // Add new savings and investment returns
         currentLiquidCash += monthlySavings + investmentReturn;
         
         // Update CPF balance with new contributions plus interest
@@ -248,63 +190,35 @@ const useProjection = (initialData, initialSettings) => {
         // Calculate net worth
         const totalNetWorth = currentLiquidCash + currentCpfBalance - currentLoanRemaining;
         
-        // Format date consistently
+        // Format date (assuming we start from current month)
+        const date = new Date();
+        // Clone the date to avoid modifying the original date
+        const projectionDate = new Date(date);
+        // Add months to the base date
+        projectionDate.setMonth(date.getMonth() + month);
+        // Format the date in a consistent way
         const formattedDate = `${projectionDate.toLocaleString('default', { month: 'short' })} ${projectionDate.getFullYear()}`;
         
-        // Calculate cash flow components for better analysis
-        const totalIncome = effectiveSalary + employerCpfContribution + monthBonusAmount;
-        const totalOutflow = currentExpenses + actualLoanPayment + cpfContribution;
-        const netCashFlow = totalIncome - totalOutflow;
-        
-        // Add enhanced month data to projection
+        // Add month to projection
         projection.push({
           month: month + 1,
           date: formattedDate,
-          
-          // Income components
-          monthlySalary: effectiveSalary,
-          fullMonthlySalary: currentSalary,
-          salaryTiming: salaryTiming,
-          salaryNote,
-          bonusAmount: monthBonusAmount,
-          isBonus,
-          totalIncome,
-          
-          // CPF components
+          monthlySalary: currentSalary,
           cpfContribution,
           employerCpfContribution,
-          totalCpfContribution: cpfContribution + employerCpfContribution,
-          
-          // Cash flow components
           takeHomePay,
           expenses: currentExpenses,
           loanPayment: actualLoanPayment,
-          principalPayment,
-          interestPayment,
+          loanRemaining: currentLoanRemaining,
           monthlySavings,
-          netCashFlow,
-          totalOutflow,
-          
-          // Balances
           cashSavings: currentLiquidCash,
           cpfBalance: currentCpfBalance,
-          loanRemaining: currentLoanRemaining,
           totalNetWorth,
-          
-          // Returns and growth
-          investmentReturn,
-          cpfInterest,
-          
-          // Timing analysis
-          salaryDay,
-          effectiveDaysForExpenses: getDaysInMonth(year, monthIndex + 1),
-          
-          // Additional metadata
-          year,
-          monthIndex: monthIndex + 1
+          isBonus,
+          bonusAmount: monthBonusAmount
         });
         
-        // Optional: Stop early if all milestones reached and we have enough data
+        // Stop if all milestones reached (optional optimization)
         if (loanPaidOffIndex !== null && savingsGoalIndex !== null && month > 60) {
           break;
         }
@@ -314,24 +228,30 @@ const useProjection = (initialData, initialSettings) => {
       const loanPaidOff = loanPaidOffIndex !== null ? projection[loanPaidOffIndex] : null;
       const savingsGoalReached = savingsGoalIndex !== null ? projection[savingsGoalIndex] : null;
       
-      // Enhanced time formatting function
+      // Format time to milestones
       const formatTimeToMilestone = (months) => {
-        if (months === null) return 'Not within projection';
-        const monthsNum = Number(months);
-        if (isNaN(monthsNum)) return 'Not within projection';
-        
-        const years = Math.floor(monthsNum / 12);
+      if (months === null) return 'Not within projection';
+      // Convert to number to ensure proper calculation
+      const monthsNum = Number(months);
+      if (isNaN(monthsNum)) return 'Not within projection';
+      
+      const years = Math.floor(monthsNum / 12);
         const remainingMonths = monthsNum % 12;
         
+        // Handle singular/plural forms correctly
         if (years > 0) {
+          // Both years and months
           if (remainingMonths > 0) {
             return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''}`;
           }
+          // Only years, no months
           return `${years} year${years > 1 ? 's' : ''}`;
         }
+        // Only months, no years
         if (remainingMonths > 0) {
           return `${remainingMonths} month${remainingMonths > 1 ? 's' : ''}`;
         }
+        // Should not happen but handle the case
         return 'Less than a month';
       };
       
@@ -340,18 +260,10 @@ const useProjection = (initialData, initialSettings) => {
         loanPaidOffMonth: loanPaidOff,
         savingsGoalReachedMonth: savingsGoalReached,
         timeToPayLoan: formatTimeToMilestone(loanPaidOffIndex),
-        timeToSavingsGoal: formatTimeToMilestone(savingsGoalIndex),
-        // Additional insights
-        projectionMetadata: {
-          salaryDay,
-          totalMonthsProjected: projection.length,
-          averageMonthlySavings: projection.reduce((sum, p) => sum + p.monthlySavings, 0) / projection.length,
-          totalProjectedSavings: projection[projection.length - 1]?.cashSavings || 0,
-          finalNetWorth: projection[projection.length - 1]?.totalNetWorth || 0
-        }
+        timeToSavingsGoal: formatTimeToMilestone(savingsGoalIndex)
       };
     }, [], { source: 'generateProjection', data, settings });
-  }, [data, settings, validateInputs, tryCatch, calculateProRatedAmounts, getDaysInMonth]);
+  }, [data, settings, validateInputs, tryCatch]);
 
   // Effect to regenerate projection when data or settings change
   useEffect(() => {
@@ -416,26 +328,6 @@ const useProjection = (initialData, initialSettings) => {
         setTimeToSavingsGoal(result.timeToSavingsGoal);
       }
       return result;
-    },
-    
-    // New utility methods
-    updateSalaryDay: (day) => updateSettings({ salaryDay: day }),
-    getSalaryTiming: () => settings.salaryDay,
-    
-    // Enhanced projection insights
-    getProjectionInsights: () => {
-      if (!projectionData.length) return null;
-      
-      const lastProjection = projectionData[projectionData.length - 1];
-      const firstProjection = projectionData[0];
-      
-      return {
-        totalGrowth: lastProjection.totalNetWorth - firstProjection.totalNetWorth,
-        averageMonthlySavings: projectionData.reduce((sum, p) => sum + p.monthlySavings, 0) / projectionData.length,
-        totalInvestmentReturns: projectionData.reduce((sum, p) => sum + (p.investmentReturn || 0), 0),
-        totalCpfInterest: projectionData.reduce((sum, p) => sum + (p.cpfInterest || 0), 0),
-        salaryGrowth: lastProjection.fullMonthlySalary - firstProjection.fullMonthlySalary
-      };
     }
   };
 };
