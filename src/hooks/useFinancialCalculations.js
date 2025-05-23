@@ -6,8 +6,8 @@ import useErrorHandler from "./useErrorHandler";
 import { safeGet, safeParseNumber, safeDivide, validateFinancialData } from "../utils/errors/ErrorUtils";
 
 /**
- * useFinancialCalculations hook
- * Custom hook for financial calculations and projections
+ * Enhanced useFinancialCalculations hook with dynamic current month detection
+ * and manual current savings updates for better projections
  * 
  * @returns {Object} Financial calculation results and helper functions
  */
@@ -16,6 +16,9 @@ const useFinancialCalculations = () => {
   const [expenseData, setExpenseData] = useState([]);
   const [assetAllocationData, setAssetAllocationData] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [currentMonth, setCurrentMonth] = useState(null);
+  const [projectionStartDate, setProjectionStartDate] = useState(null);
+  const [savingsTimeframe, setSavingsTimeframe] = useState('before'); // 'before' or 'after' monthly expenses
   
   // Initialize error handler
   const { 
@@ -25,6 +28,24 @@ const useFinancialCalculations = () => {
     clearError,
     tryCatch 
   } = useErrorHandler('useFinancialCalculations');
+  
+  // Dynamically determine current month and projection start
+  useEffect(() => {
+    const now = new Date();
+    const currentMonthData = {
+      month: now.getMonth() + 1, // JavaScript months are 0-indexed
+      year: now.getFullYear(),
+      day: now.getDate(),
+      formatted: now.toLocaleDateString('en-US', { 
+        month: 'long', 
+        year: 'numeric' 
+      })
+    };
+    setCurrentMonth(currentMonthData);
+    
+    // Set projection start to current month
+    setProjectionStartDate(currentMonthData);
+  }, []);
   
   // Validate financial data
   const { isValid: isDataValid, errors: dataValidationErrors } = 
@@ -39,43 +60,77 @@ const useFinancialCalculations = () => {
     }
   }, [isDataValid, dataValidationErrors, handleError, clearError]);
 
-  // Get current values from financial data
+  // Get current values from financial data with enhanced logic
   const currentValues = useMemo(() => {
-    if (!financialData) return null;
+    if (!financialData || !currentMonth) return null;
 
     // Use tryCatch to safely extract values
     return tryCatch(() => {
-      const { personalInfo = {}, financialInfo = {} } = financialData;
+      const { personalInfo = {}, income = {}, expenses = [] } = financialData;
       
       // Default values if data is missing
       const defaultCpfContributionRate = 20; // 20% employee contribution
       const defaultEmployerCpfRate = 17; // 17% employer contribution
 
+      // Calculate total monthly expenses from expenses array
+      const totalMonthlyExpenses = Array.isArray(expenses) 
+        ? expenses.reduce((total, expense) => total + safeParseNumber(expense.amount, 0), 0)
+        : 0;
+
+      // Determine current salary based on salary adjustment timing
+      let currentSalary = safeParseNumber(income.currentSalary, 0);
+      
+      if (income.salaryAdjustmentMonth && income.salaryAdjustmentYear && income.futureSalary) {
+        const adjustmentDate = new Date(income.salaryAdjustmentYear, income.salaryAdjustmentMonth - 1, 1);
+        const currentDate = new Date(currentMonth.year, currentMonth.month - 1, 1);
+        
+        if (currentDate >= adjustmentDate) {
+          currentSalary = safeParseNumber(income.futureSalary, currentSalary);
+        }
+      }
+
       return {
-        salary: safeParseNumber(safeGet(personalInfo, 'monthlySalary', 0)),
-        cpfContributionRate: safeParseNumber(safeGet(personalInfo, 'cpfContributionRate', defaultCpfContributionRate)),
-        employerCpfContributionRate: safeParseNumber(safeGet(personalInfo, 'employerCpfContributionRate', defaultEmployerCpfRate)),
-        monthlyExpenses: safeParseNumber(safeGet(financialInfo, 'monthlyExpenses', 0)),
-        loanPayment: safeParseNumber(safeGet(personalInfo, 'monthlyRepayment', 0)),
-        loanRemaining: safeParseNumber(safeGet(financialInfo, 'housingLoanRemaining', 0)),
-        liquidCash: safeParseNumber(safeGet(financialInfo, 'liquidCash', 0)),
-        cpfBalance: safeParseNumber(safeGet(financialInfo, 'cpfOrdinaryAccount', 0)),
+        salary: currentSalary,
+        cpfContributionRate: safeParseNumber(income.cpfRate, defaultCpfContributionRate),
+        employerCpfContributionRate: safeParseNumber(income.employerCpfRate, defaultEmployerCpfRate),
+        monthlyExpenses: totalMonthlyExpenses,
+        loanPayment: safeParseNumber(personalInfo.monthlyRepayment, 0),
+        loanRemaining: safeParseNumber(personalInfo.remainingLoan, 0),
+        liquidCash: safeParseNumber(personalInfo.currentSavings, 0),
+        cpfBalance: safeParseNumber(personalInfo.currentCpfBalance, 0),
+        interestRate: safeParseNumber(personalInfo.interestRate, 0),
+        // Add projection timing info
+        projectionStartMonth: currentMonth.month,
+        projectionStartYear: currentMonth.year,
+        currentDay: currentMonth.day
       };
     }, [], { source: 'currentValues calculation' });
-  }, [financialData, tryCatch]);
+  }, [financialData, currentMonth, tryCatch]);
 
-  // Default projection settings
-  const defaultSettings = {
-    annualSalaryIncrease: 3.0, // 3% annual salary increase
-    annualExpenseIncrease: 2.0, // 2% expense increase (inflation)
-    annualInvestmentReturn: 4.0, // 4% investment return
-    annualCpfInterestRate: 2.5, // 2.5% CPF interest rate
-    projectionYears: 30, // Project 30 years into the future
-    bonusMonths: 2, // 2 months of bonus
-    bonusAmount: currentValues?.salary || 0 // Default to 1 month of salary
-  };
+  // Enhanced projection settings with current month awareness
+  const defaultSettings = useMemo(() => {
+    if (!currentMonth) return {};
+    
+    return {
+      annualSalaryIncrease: 3.0, // 3% annual salary increase
+      annualExpenseIncrease: 2.0, // 2% expense increase (inflation)
+      annualInvestmentReturn: 4.0, // 4% investment return
+      annualCpfInterestRate: 2.5, // 2.5% CPF interest rate
+      projectionYears: 30, // Project 30 years into the future
+      bonusMonths: 2, // 2 months of bonus
+      bonusAmount: currentValues?.salary || 0, // Default to 1 month of salary
+      salaryDay: 23, // Default salary day
+      // Add current month context
+      projectionStartMonth: currentMonth.month,
+      projectionStartYear: currentMonth.year,
+      // Add yearly bonus integration
+      yearlyBonuses: financialData?.yearlyBonuses || [],
+      // Add savings timeframe
+      savingsTimeframe: savingsTimeframe
+    };
+  }, [currentMonth, currentValues, financialData, savingsTimeframe]);
 
-  // Use our custom projection hook
+  // Use our custom projection hook with enhanced settings
   const {
     projectionData,
     loanPaidOffMonth,
@@ -83,7 +138,8 @@ const useFinancialCalculations = () => {
     timeToPayLoan,
     timeToSavingsGoal,
     settings: projectionSettings,
-    updateSettings
+    updateSettings,
+    error: projectionError
   } = useProjection(currentValues, defaultSettings);
 
   // Use our custom milestones hook
@@ -93,8 +149,27 @@ const useFinancialCalculations = () => {
     timeToPayLoan,
     timeToSavingsGoal,
     currentLiquidCash: currentValues?.liquidCash,
-    currentAge: financialData?.personalInfo?.age
+    currentAge: financialData?.personalInfo ? calculateCurrentAge() : null
   });
+
+  // Calculate current age based on birthday and current month
+  const calculateCurrentAge = () => {
+    if (!financialData?.personalInfo?.birthday || !currentMonth) return null;
+    
+    const { month: birthMonth, year: birthYear } = financialData.personalInfo.birthday;
+    const currentYear = currentMonth.year;
+    const currentMonthNum = currentMonth.month;
+    
+    let age = currentYear - birthYear;
+    
+    // Adjust if birthday hasn't occurred yet this year
+    if (currentMonthNum < birthMonth || 
+        (currentMonthNum === birthMonth && currentMonth.day < 15)) {
+      age--;
+    }
+    
+    return age;
+  };
 
   // Calculate current financial metrics
   const financialMetrics = useMemo(() => {
@@ -119,7 +194,6 @@ const useFinancialCalculations = () => {
       const monthlySavings = takeHomePay - monthlyExpenses - loanPayment;
       
       // Calculate savings rate as a percentage of take-home pay
-      // Use safeDivide to avoid division by zero
       const savingsRate = safeDivide(monthlySavings, takeHomePay, 0) * 100;
       
       // Calculate total monthly income including employer CPF
@@ -139,13 +213,61 @@ const useFinancialCalculations = () => {
     }, [], { source: 'financialMetrics calculation' });
   }, [currentValues, tryCatch]);
 
+  // Function to update current savings (liquid cash) for better projections
+  const updateCurrentSavings = (newSavingsAmount) => {
+    const updatedPersonalInfo = {
+      ...financialData.personalInfo,
+      currentSavings: safeParseNumber(newSavingsAmount, 0)
+    };
+    
+    updateFinancialData({
+      personalInfo: updatedPersonalInfo
+    });
+  };
+
+  // Function to update current CPF balance
+  const updateCurrentCpfBalance = (newCpfBalance) => {
+    const updatedPersonalInfo = {
+      ...financialData.personalInfo,
+      currentCpfBalance: safeParseNumber(newCpfBalance, 0)
+    };
+    
+    updateFinancialData({
+      personalInfo: updatedPersonalInfo
+    });
+  };
+
+  // Function to update savings timeframe
+  const updateSavingsTimeframe = (timeframe) => {
+    setSavingsTimeframe(timeframe);
+  };
+
+  // Function to set a custom projection start date
+  const setCustomProjectionStart = (month, year) => {
+    const customStartDate = {
+      month: safeParseNumber(month, currentMonth?.month || 1),
+      year: safeParseNumber(year, currentMonth?.year || new Date().getFullYear()),
+      day: 1,
+      formatted: new Date(year, month - 1, 1).toLocaleDateString('en-US', { 
+        month: 'long', 
+        year: 'numeric' 
+      })
+    };
+    setProjectionStartDate(customStartDate);
+    
+    // Update projection settings
+    updateSettings({
+      projectionStartMonth: customStartDate.month,
+      projectionStartYear: customStartDate.year
+    });
+  };
+
   // Calculate asset allocation data for charts/displays
   useEffect(() => {
     if (!currentValues) return;
     
     try {
       const { liquidCash, cpfBalance } = currentValues;
-      // Use safeParseNumber to ensure we have valid numbers
       const safeLC = safeParseNumber(liquidCash, 0);
       const safeCPF = safeParseNumber(cpfBalance, 0);
       const totalAssets = safeLC + safeCPF;
@@ -162,7 +284,6 @@ const useFinancialCalculations = () => {
       const liquidCashPercentage = safeDivide(safeLC, totalAssets, 0) * 100;
       const cpfPercentage = safeDivide(safeCPF, totalAssets, 0) * 100;
       
-      // Include both the values and percentages in the data
       setAssetAllocationData([
         { name: "Liquid Cash", value: safeLC, percentage: liquidCashPercentage },
         { name: "CPF Savings", value: safeCPF, percentage: cpfPercentage }
@@ -174,24 +295,24 @@ const useFinancialCalculations = () => {
         { name: "CPF Savings", value: 0, percentage: 0 }
       ]);
     }
-  }, [currentValues, handleError, safeParseNumber, safeDivide]);
+  }, [currentValues, handleError]);
 
   // Calculate expense breakdown data for charts/displays
   useEffect(() => {
     try {
-      if (!financialData || !financialData.expenseItems) {
+      if (!financialData || !Array.isArray(financialData.expenses)) {
         setExpenseData([{ name: "No Data", value: 0 }]);
         return;
       }
       
       // Map expense items to chart format
-      const expenses = financialData.expenseItems.map(item => ({
-        name: item.category,
+      const expenses = financialData.expenses.map(item => ({
+        name: item.name,
         value: safeParseNumber(item.amount, 0)
       }));
       
       // Add loan payment if available
-      if (currentValues?.loanPayment) {
+      if (currentValues?.loanPayment && currentValues.loanPayment > 0) {
         expenses.push({
           name: "Loan Payment",
           value: currentValues.loanPayment
@@ -205,10 +326,10 @@ const useFinancialCalculations = () => {
     }
   }, [financialData, currentValues, handleError]);
 
-  // Generate upcoming financial events
+  // Generate upcoming financial events with current month awareness
   useEffect(() => {
     try {
-      if (!loanPaidOffMonth && !savingsGoalReachedMonth && !projectionData) {
+      if (!loanPaidOffMonth && !savingsGoalReachedMonth && !projectionData && !currentMonth) {
         setUpcomingEvents([]);
         return;
       }
@@ -222,7 +343,8 @@ const useFinancialCalculations = () => {
           title: "Loan Paid Off",
           date: loanPaidOffMonth.date,
           type: "milestone",
-          importance: "high"
+          importance: "high",
+          monthsFromNow: loanPaidOffMonth.month || 0
         });
       }
       
@@ -233,22 +355,49 @@ const useFinancialCalculations = () => {
           title: "$100K Savings Goal Reached",
           date: savingsGoalReachedMonth.date,
           type: "milestone",
-          importance: "high"
+          importance: "high",
+          monthsFromNow: savingsGoalReachedMonth.month || 0
+        });
+      }
+
+      // Add yearly bonus events from context
+      if (financialData?.yearlyBonuses && Array.isArray(financialData.yearlyBonuses)) {
+        const currentYear = currentMonth?.year || new Date().getFullYear();
+        const upcomingBonuses = financialData.yearlyBonuses.filter(bonus => {
+          const bonusDate = new Date(bonus.year, bonus.month - 1, 1);
+          const now = new Date(currentYear, (currentMonth?.month || 1) - 1, 1);
+          return bonusDate >= now && bonusDate <= new Date(currentYear + 2, 11, 31);
+        });
+
+        upcomingBonuses.forEach(bonus => {
+          const bonusDate = new Date(bonus.year, bonus.month - 1, 1);
+          events.push({
+            id: `bonus-${bonus.id}`,
+            title: `${bonus.description}: $${bonus.amount.toLocaleString()}`,
+            date: bonusDate.toLocaleDateString('en-US', { 
+              month: 'short', 
+              year: 'numeric' 
+            }),
+            type: "income",
+            importance: "medium",
+            amount: bonus.amount
+          });
         });
       }
       
-      // Add bonus month events (next 12 months only)
+      // Add bonus month events from projections (next 12 months only)
       if (projectionData && projectionData.length > 0) {
         projectionData
           .slice(0, 12) // Look at next 12 months only
           .filter(month => month.isBonus && month.bonusAmount > 0)
           .forEach(month => {
             events.push({
-              id: `bonus-${month.date}`,
-              title: `Bonus Payment: ${month.bonusAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`,
+              id: `bonus-projected-${month.date}`,
+              title: `Projected Bonus: $${month.bonusAmount.toLocaleString()}`,
               date: month.date,
               type: "income",
-              importance: "medium"
+              importance: "medium",
+              projected: true
             });
           });
       }
@@ -265,13 +414,19 @@ const useFinancialCalculations = () => {
       handleError(error, { source: 'upcoming events calculation' });
       setUpcomingEvents([]);
     }
-  }, [loanPaidOffMonth, savingsGoalReachedMonth, projectionData, handleError]);
+  }, [loanPaidOffMonth, savingsGoalReachedMonth, projectionData, currentMonth, financialData, handleError]);
 
   return {
     // Error state
     calculationError,
     hasCalculationError,
     clearCalculationError: clearError,
+    projectionError,
+    
+    // Current month and timing info
+    currentMonth,
+    projectionStartDate,
+    currentAge: calculateCurrentAge(),
     
     // Financial metrics
     ...financialMetrics,
@@ -299,9 +454,40 @@ const useFinancialCalculations = () => {
     upcomingEvents,
     milestones,
     
-    // Settings
+    // Settings and update functions
     projectionSettings,
-    updateProjectionSettings: updateSettings
+    updateProjectionSettings: updateSettings,
+    
+    // New update functions for manual savings/CPF adjustments
+    updateCurrentSavings,
+    updateCurrentCpfBalance,
+    updateSavingsTimeframe,
+    setCustomProjectionStart,
+    
+    // Current savings timeframe
+    savingsTimeframe,
+    
+    // Enhanced utility functions
+    formatCurrency: (amount) => `$${safeParseNumber(amount, 0).toLocaleString()}`,
+    formatPercentage: (percentage) => `${safeParseNumber(percentage, 0).toFixed(1)}%`,
+    
+    // Projection insights
+    getProjectionInsights: () => {
+      if (!projectionData || !projectionData.length) return null;
+      
+      const lastProjection = projectionData[projectionData.length - 1];
+      const firstProjection = projectionData[0];
+      
+      return {
+        totalGrowth: lastProjection.totalNetWorth - firstProjection.totalNetWorth,
+        averageMonthlySavings: projectionData.reduce((sum, p) => sum + p.monthlySavings, 0) / projectionData.length,
+        totalInvestmentReturns: projectionData.reduce((sum, p) => sum + (p.investmentReturn || 0), 0),
+        totalCpfInterest: projectionData.reduce((sum, p) => sum + (p.cpfInterest || 0), 0),
+        salaryGrowth: lastProjection.fullMonthlySalary - firstProjection.fullMonthlySalary,
+        projectedNetWorthIn5Years: projectionData[Math.min(59, projectionData.length - 1)]?.totalNetWorth || 0,
+        projectedNetWorthIn10Years: projectionData[Math.min(119, projectionData.length - 1)]?.totalNetWorth || 0
+      };
+    }
   };
 };
 
