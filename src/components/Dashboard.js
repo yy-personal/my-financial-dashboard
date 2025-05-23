@@ -1,9 +1,24 @@
 import React, { useContext, useState } from "react";
 import CpfDashboard from "./CpfDashboard";
 import { FinancialContext } from "../context/FinancialContext";
+import useFinancialCalculations from "../hooks/useFinancialCalculations";
+
+// Import the modern dashboard components
+import FinancialSummary from "./dashboard/FinancialSummary";
+import AssetAllocation from "./dashboard/AssetAllocation";
+import ExpenseBreakdown from "./dashboard/ExpenseBreakdown";
+import MonthlyCashFlow from "./dashboard/MonthlyCashFlow";
+import UpcomingEvents from "./dashboard/UpcomingEvents";
+import PersonalInfo from "./dashboard/PersonalInfo";
+import MilestonesInfo from "./dashboard/MilestonesInfo";
+import Recommendations from "./dashboard/Recommendations";
+import ProjectionDashboard from "./dashboard/ProjectionDashboard";
+import MilestonesDashboard from "./dashboard/MilestonesDashboard";
+import { NetWorthChart, SavingsGrowthChart, CashFlowChart } from "./dashboard/charts";
 
 // Add a console log to check if Dashboard.js is loaded
 console.log('Dashboard component loaded and rendering');
+
 import {
 	LineChart,
 	Line,
@@ -34,6 +49,49 @@ const Dashboard = () => {
 		getMonthName,
 		formatDate,
 	} = useContext(FinancialContext);
+
+	// Use the modern financial calculations hook
+	const {
+		// Financial metrics
+		currentSalary,
+		cpfContribution,
+		employerCpfContribution,
+		takeHomePay,
+		monthlyExpenses,
+		loanPayment,
+		monthlySavings,
+		savingsRate,
+		totalMonthlyIncome,
+		
+		// Assets and allocation
+		liquidCash,
+		cpfSavings,
+		totalAssets,
+		liquidCashPercentage,
+		cpfPercentage,
+		assetAllocationData,
+		
+		// Projection data
+		projection,
+		chartData,
+		loanPaidOffMonth,
+		savingsGoalReachedMonth,
+		timeToPayLoan,
+		timeToSavingsGoal,
+		
+		// Other formatted data
+		expenseData,
+		upcomingEvents,
+		
+		// Settings and update functions
+		projectionSettings,
+		updateProjectionSettings: updateProjection,
+		savingsTimeframe,
+		updateSavingsTimeframe,
+		
+		// Current values for ProjectionDashboard
+		currentMonth
+	} = useFinancialCalculations();
 
 	const [activeTab, setActiveTab] = useState("summary");
 
@@ -70,205 +128,73 @@ const Dashboard = () => {
 		});
 	};
 
-	// Calculate financial projection
-	const calculateProjection = () => {
-		const projection = [];
-
-		// Extract values from context
-		const { personalInfo, income, expenses, yearlyBonuses } = financialData;
-
-		// Initial values
-		let currentSavings = personalInfo.currentSavings;
-		let loanRemaining = personalInfo.remainingLoan;
-		let cpfBalance = personalInfo.currentCpfBalance || 0; // Use user-provided CPF balance
-		const birthYear = personalInfo.birthday.year;
-		const birthMonth = personalInfo.birthday.month;
-
-		// Parameters
-		let currentSalary = income.currentSalary;
-		const cpfRate = income.cpfRate / 100;
-		const employerCpfRate = income.employerCpfRate / 100;
-		const monthlyExpenses = totalExpenses;
-		const loanPayment = personalInfo.monthlyRepayment;
-		const annualInterestRate = personalInfo.interestRate / 100;
-		const monthlyInterestRate = annualInterestRate / 12;
-
-		// Calculate months
-		let startMonth = personalInfo.projectionStart.month;
-		let startYear = personalInfo.projectionStart.year;
-
-		// Get salary adjustments if available, or create from legacy data
-		const salaryAdjustments = income.salaryAdjustments || [];
-
-		// If using legacy format, convert to array format for compatibility
-		if (!income.salaryAdjustments && income.futureSalary) {
-			salaryAdjustments.push({
-				month: income.salaryAdjustmentMonth,
-				year: income.salaryAdjustmentYear,
-				newSalary: income.futureSalary,
-			});
+	// Legacy calculation for backwards compatibility (simplified version)
+	const { projection: legacyProjection, loanPaidOffMonth: legacyLoanPaidOff, savingsGoalReachedMonth: legacySavingsGoal } = React.useMemo(() => {
+		// Use the modern projection data if available, otherwise fallback to legacy calculation
+		if (projection && projection.length > 0) {
+			return {
+				projection,
+				loanPaidOffMonth,
+				savingsGoalReachedMonth
+			};
 		}
 
-		// Sort salary adjustments by date
-		const sortedAdjustments = [...salaryAdjustments].sort((a, b) => {
-			if (a.year !== b.year) return a.year - b.year;
-			return a.month - b.month;
-		});
+		// Fallback legacy calculation (simplified)
+		const legacyProjection = [];
+		let currentSavings = financialData?.personalInfo?.currentSavings || 0;
+		let loanRemaining = financialData?.personalInfo?.remainingLoan || 0;
+		let cpfBalance = financialData?.personalInfo?.currentCpfBalance || 0;
 
-		// Get yearly bonuses
-		const sortedBonuses = yearlyBonuses
-			? [...yearlyBonuses].sort((a, b) => {
-					if (a.year !== b.year) return a.year - b.year;
-					return a.month - b.month;
-			  })
-			: [];
+		const currentSalaryLegacy = financialData?.income?.currentSalary || 0;
+		const cpfRate = (financialData?.income?.cpfRate || 20) / 100;
+		const employerCpfRate = (financialData?.income?.employerCpfRate || 17) / 100;
+		const monthlyExpensesLegacy = totalExpenses || 0;
+		const loanPaymentLegacy = financialData?.personalInfo?.monthlyRepayment || 0;
 
-		// Track milestones
-		let loanPaidOffMonth = null;
-		let savingsGoalReachedMonth = null; // This will now track only cash savings (excluding CPF)
+		let loanPaidOffIndex = null;
+		let savingsGoalIndex = null;
 
-		// Generate projection for 60 months (5 years)
 		for (let month = 0; month < 60; month++) {
-			const currentMonth = ((startMonth + month - 1) % 12) + 1;
-			const currentYear =
-				startYear + Math.floor((startMonth + month - 1) / 12);
-			const monthYearStr = `${getMonthName(currentMonth).substring(
-				0,
-				3
-			)} ${currentYear}`;
-
-			// Calculate age
-			let ageYears = currentYear - birthYear;
-			let ageMonths = currentMonth - birthMonth;
-			if (ageMonths < 0) {
-				ageYears--;
-				ageMonths += 12;
-			}
-			const ageStr = `${ageYears}y ${ageMonths}m`;
-
-			// Check for salary adjustments
-			for (const adjustment of sortedAdjustments) {
-				if (
-					currentMonth === adjustment.month &&
-					currentYear === adjustment.year
-				) {
-					currentSalary = adjustment.newSalary;
-					break;
+			const takeHomePayLegacy = currentSalaryLegacy - (currentSalaryLegacy * cpfRate);
+			const monthlySavingsLegacy = takeHomePayLegacy - monthlyExpensesLegacy - loanPaymentLegacy;
+			
+			currentSavings += monthlySavingsLegacy;
+			cpfBalance += (currentSalaryLegacy * cpfRate) + (currentSalaryLegacy * employerCpfRate);
+			
+			if (loanRemaining > 0) {
+				loanRemaining = Math.max(0, loanRemaining - loanPaymentLegacy);
+				if (loanRemaining === 0 && loanPaidOffIndex === null) {
+					loanPaidOffIndex = month;
 				}
 			}
 
-			// Calculate take-home pay
-			const cpfContribution = currentSalary * cpfRate;
-			const employerCpf = currentSalary * employerCpfRate;
-			const takeHomePay = currentSalary - cpfContribution;
-
-			// Check for yearly bonuses in this month
-			let bonusAmount = 0;
-			let bonusDescription = "";
-
-			for (const bonus of sortedBonuses) {
-				if (
-					currentMonth === bonus.month &&
-					currentYear === bonus.year
-				) {
-					bonusAmount += bonus.amount;
-					bonusDescription = bonusDescription
-						? `${bonusDescription}, ${bonus.description}`
-						: bonus.description;
-				}
+			if (currentSavings >= 100000 && savingsGoalIndex === null) {
+				savingsGoalIndex = month;
 			}
 
-			// Calculate loan payment and remaining balance
-			let actualLoanPayment = loanPayment;
-			let interestForMonth = loanRemaining * monthlyInterestRate;
-			let principalPayment = Math.min(
-				loanRemaining,
-				loanPayment - interestForMonth
-			);
-
-			if (loanRemaining <= 0) {
-				interestForMonth = 0;
-				principalPayment = 0;
-				actualLoanPayment = 0;
-				loanRemaining = 0;
-			} else {
-				loanRemaining = Math.max(0, loanRemaining - principalPayment);
-			}
-
-			// Record loan paid off milestone
-			if (loanRemaining === 0 && loanPaidOffMonth === null) {
-				loanPaidOffMonth = month;
-			}
-
-			// Calculate monthly savings (including any bonuses)
-			const monthlySavings =
-				takeHomePay - monthlyExpenses - actualLoanPayment + bonusAmount;
-
-			// Update balances
-			cpfBalance += cpfContribution + employerCpf;
-			currentSavings += monthlySavings;
-			const totalNetWorth = currentSavings + cpfBalance;
-
-			// Record savings goal milestone - now only for cash savings (excluding CPF)
-			if (currentSavings >= 100000 && savingsGoalReachedMonth === null) {
-				savingsGoalReachedMonth = month;
-			}
-
-			// Create data point
-			projection.push({
+			const currentDate = new Date();
+			const projectionDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + month, 1);
+			
+			legacyProjection.push({
 				month: month + 1,
-				date: monthYearStr,
-				age: ageStr,
-				monthlySalary: currentSalary,
-				takeHomePay: takeHomePay,
-				expenses: monthlyExpenses,
-				loanPayment: actualLoanPayment,
+				date: `${projectionDate.toLocaleString('default', { month: 'short' })} ${projectionDate.getFullYear()}`,
+				takeHomePay: takeHomePayLegacy,
+				expenses: monthlyExpensesLegacy,
+				loanPayment: loanPaymentLegacy,
 				loanRemaining: loanRemaining,
-				monthlySavings: monthlySavings,
-				bonusAmount: bonusAmount,
-				bonusDescription: bonusDescription,
-				cpfContribution: cpfContribution,
-				employerCpfContribution: employerCpf,
-				totalCpfContribution: cpfContribution + employerCpf,
-				cpfBalance: cpfBalance,
+				monthlySavings: monthlySavingsLegacy,
 				cashSavings: currentSavings,
-				totalNetWorth: totalNetWorth,
-				milestone:
-					month === loanPaidOffMonth
-						? "Loan Paid Off"
-						: month === savingsGoalReachedMonth
-						? "100K Cash Savings Goal"
-						: bonusAmount > 0
-						? bonusDescription
-						: null,
+				cpfBalance: cpfBalance,
+				totalNetWorth: currentSavings + cpfBalance - loanRemaining,
 			});
 		}
 
 		return {
-			projection,
-			loanPaidOffMonth:
-				loanPaidOffMonth !== null ? projection[loanPaidOffMonth] : null,
-			savingsGoalReachedMonth:
-				savingsGoalReachedMonth !== null
-					? projection[savingsGoalReachedMonth]
-					: null,
+			projection: legacyProjection,
+			loanPaidOffMonth: loanPaidOffIndex !== null ? legacyProjection[loanPaidOffIndex] : null,
+			savingsGoalReachedMonth: savingsGoalIndex !== null ? legacyProjection[savingsGoalIndex] : null
 		};
-	};
-
-	const { projection, loanPaidOffMonth, savingsGoalReachedMonth } =
-		calculateProjection();
-
-	// Expense breakdown for pie chart
-	const expenseData = [
-		...financialData.expenses.map((expense) => ({
-			name: expense.name,
-			value: expense.amount,
-		})),
-		{
-			name: "Loan Payment",
-			value: financialData.personalInfo.monthlyRepayment,
-		},
-	];
+	}, [projection, loanPaidOffMonth, savingsGoalReachedMonth, financialData, totalExpenses]);
 
 	// Colors for pie chart
 	const COLORS = [
@@ -290,30 +216,28 @@ const Dashboard = () => {
 	];
 
 	// Extract summary data
-	const timeToPayLoan = loanPaidOffMonth
-		? `${Math.floor(loanPaidOffMonth.month / 12)} years ${
-				loanPaidOffMonth.month % 12
+	const timeToPayLoanFormatted = legacyLoanPaidOff
+		? `${Math.floor(legacyLoanPaidOff.month / 12)} years ${
+				legacyLoanPaidOff.month % 12
 		  } months`
 		: "Not within projection";
 
-	const timeToSavingsGoal = savingsGoalReachedMonth
-		? `${Math.floor(savingsGoalReachedMonth.month / 12)} years ${
-				savingsGoalReachedMonth.month % 12
+	const timeToSavingsGoalFormatted = legacySavingsGoal
+		? `${Math.floor(legacySavingsGoal.month / 12)} years ${
+				legacySavingsGoal.month % 12
 		  } months`
 		: "Not within projection";
 
 	// Current monthly income & expenses breakdown
-	const currentSalary = financialData.income.currentSalary;
-	const cpfContribution =
-		currentSalary * (financialData.income.cpfRate / 100);
-	const employerCpfContribution =
-		currentSalary * (financialData.income.employerCpfRate / 100);
-	const takeHomePay = currentSalary - cpfContribution;
-	const monthlyExpenses = totalExpenses;
-	const loanPayment = financialData.personalInfo.monthlyRepayment;
-	const monthlySavings = takeHomePay - monthlyExpenses - loanPayment;
-	const savingsRate = monthlySavings / takeHomePay;
-	const totalMonthlyIncome = currentSalary + employerCpfContribution;
+	const currentSalaryDisplay = currentSalary || financialData?.income?.currentSalary || 0;
+	const cpfContributionDisplay = cpfContribution || (currentSalaryDisplay * ((financialData?.income?.cpfRate || 20) / 100));
+	const employerCpfContributionDisplay = employerCpfContribution || (currentSalaryDisplay * ((financialData?.income?.employerCpfRate || 17) / 100));
+	const takeHomePayDisplay = takeHomePay || (currentSalaryDisplay - cpfContributionDisplay);
+	const monthlyExpensesDisplay = monthlyExpenses || totalExpenses || 0;
+	const loanPaymentDisplay = loanPayment || financialData?.personalInfo?.monthlyRepayment || 0;
+	const monthlySavingsDisplay = monthlySavings || (takeHomePayDisplay - monthlyExpensesDisplay - loanPaymentDisplay);
+	const savingsRateDisplay = savingsRate || ((monthlySavingsDisplay / takeHomePayDisplay) * 100);
+	const totalMonthlyIncomeDisplay = totalMonthlyIncome || (currentSalaryDisplay + employerCpfContributionDisplay);
 
 	// Calculate total yearly bonuses for current year
 	const currentYear = new Date().getFullYear();
@@ -324,88 +248,106 @@ const Dashboard = () => {
 		: 0;
 
 	// Filtered data for charts (every 3 months)
-	const chartData = projection.filter((item, index) => index % 3 === 0);
+	const chartDataDisplay = chartData && chartData.length > 0 ? 
+		chartData.filter((item, index) => index % 3 === 0) : 
+		legacyProjection.filter((item, index) => index % 3 === 0);
 
 	// Calculate asset allocation percentages
-	const liquidCash = financialData.personalInfo.currentSavings;
-	const cpfSavings = financialData.personalInfo.currentCpfBalance || 0;
-	const totalAssets = liquidCash + cpfSavings;
+	const liquidCashDisplay = liquidCash || financialData?.personalInfo?.currentSavings || 0;
+	const cpfSavingsDisplay = cpfSavings || financialData?.personalInfo?.currentCpfBalance || 0;
+	const totalAssetsDisplay = totalAssets || (liquidCashDisplay + cpfSavingsDisplay);
 
-	const liquidCashPercentage =
-		totalAssets > 0 ? (liquidCash / totalAssets) * 100 : 0;
-	const cpfPercentage =
-		totalAssets > 0 ? (cpfSavings / totalAssets) * 100 : 0;
+	const liquidCashPercentageDisplay = liquidCashPercentage || (totalAssetsDisplay > 0 ? (liquidCashDisplay / totalAssetsDisplay) * 100 : 0);
+	const cpfPercentageDisplay = cpfPercentage || (totalAssetsDisplay > 0 ? (cpfSavingsDisplay / totalAssetsDisplay) * 100 : 0);
 
 	// Asset allocation data for pie chart
-	const assetAllocationData = [
-		{ name: "Liquid Cash", value: liquidCash },
-		{ name: "CPF (Locked)", value: cpfSavings },
+	const assetAllocationDataDisplay = assetAllocationData && assetAllocationData.length > 0 ? assetAllocationData : [
+		{ name: "Liquid Cash", value: liquidCashDisplay },
+		{ name: "CPF (Locked)", value: cpfSavingsDisplay },
 	];
 
-	// Calculate upcoming financial events (next 3 months)
-	const upcomingEvents = [];
-	const today = new Date();
-	const currentMonth = today.getMonth() + 1;
-	const nextThreeMonths = [
-		{ month: currentMonth, year: currentYear },
+	// Expense data for pie chart
+	const expenseDataDisplay = expenseData && expenseData.length > 0 ? expenseData : [
+		...financialData.expenses.map((expense) => ({
+			name: expense.name,
+			value: expense.amount,
+		})),
 		{
-			month:
-				currentMonth + 1 > 12
-					? currentMonth + 1 - 12
-					: currentMonth + 1,
-			year: currentMonth + 1 > 12 ? currentYear + 1 : currentYear,
-		},
-		{
-			month:
-				currentMonth + 2 > 12
-					? currentMonth + 2 - 12
-					: currentMonth + 2,
-			year: currentMonth + 2 > 12 ? currentYear + 1 : currentYear,
+			name: "Loan Payment",
+			value: financialData.personalInfo.monthlyRepayment,
 		},
 	];
 
-	// Find salary adjustments in next 3 months
-	if (financialData.income.salaryAdjustments) {
-		financialData.income.salaryAdjustments.forEach((adjustment) => {
-			const isUpcoming = nextThreeMonths.some(
-				(period) =>
-					period.month === adjustment.month &&
-					period.year === adjustment.year
-			);
+	// Prepare current values for ProjectionDashboard
+	const currentValues = {
+		salary: currentSalaryDisplay,
+		monthlySavings: monthlySavingsDisplay,
+		monthlyExpenses: monthlyExpensesDisplay,
+		loanPayment: loanPaymentDisplay,
+		liquidCash: liquidCashDisplay,
+		cpfBalance: cpfSavingsDisplay,
+		loanRemaining: financialData?.personalInfo?.remainingLoan || 0,
+		takeHomePay: takeHomePayDisplay
+	};
 
-			if (isUpcoming) {
-				upcomingEvents.push({
-					type: "Salary Adjustment",
-					date: `${getMonthName(adjustment.month)} ${
-						adjustment.year
-					}`,
-					amount: adjustment.newSalary,
-					description: `Salary changes to ${formatCurrency(
-						adjustment.newSalary
-					)}`,
-				});
-			}
-		});
-	}
+	// Calculate upcoming financial events
+	const upcomingEventsDisplay = upcomingEvents && upcomingEvents.length > 0 ? upcomingEvents : (() => {
+		const events = [];
+		const today = new Date();
+		const currentMonthNum = today.getMonth() + 1;
+		const nextThreeMonths = [
+			{ month: currentMonthNum, year: currentYear },
+			{
+				month: currentMonthNum + 1 > 12 ? currentMonthNum + 1 - 12 : currentMonthNum + 1,
+				year: currentMonthNum + 1 > 12 ? currentYear + 1 : currentYear,
+			},
+			{
+				month: currentMonthNum + 2 > 12 ? currentMonthNum + 2 - 12 : currentMonthNum + 2,
+				year: currentMonthNum + 2 > 12 ? currentYear + 1 : currentYear,
+			},
+		];
 
-	// Find bonuses in next 3 months
-	if (financialData.yearlyBonuses) {
-		financialData.yearlyBonuses.forEach((bonus) => {
-			const isUpcoming = nextThreeMonths.some(
-				(period) =>
-					period.month === bonus.month && period.year === bonus.year
-			);
+		// Find salary adjustments in next 3 months
+		if (financialData.income.salaryAdjustments) {
+			financialData.income.salaryAdjustments.forEach((adjustment) => {
+				const isUpcoming = nextThreeMonths.some(
+					(period) =>
+						period.month === adjustment.month &&
+						period.year === adjustment.year
+				);
 
-			if (isUpcoming) {
-				upcomingEvents.push({
-					type: "Bonus",
-					date: `${getMonthName(bonus.month)} ${bonus.year}`,
-					amount: bonus.amount,
-					description: bonus.description,
-				});
-			}
-		});
-	}
+				if (isUpcoming) {
+					events.push({
+						type: "Salary Adjustment",
+						date: `${getMonthName(adjustment.month)} ${adjustment.year}`,
+						amount: adjustment.newSalary,
+						description: `Salary changes to ${formatCurrency(adjustment.newSalary)}`,
+					});
+				}
+			});
+		}
+
+		// Find bonuses in next 3 months
+		if (financialData.yearlyBonuses) {
+			financialData.yearlyBonuses.forEach((bonus) => {
+				const isUpcoming = nextThreeMonths.some(
+					(period) =>
+						period.month === bonus.month && period.year === bonus.year
+				);
+
+				if (isUpcoming) {
+					events.push({
+						type: "Bonus",
+						date: `${getMonthName(bonus.month)} ${bonus.year}`,
+						amount: bonus.amount,
+						description: bonus.description,
+					});
+				}
+			});
+		}
+
+		return events;
+	})();
 
 	// Custom card component for consistency
 	const Card = ({
@@ -544,20 +486,14 @@ const Dashboard = () => {
 										Liquid Cash
 									</p>
 									<p className="text-2xl font-bold text-green-700">
-										{formatCurrency(
-											financialData.personalInfo
-												.currentSavings
-										)}
+										{formatCurrency(liquidCashDisplay)}
 									</p>
 									<p className="text-xs text-gray-500">
 										Immediately available
 									</p>
 								</div>
 								<StatusIndicator
-									value={
-										financialData.personalInfo
-											.currentSavings
-									}
+									value={liquidCashDisplay}
 									threshold1={5000}
 									threshold2={2000}
 								/>
@@ -572,10 +508,7 @@ const Dashboard = () => {
 										CPF Balance
 									</p>
 									<p className="text-2xl font-bold text-purple-700">
-										{formatCurrency(
-											financialData.personalInfo
-												.currentCpfBalance || 0
-										)}
+										{formatCurrency(cpfSavingsDisplay)}
 									</p>
 									<p className="text-xs text-gray-500">
 										Locked until retirement
@@ -598,9 +531,9 @@ const Dashboard = () => {
 										)}
 									</p>
 									<p className="text-xs text-gray-500">
-										{timeToPayLoan !==
+										{timeToPayLoanFormatted !==
 										"Not within projection"
-											? `Paid off in ${timeToPayLoan}`
+											? `Paid off in ${timeToPayLoanFormatted}`
 											: "Long-term loan"}
 									</p>
 								</div>
@@ -622,9 +555,8 @@ const Dashboard = () => {
 							</p>
 							<p className="text-2xl font-bold text-blue-700">
 								{formatCurrency(
-									financialData.personalInfo.currentSavings +
-										(financialData.personalInfo
-											.currentCpfBalance || 0) -
+									liquidCashDisplay +
+										cpfSavingsDisplay -
 										financialData.personalInfo.remainingLoan
 								)}
 							</p>
@@ -642,7 +574,7 @@ const Dashboard = () => {
 									Monthly Income
 								</h3>
 								<p className="text-2xl font-bold text-blue-700">
-									{formatCurrency(takeHomePay)}
+									{formatCurrency(takeHomePayDisplay)}
 								</p>
 								<p className="text-sm text-gray-600">
 									Take-home pay after CPF
@@ -655,7 +587,7 @@ const Dashboard = () => {
 								</h3>
 								<p className="text-2xl font-bold text-red-700">
 									{formatCurrency(
-										monthlyExpenses + loanPayment
+										monthlyExpensesDisplay + loanPaymentDisplay
 									)}
 								</p>
 								<p className="text-sm text-gray-600">
@@ -668,10 +600,10 @@ const Dashboard = () => {
 									Monthly Savings
 								</h3>
 								<p className="text-2xl font-bold text-green-700">
-									{formatCurrency(monthlySavings)}
+									{formatCurrency(monthlySavingsDisplay)}
 								</p>
 								<p className="text-sm text-gray-600">
-									{formatPercent(savingsRate)} of take-home
+									{formatPercent(savingsRateDisplay / 100)} of take-home
 									pay
 								</p>
 							</div>
@@ -684,7 +616,7 @@ const Dashboard = () => {
 									Income
 								</span>
 								<span className="text-gray-600">
-									{formatCurrency(takeHomePay)}
+									{formatCurrency(takeHomePayDisplay)}
 								</span>
 							</div>
 							<div className="w-full h-6 bg-gray-200 rounded-full overflow-hidden">
@@ -693,8 +625,8 @@ const Dashboard = () => {
 										className="bg-red-500 h-full"
 										style={{
 											width: `${
-												(monthlyExpenses /
-													takeHomePay) *
+												(monthlyExpensesDisplay /
+													takeHomePayDisplay) *
 												100
 											}%`,
 										}}
@@ -704,7 +636,7 @@ const Dashboard = () => {
 										className="bg-orange-500 h-full"
 										style={{
 											width: `${
-												(loanPayment / takeHomePay) *
+												(loanPaymentDisplay / takeHomePayDisplay) *
 												100
 											}%`,
 										}}
@@ -714,7 +646,7 @@ const Dashboard = () => {
 										className="bg-green-500 h-full"
 										style={{
 											width: `${
-												(monthlySavings / takeHomePay) *
+												(monthlySavingsDisplay / takeHomePayDisplay) *
 												100
 											}%`,
 										}}
@@ -724,13 +656,13 @@ const Dashboard = () => {
 							</div>
 							<div className="flex text-xs mt-1 justify-between">
 								<span className="text-red-600">
-									Expenses: {formatCurrency(monthlyExpenses)}
+									Expenses: {formatCurrency(monthlyExpensesDisplay)}
 								</span>
 								<span className="text-orange-600">
-									Loan: {formatCurrency(loanPayment)}
+									Loan: {formatCurrency(loanPaymentDisplay)}
 								</span>
 								<span className="text-green-600">
-									Savings: {formatCurrency(monthlySavings)}
+									Savings: {formatCurrency(monthlySavingsDisplay)}
 								</span>
 							</div>
 						</div>
@@ -749,14 +681,14 @@ const Dashboard = () => {
 										Liquid Cash:
 									</span>
 									<span className="font-medium">
-										{formatCurrency(liquidCash)}
+										{formatCurrency(liquidCashDisplay)}
 									</span>
 								</div>
 								<div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
 									<div
 										className="bg-green-500 h-2.5 rounded-full"
 										style={{
-											width: `${liquidCashPercentage}%`,
+											width: `${liquidCashPercentageDisplay}%`,
 										}}
 									></div>
 								</div>
@@ -766,13 +698,13 @@ const Dashboard = () => {
 										CPF (Locked):
 									</span>
 									<span className="font-medium">
-										{formatCurrency(cpfSavings)}
+										{formatCurrency(cpfSavingsDisplay)}
 									</span>
 								</div>
 								<div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
 									<div
 										className="bg-purple-500 h-2.5 rounded-full"
-										style={{ width: `${cpfPercentage}%` }}
+										style={{ width: `${cpfPercentageDisplay}%` }}
 									></div>
 								</div>
 
@@ -781,7 +713,7 @@ const Dashboard = () => {
 										Total Assets:
 									</span>
 									<span className="text-blue-700 font-medium">
-										{formatCurrency(totalAssets)}
+										{formatCurrency(totalAssetsDisplay)}
 									</span>
 								</div>
 
@@ -791,13 +723,13 @@ const Dashboard = () => {
 											Liquidity Ratio:{" "}
 										</span>
 										{formatPercent(
-											liquidCash / totalAssets
+											liquidCashDisplay / totalAssetsDisplay
 										)}
 									</p>
 									<p className="text-xs text-blue-600 mt-1">
-										{liquidCashPercentage > 30
+										{liquidCashPercentageDisplay > 30
 											? "Good liquidity balance. Consider investing some liquid cash for better returns."
-											: liquidCashPercentage > 15
+											: liquidCashPercentageDisplay > 15
 											? "Healthy liquidity ratio."
 											: "Low liquidity. Consider building more accessible cash reserves."}
 									</p>
@@ -808,7 +740,7 @@ const Dashboard = () => {
 								<ResponsiveContainer width="100%" height="100%">
 									<PieChart>
 										<Pie
-											data={assetAllocationData}
+											data={assetAllocationDataDisplay}
 											dataKey="value"
 											nameKey="name"
 											cx="50%"
@@ -842,9 +774,9 @@ const Dashboard = () => {
 						title="Upcoming Financial Events"
 						titleColor="bg-yellow-600"
 					>
-						{upcomingEvents.length > 0 ? (
+						{upcomingEventsDisplay.length > 0 ? (
 							<div className="space-y-4">
-								{upcomingEvents.map((event, index) => (
+								{upcomingEventsDisplay.map((event, index) => (
 									<div
 										key={index}
 										className="flex p-3 bg-yellow-50 rounded-lg border border-yellow-200"
@@ -966,26 +898,26 @@ const Dashboard = () => {
 							<div className="space-y-1">
 								<InfoItem
 									label="Time to Pay Off Loan"
-									value={timeToPayLoan}
+									value={timeToPayLoanFormatted}
 								/>
 								<InfoItem
 									label="Expected Loan Payoff Date"
 									value={
-										loanPaidOffMonth
-											? loanPaidOffMonth.date
+										legacyLoanPaidOff
+											? legacyLoanPaidOff.date
 											: "Not within projection"
 									}
 									highlighted={true}
 								/>
 								<InfoItem
 									label="Time to $100K Savings"
-									value={timeToSavingsGoal}
+									value={timeToSavingsGoalFormatted}
 								/>
 								<InfoItem
 									label="Expected $100K Date"
 									value={
-										savingsGoalReachedMonth
-											? savingsGoalReachedMonth.date
+										legacySavingsGoal
+											? legacySavingsGoal.date
 											: "Not within projection"
 									}
 									highlighted={true}
@@ -1058,7 +990,7 @@ const Dashboard = () => {
 								<ResponsiveContainer width="100%" height="100%">
 									<PieChart>
 										<Pie
-											data={expenseData}
+											data={expenseDataDisplay}
 											dataKey="value"
 											nameKey="name"
 											cx="50%"
@@ -1072,7 +1004,7 @@ const Dashboard = () => {
 												).toFixed(0)}%`
 											}
 										>
-											{expenseData.map((entry, index) => (
+											{expenseDataDisplay.map((entry, index) => (
 												<Cell
 													key={`cell-${index}`}
 													fill={
@@ -1123,8 +1055,8 @@ const Dashboard = () => {
 									</strong>
 									/month to achieve debt freedom by{" "}
 									<strong>
-										{loanPaidOffMonth
-											? loanPaidOffMonth.date
+										{legacyLoanPaidOff
+											? legacyLoanPaidOff.date
 											: "the projected date"}
 									</strong>
 								</span>
@@ -1249,22 +1181,22 @@ const Dashboard = () => {
 											Student Loan Paid Off
 										</td>
 										<td className="px-4 py-3 text-sm text-gray-700">
-											{loanPaidOffMonth
-												? loanPaidOffMonth.date
+											{legacyLoanPaidOff
+												? legacyLoanPaidOff.date
 												: "Not within projection"}
 										</td>
 										<td className="px-4 py-3 text-sm text-gray-700">
-											{timeToPayLoan}
+											{timeToPayLoanFormatted}
 										</td>
 										<td className="px-4 py-3 text-sm text-gray-700">
-											{loanPaidOffMonth
-												? loanPaidOffMonth.age
+											{legacyLoanPaidOff
+												? legacyLoanPaidOff.age || "-"
 												: "-"}
 										</td>
 										<td className="px-4 py-3 text-sm text-gray-700">
-											{loanPaidOffMonth
+											{legacyLoanPaidOff
 												? formatCurrency(
-														loanPaidOffMonth.cashSavings
+														legacyLoanPaidOff.cashSavings
 												  )
 												: "-"}
 										</td>
@@ -1274,22 +1206,22 @@ const Dashboard = () => {
 											$100,000 Savings Achieved
 										</td>
 										<td className="px-4 py-3 text-sm text-gray-700">
-											{savingsGoalReachedMonth
-												? savingsGoalReachedMonth.date
+											{legacySavingsGoal
+												? legacySavingsGoal.date
 												: "Not within projection"}
 										</td>
 										<td className="px-4 py-3 text-sm text-gray-700">
-											{timeToSavingsGoal}
+											{timeToSavingsGoalFormatted}
 										</td>
 										<td className="px-4 py-3 text-sm text-gray-700">
-											{savingsGoalReachedMonth
-												? savingsGoalReachedMonth.age
+											{legacySavingsGoal
+												? legacySavingsGoal.age || "-"
 												: "-"}
 										</td>
 										<td className="px-4 py-3 text-sm text-gray-700">
-											{savingsGoalReachedMonth
+											{legacySavingsGoal
 												? formatCurrency(
-														savingsGoalReachedMonth.cashSavings
+														legacySavingsGoal.cashSavings
 												  )
 												: "-"}
 										</td>
@@ -1301,7 +1233,7 @@ const Dashboard = () => {
 											(bonus, index) => {
 												// Find projection entry for this bonus
 												const bonusMonth =
-													projection.find((p) =>
+													legacyProjection.find((p) =>
 														p.date.includes(
 															`${getMonthName(
 																bonus.month
@@ -1336,7 +1268,7 @@ const Dashboard = () => {
 															months
 														</td>
 														<td className="px-4 py-3 text-sm text-gray-700">
-															{bonusMonth.age}
+															{bonusMonth.age || "-"}
 														</td>
 														<td className="px-4 py-3 text-sm text-gray-700">
 															{formatCurrency(
@@ -1352,10 +1284,11 @@ const Dashboard = () => {
 						</div>
 					</Card>
 
+					{/* Progress cards remain the same */}
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 						{/* Progress Towards Loan Payment */}
 						<Card title="Progress Towards Loan Payment">
-							{loanPaidOffMonth && (
+							{legacyLoanPaidOff && (
 								<div className="space-y-4">
 									<div className="flex justify-between text-sm mb-1">
 										<span className="text-gray-600">
@@ -1373,7 +1306,7 @@ const Dashboard = () => {
 												{formatCurrency(
 													financialData.personalInfo
 														.remainingLoan > 0
-														? projection[0]
+														? legacyProjection[0]
 																.loanRemaining
 														: 0
 												)}
@@ -1391,7 +1324,7 @@ const Dashboard = () => {
 														((financialData
 															.personalInfo
 															.remainingLoan -
-															projection[0]
+															legacyProjection[0]
 																.loanRemaining) /
 															financialData
 																.personalInfo
@@ -1422,14 +1355,14 @@ const Dashboard = () => {
 													Congratulations! You'll be
 													debt-free by{" "}
 													<span className="font-bold">
-														{loanPaidOffMonth.date}
+														{legacyLoanPaidOff.date}
 													</span>{" "}
 													at age{" "}
-													{loanPaidOffMonth.age}.
+													{legacyLoanPaidOff.age || "unknown"}.
 												</p>
 												<p className="mt-1 text-green-700">
 													Total repayment period:{" "}
-													{timeToPayLoan} from{" "}
+													{timeToPayLoanFormatted} from{" "}
 													{getMonthName(
 														financialData
 															.personalInfo
@@ -1448,7 +1381,7 @@ const Dashboard = () => {
 									</div>
 								</div>
 							)}
-							{!loanPaidOffMonth && (
+							{!legacyLoanPaidOff && (
 								<div className="space-y-4">
 									<div className="flex justify-between text-sm mb-1">
 										<span className="text-gray-600">
@@ -1464,8 +1397,8 @@ const Dashboard = () => {
 											Remaining:{" "}
 											<span className="font-medium text-red-600">
 												{formatCurrency(
-													projection[
-														projection.length - 1
+													legacyProjection[
+														legacyProjection.length - 1
 													].loanRemaining
 												)}
 											</span>
@@ -1480,8 +1413,8 @@ const Dashboard = () => {
 													Math.min(
 														100,
 														(1 -
-															projection[
-																projection.length -
+															legacyProjection[
+																legacyProjection.length -
 																	1
 															].loanRemaining /
 																financialData
@@ -1529,7 +1462,7 @@ const Dashboard = () => {
 
 						{/* Progress Towards Savings Goal */}
 						<Card title="Progress Towards $100K Cash Savings">
-							{savingsGoalReachedMonth && (
+							{legacySavingsGoal && (
 								<div className="space-y-4">
 									<div className="flex justify-between text-sm mb-1">
 										<span className="text-gray-600">
@@ -1584,18 +1517,18 @@ const Dashboard = () => {
 													savings by{" "}
 													<span className="font-bold">
 														{
-															savingsGoalReachedMonth.date
+															legacySavingsGoal.date
 														}
 													</span>{" "}
 													at age{" "}
 													{
-														savingsGoalReachedMonth.age
+														legacySavingsGoal.age || "unknown"
 													}
 													.
 												</p>
 												<p className="mt-1 text-green-700">
 													Total savings period:{" "}
-													{timeToSavingsGoal} from{" "}
+													{timeToSavingsGoalFormatted} from{" "}
 													{getMonthName(
 														financialData
 															.personalInfo
@@ -1614,7 +1547,7 @@ const Dashboard = () => {
 									</div>
 								</div>
 							)}
-							{!savingsGoalReachedMonth && (
+							{!legacySavingsGoal && (
 								<div className="space-y-4">
 									<div className="flex justify-between text-sm mb-1">
 										<span className="text-gray-600">
@@ -1630,8 +1563,8 @@ const Dashboard = () => {
 											Current:{" "}
 											<span className="font-medium text-blue-600">
 												{formatCurrency(
-													projection[
-														projection.length - 1
+													legacyProjection[
+														legacyProjection.length - 1
 													].cashSavings
 												)}
 											</span>
@@ -1702,7 +1635,7 @@ const Dashboard = () => {
 							<div className="h-80">
 								<ResponsiveContainer width="100%" height="100%">
 									<ComposedChart
-										data={chartData}
+										data={chartDataDisplay}
 										margin={{
 											top: 10,
 											right: 10,
@@ -1781,10 +1714,10 @@ const Dashboard = () => {
 											dot={{ r: 3 }}
 											activeDot={{ r: 6 }}
 										/>
-										{loanPaidOffMonth && (
+										{legacyLoanPaidOff && (
 											<ReferenceLine
 												yAxisId="right"
-												x={loanPaidOffMonth.date}
+												x={legacyLoanPaidOff.date}
 												stroke="green"
 												strokeDasharray="3 3"
 												label={{
@@ -1794,10 +1727,10 @@ const Dashboard = () => {
 												}}
 											/>
 										)}
-										{savingsGoalReachedMonth && (
+										{legacySavingsGoal && (
 											<ReferenceLine
 												yAxisId="left"
-												x={savingsGoalReachedMonth.date}
+												x={legacySavingsGoal.date}
 												stroke="blue"
 												strokeDasharray="3 3"
 												label={{
@@ -1816,11 +1749,11 @@ const Dashboard = () => {
 										Savings Growth
 									</h3>
 									<p className="text-sm">
-										{savingsGoalReachedMonth
-											? `You'll reach $100K in cash savings by ${savingsGoalReachedMonth.date}`
+										{legacySavingsGoal
+											? `You'll reach $100K in cash savings by ${legacySavingsGoal.date}`
 											: `Your cash savings will grow to ${formatCurrency(
-													projection[
-														projection.length - 1
+													legacyProjection[
+														legacyProjection.length - 1
 													].cashSavings
 											  )} in 5 years`}
 									</p>
@@ -1830,11 +1763,11 @@ const Dashboard = () => {
 										Loan Repayment
 									</h3>
 									<p className="text-sm">
-										{loanPaidOffMonth
-											? `You'll be debt-free by ${loanPaidOffMonth.date}`
+										{legacyLoanPaidOff
+											? `You'll be debt-free by ${legacyLoanPaidOff.date}`
 											: `Your loan will decrease to ${formatCurrency(
-													projection[
-														projection.length - 1
+													legacyProjection[
+														legacyProjection.length - 1
 													].loanRemaining
 											  )} in 5 years`}
 									</p>
@@ -1848,7 +1781,7 @@ const Dashboard = () => {
 								<ResponsiveContainer width="100%" height="100%">
 									<PieChart>
 										<Pie
-											data={expenseData}
+											data={expenseDataDisplay}
 											dataKey="value"
 											nameKey="name"
 											cx="50%"
@@ -1862,7 +1795,7 @@ const Dashboard = () => {
 												).toFixed(0)}%`
 											}
 										>
-											{expenseData.map((entry, index) => (
+											{expenseDataDisplay.map((entry, index) => (
 												<Cell
 													key={`cell-${index}`}
 													fill={
@@ -1894,7 +1827,7 @@ const Dashboard = () => {
 							<div className="h-72">
 								<ResponsiveContainer width="100%" height="100%">
 									<BarChart
-										data={chartData.slice(0, 6)}
+										data={chartDataDisplay.slice(0, 6)}
 										margin={{
 											top: 10,
 											right: 10,
@@ -1960,285 +1893,26 @@ const Dashboard = () => {
 				</div>
 			)}
 
-			{/* Projection Table Tab */}
+			{/* Modern Projection Tab with Settings */}
 			{activeTab === "projection" && (
-				<Card title="Monthly Financial Projection">
-					{/* Rows to Display Control */}
-					<div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-						<div className="flex flex-wrap items-center justify-between">
-							<div className="mr-4 mb-2 sm:mb-0">
-								<label
-									htmlFor="rowsToDisplay"
-									className="block text-sm font-medium text-blue-700 mb-1"
-								>
-									Months to Display:
-								</label>
-								<select
-									id="rowsToDisplay"
-									value={rowsToDisplay}
-									onChange={handleRowsToDisplayChange}
-									className="w-32 px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-								>
-									<option value={12}>
-										12 months (1 year)
-									</option>
-									<option value={24}>
-										24 months (2 years)
-									</option>
-									<option value={36}>
-										36 months (3 years)
-									</option>
-									<option value={48}>
-										48 months (4 years)
-									</option>
-									<option value={60}>
-										60 months (5 years)
-									</option>
-								</select>
-							</div>
-							<div className="flex items-center">
-								<div className="hidden sm:block text-blue-700 mr-2">
-									<svg
-										className="w-5 h-5"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth="2"
-											d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-										></path>
-									</svg>
-								</div>
-								<p className="text-sm text-blue-700">
-									Showing {rowsToDisplay} months of financial
-									projection data
-								</p>
-							</div>
-						</div>
-					</div>
-
-					<div className="overflow-x-auto -mx-4">
-						<div className="inline-block min-w-full align-middle p-4">
-							<table className="min-w-full divide-y divide-gray-200">
-								<thead>
-									<tr className="bg-gray-50">
-										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-											Month
-										</th>
-										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-											Date
-										</th>
-										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-											Take-Home
-										</th>
-										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-											Expenses
-										</th>
-										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-											Loan Payment
-										</th>
-										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-											Loan Remaining
-										</th>
-										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-											Bonus
-										</th>
-										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-											Monthly Savings
-										</th>
-										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-											Cash Savings
-										</th>
-										<th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-											CPF Balance
-										</th>
-									</tr>
-								</thead>
-								<tbody className="bg-white divide-y divide-gray-200">
-									{projection
-										.slice(0, rowsToDisplay) // Use rowsToDisplay instead of hardcoded 60
-										.map((month, index) => (
-											<tr
-												key={index}
-												className={`${
-													month.milestone
-														? "bg-green-50"
-														: index % 2 === 0
-														? "bg-gray-50"
-														: ""
-												} hover:bg-blue-50 transition-colors`}
-											>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap">
-													{month.month}
-												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap">
-													{month.date}
-												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-green-600">
-													{formatCurrency(
-														month.takeHomePay
-													)}
-												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-orange-600">
-													{formatCurrency(
-														month.expenses
-													)}
-												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-red-600">
-													{formatCurrency(
-														month.loanPayment
-													)}
-												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-red-600">
-													{formatCurrency(
-														month.loanRemaining
-													)}
-												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-purple-600">
-													{month.bonusAmount > 0
-														? formatCurrency(
-																month.bonusAmount
-														  )
-														: "-"}
-												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-green-600">
-													{formatCurrency(
-														month.monthlySavings
-													)}
-												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-green-600">
-													{formatCurrency(
-														month.cashSavings
-													)}
-												</td>
-												<td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-purple-600">
-													{formatCurrency(
-														month.cpfBalance
-													)}
-												</td>
-											</tr>
-										))}
-								</tbody>
-							</table>
-						</div>
-					</div>
-
-					{/* Show milestone information if available */}
-					{(loanPaidOffMonth ||
-						savingsGoalReachedMonth ||
-						financialData.yearlyBonuses?.length > 0) && (
-						<div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-							<h3 className="font-medium text-blue-700 mb-2">
-								Key Milestones:
-							</h3>
-							<ul className="space-y-2">
-								{loanPaidOffMonth && (
-									<li className="flex items-start">
-										<svg
-											className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth="2"
-												d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-											></path>
-										</svg>
-										<span>
-											<span className="font-medium">
-												Loan Paid Off:
-											</span>{" "}
-											{loanPaidOffMonth.date} (Month{" "}
-											{loanPaidOffMonth.month})
-										</span>
-									</li>
-								)}
-								{savingsGoalReachedMonth && (
-									<li className="flex items-start">
-										<svg
-											className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth="2"
-												d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-											></path>
-										</svg>
-										<span>
-											<span className="font-medium">
-												$100K Savings Reached:
-											</span>{" "}
-											{savingsGoalReachedMonth.date}{" "}
-											(Month{" "}
-											{savingsGoalReachedMonth.month})
-										</span>
-									</li>
-								)}
-
-								{/* List bonuses as milestones */}
-								{financialData.yearlyBonuses &&
-									financialData.yearlyBonuses.map(
-										(bonus, index) => {
-											// Find date for this bonus
-											const bonusProjectionDate =
-												projection.find((p) =>
-													p.date.includes(
-														`${getMonthName(
-															bonus.month
-														).substring(0, 3)} ${
-															bonus.year
-														}`
-													)
-												)?.date;
-
-											if (!bonusProjectionDate)
-												return null;
-
-											return (
-												<li
-													key={`bonus-milestone-${index}`}
-													className="flex items-start"
-												>
-													<svg
-														className="h-5 w-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0"
-														fill="none"
-														stroke="currentColor"
-														viewBox="0 0 24 24"
-													>
-														<path
-															strokeLinecap="round"
-															strokeLinejoin="round"
-															strokeWidth="2"
-															d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-														></path>
-													</svg>
-													<span>
-														<span className="font-medium">
-															{bonus.description}:
-														</span>{" "}
-														{bonusProjectionDate} -{" "}
-														{formatCurrency(
-															bonus.amount
-														)}
-													</span>
-												</li>
-											);
-										}
-									)}
-							</ul>
-						</div>
-					)}
-				</Card>
+				<ProjectionDashboard
+					projectionData={projection || legacyProjection}
+					loanPaidOffMonth={loanPaidOffMonth || legacyLoanPaidOff}
+					savingsGoalReachedMonth={savingsGoalReachedMonth || legacySavingsGoal}
+					currentValues={currentValues}
+					projectionSettings={projectionSettings || {
+						annualSalaryIncrease: 3.0,
+						annualExpenseIncrease: 2.0,
+						annualInvestmentReturn: 4.0,
+						annualCpfInterestRate: 2.5,
+						projectionYears: 30,
+						bonusMonths: 2,
+						bonusAmount: currentSalaryDisplay
+					}}
+					savingsTimeframe={savingsTimeframe || 'before'}
+					onUpdateSettings={updateProjection || updateProjectionSettings}
+					onSavingsTimeframeUpdate={updateSavingsTimeframe}
+				/>
 			)}
 
 			{/* CPF Calculator Tab */}

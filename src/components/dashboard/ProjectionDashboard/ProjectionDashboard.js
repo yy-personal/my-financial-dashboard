@@ -16,7 +16,9 @@ import { SavingsGrowthChart, NetWorthChart } from "../charts";
  * @param {Object} props.savingsGoalReachedMonth - Month when savings goal is reached (or null)
  * @param {Object} props.currentValues - Current financial values
  * @param {Object} props.projectionSettings - Current projection settings
+ * @param {string} props.savingsTimeframe - Current savings timeframe ('before' or 'after')
  * @param {Function} props.onUpdateSettings - Function to update projection settings
+ * @param {Function} props.onSavingsTimeframeUpdate - Function to update savings timeframe
  * @returns {JSX.Element}
  */
 const ProjectionDashboard = ({
@@ -25,7 +27,9 @@ const ProjectionDashboard = ({
   savingsGoalReachedMonth,
   currentValues,
   projectionSettings,
-  onUpdateSettings
+  savingsTimeframe,
+  onUpdateSettings,
+  onSavingsTimeframeUpdate
 }) => {
   const [timeframe, setTimeframe] = useState("5years"); // 1year, 5years, 10years, retirement
   const [displaySettings, setDisplaySettings] = useState(false);
@@ -162,7 +166,9 @@ const ProjectionDashboard = ({
             <ProjectionSettings
               currentSettings={projectionSettings}
               currentValues={currentValues}
+              savingsTimeframe={savingsTimeframe}
               onUpdate={onUpdateSettings}
+              onSavingsTimeframeUpdate={onSavingsTimeframeUpdate}
             />
           </div>
         )}
@@ -265,7 +271,9 @@ ProjectionDashboard.propTypes = {
     bonusMonths: PropTypes.number,
     bonusAmount: PropTypes.number
   }).isRequired,
-  onUpdateSettings: PropTypes.func.isRequired
+  savingsTimeframe: PropTypes.oneOf(['before', 'after']),
+  onUpdateSettings: PropTypes.func.isRequired,
+  onSavingsTimeframeUpdate: PropTypes.func
 };
 
 export default ProjectionDashboard;

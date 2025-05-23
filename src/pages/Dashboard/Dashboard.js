@@ -61,7 +61,9 @@ const Dashboard = () => {
     assetAllocationData,
     expenseData,
     upcomingEvents,
-    projectionSettings
+    projectionSettings,
+    savingsTimeframe,
+    updateSavingsTimeframe
   } = useFinancialCalculations();
 
   // Calculate current age
@@ -89,7 +91,8 @@ const Dashboard = () => {
     loanPayment,
     liquidCash,
     cpfBalance: cpfSavings,
-    loanRemaining: projection[0]?.loanRemaining || 0
+    loanRemaining: projection[0]?.loanRemaining || 0,
+    takeHomePay
   };
 
   // Handle projection setting updates
@@ -298,7 +301,9 @@ const Dashboard = () => {
               savingsGoalReachedMonth={savingsGoalReachedMonth}
               currentValues={currentValues}
               projectionSettings={projectionSettings}
+              savingsTimeframe={savingsTimeframe}
               onUpdateSettings={handleUpdateProjectionSettings}
+              onSavingsTimeframeUpdate={updateSavingsTimeframe}
             />
           </ErrorBoundary>
         )}
