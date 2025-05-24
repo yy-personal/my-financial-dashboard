@@ -25,7 +25,7 @@ import {
   NetWorthChart, 
   SavingsGrowthChart, 
   CashFlowChart 
-} from "../../components/dashboard/charts";
+} from "../../components/charts";
 
 /**
  * Dashboard page component

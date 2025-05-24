@@ -5,7 +5,7 @@ import {
   NetWorthChart, 
   SavingsGrowthChart, 
   CashFlowChart 
-} from "../components/dashboard/charts";
+} from "../components/charts";
 import Card from "../components/common/Card";
 import { formatCurrency, formatPercent } from "../services/formatters/currencyFormatters";
 import CpfDashboard from "../components/CpfDashboard";

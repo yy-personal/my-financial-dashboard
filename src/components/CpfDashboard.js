@@ -3,7 +3,7 @@ import { useFinancial } from '../context/FinancialContext';
 import CpfCalculator from '../components/CpfCalculator';
 import { EMPLOYEE_TYPE } from '../services/calculations/cpf';
 import useUIPreferences from '../hooks/useUIPreferences';
-import CpfGrowthChart from './dashboard/charts/CpfGrowthChart';
+import { CpfGrowthChart } from './charts';
 
 /**
  * CPF Dashboard Tab Component
