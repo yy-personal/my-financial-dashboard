@@ -5,7 +5,7 @@ import { safeParseNumber, safeDivide, createFinancialError } from '../utils/erro
 /**
  * Enhanced useProjection hook with current month awareness
  * Automatically starts projections from the current month
- * Accounts for salary received on specified day of each month
+ * Simplified to assume salary is received at the beginning of each month
  * 
  * @param {Object} initialData - Initial financial data
  * @param {Object} initialSettings - Projection settings
@@ -14,7 +14,6 @@ import { safeParseNumber, safeDivide, createFinancialError } from '../utils/erro
 const useProjection = (initialData, initialSettings) => {
   const [data, setData] = useState(initialData || {});
   const [settings, setSettings] = useState({
-    salaryDay: 23, // Default to 23rd of month
     projectionStartMonth: new Date().getMonth() + 1,
     projectionStartYear: new Date().getFullYear(),
     ...initialSettings
@@ -69,15 +68,6 @@ const useProjection = (initialData, initialSettings) => {
       return false;
     }
 
-    // Validate salary day
-    if (settings.salaryDay < 1 || settings.salaryDay > 28) {
-      handleError(createFinancialError(
-        'Salary day must be between 1 and 28', 
-        'invalid_salary_day'
-      ));
-      return false;
-    }
-
     return true;
   }, [data, settings, handleError]);
 
@@ -90,24 +80,6 @@ const useProjection = (initialData, initialSettings) => {
       handleError(error, { source: 'updateSettings' });
     }
   }, [handleError, clearError]);
-
-  // Calculate days in month
-  const getDaysInMonth = useCallback((year, month) => {
-    return new Date(year, month, 0).getDate();
-  }, []);
-
-  // Calculate pro-rated amounts based on salary timing
-  const calculateProRatedAmounts = useCallback((year, month, amount, salaryDay) => {
-    const daysInMonth = getDaysInMonth(year, month);
-    const daysAfterSalary = daysInMonth - salaryDay + 1;
-    const proRatedRatio = daysAfterSalary / daysInMonth;
-    
-    return {
-      currentMonthAmount: amount * proRatedRatio,
-      nextMonthAmount: amount * (1 - proRatedRatio),
-      proRatedRatio
-    };
-  }, [getDaysInMonth]);
 
   // Check if current month already has bonus
   const getBonusForMonth = useCallback((year, month, yearlyBonuses = []) => {
@@ -147,7 +119,6 @@ const useProjection = (initialData, initialSettings) => {
         projectionYears = 30,
         bonusMonths = 2,
         bonusAmount = safeParseNumber(settings.bonusAmount || salary, salary),
-        salaryDay = 23,
         projectionStartMonth = new Date().getMonth() + 1,
         projectionStartYear = new Date().getFullYear(),
         yearlyBonuses = [],
@@ -219,27 +190,8 @@ const useProjection = (initialData, initialSettings) => {
           currentExpenses *= (1 + monthlyExpenseIncrease);
         }
         
-        // Calculate salary timing impact
-        const salaryTiming = calculateProRatedAmounts(year, monthIndex + 1, currentSalary, salaryDay);
-        
-        // For the first month (current month), check if salary has already been received
-        let effectiveSalary = currentSalary;
-        let salaryNote = '';
-        
-        if (month === 0 && isCurrentMonth) {
-          const today = new Date();
-          const todayDay = today.getDate();
-          
-          if (todayDay < salaryDay) {
-            // Salary hasn't been received yet this month
-            effectiveSalary = salaryTiming.currentMonthAmount;
-            salaryNote = `Pro-rated from ${salaryDay}th (${todayDay}th today)`;
-          } else {
-            // Salary has been received, use full amount
-            effectiveSalary = currentSalary;
-            salaryNote = 'Full month (salary received)';
-          }
-        }
+        // Salary is received at the beginning of the month (simplified)
+        const effectiveSalary = currentSalary;
         
         // Calculate CPF contributions based on effective salary
         const cpfContribution = safeDivide(effectiveSalary * cpfContributionRate, 100, 0);
@@ -309,8 +261,6 @@ const useProjection = (initialData, initialSettings) => {
           // Income components
           monthlySalary: effectiveSalary,
           fullMonthlySalary: currentSalary,
-          salaryTiming: salaryTiming,
-          salaryNote,
           bonusAmount: monthBonusAmount,
           yearlyBonus: yearlyBonus,
           isBonus,
@@ -343,8 +293,6 @@ const useProjection = (initialData, initialSettings) => {
           cpfInterest,
           
           // Timing analysis
-          salaryDay,
-          effectiveDaysForExpenses: getDaysInMonth(year, monthIndex + 1),
           isCurrentMonth: month === 0 && isCurrentMonth,
           savingsTimeframe: month === 0 ? savingsTimeframe : 'before', // Only relevant for first month
           
@@ -393,7 +341,6 @@ const useProjection = (initialData, initialSettings) => {
         timeToSavingsGoal: formatTimeToMilestone(savingsGoalIndex),
         // Additional insights
         projectionMetadata: {
-          salaryDay,
           projectionStartMonth,
           projectionStartYear,
           startDate: startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
@@ -406,7 +353,7 @@ const useProjection = (initialData, initialSettings) => {
         }
       };
     }, [], { source: 'generateProjection', data, settings });
-  }, [data, settings, validateInputs, tryCatch, calculateProRatedAmounts, getDaysInMonth, getBonusForMonth]);
+  }, [data, settings, validateInputs, tryCatch, getBonusForMonth]);
 
   // Effect to regenerate projection when data or settings change
   useEffect(() => {
@@ -481,8 +428,6 @@ const useProjection = (initialData, initialSettings) => {
     },
     
     // Utility methods
-    updateSalaryDay: (day) => updateSettings({ salaryDay: day }),
-    getSalaryTiming: () => settings.salaryDay,
     setProjectionStart: (month, year) => updateSettings({ 
       projectionStartMonth: month, 
       projectionStartYear: year 

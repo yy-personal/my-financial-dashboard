@@ -119,7 +119,6 @@ const useFinancialCalculations = () => {
       projectionYears: 30, // Project 30 years into the future
       bonusMonths: 2, // 2 months of bonus
       bonusAmount: currentValues?.salary || 0, // Default to 1 month of salary
-      salaryDay: 23, // Default salary day
       // Add current month context
       projectionStartMonth: currentMonth.month,
       projectionStartYear: currentMonth.year,
