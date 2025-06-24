@@ -60,6 +60,43 @@ const useFinancialCalculations = () => {
     }
   }, [isDataValid, dataValidationErrors, handleError, clearError]);
 
+  // ENHANCED: Function to determine current salary based on new salary adjustments array
+  const getCurrentSalary = (income, currentMonth) => {
+    if (!income || !currentMonth) return 0;
+
+    let currentSalary = safeParseNumber(income.currentSalary, 0);
+    
+    // NEW LOGIC: Use the salaryAdjustments array if it exists and has entries
+    if (income.salaryAdjustments && Array.isArray(income.salaryAdjustments) && income.salaryAdjustments.length > 0) {
+      const currentDate = new Date(currentMonth.year, currentMonth.month - 1, 1);
+      
+      // Sort salary adjustments by date to find the most recent applicable one
+      const applicableAdjustments = income.salaryAdjustments
+        .map(adj => ({
+          ...adj,
+          date: new Date(adj.year, adj.month - 1, 1),
+          newSalary: safeParseNumber(adj.newSalary, 0)
+        }))
+        .filter(adj => adj.date <= currentDate) // Only past or current adjustments
+        .sort((a, b) => b.date - a.date); // Sort by most recent first
+      
+      if (applicableAdjustments.length > 0) {
+        currentSalary = applicableAdjustments[0].newSalary;
+      }
+    } 
+    // FALLBACK: Only use old format if new format is empty or doesn't exist
+    else if (income.salaryAdjustmentMonth && income.salaryAdjustmentYear && income.futureSalary) {
+      const adjustmentDate = new Date(income.salaryAdjustmentYear, income.salaryAdjustmentMonth - 1, 1);
+      const currentDate = new Date(currentMonth.year, currentMonth.month - 1, 1);
+      
+      if (currentDate >= adjustmentDate) {
+        currentSalary = safeParseNumber(income.futureSalary, currentSalary);
+      }
+    }
+
+    return currentSalary;
+  };
+
   // Get current values from financial data with enhanced logic
   const currentValues = useMemo(() => {
     if (!financialData || !currentMonth) return null;
@@ -77,17 +114,8 @@ const useFinancialCalculations = () => {
         ? expenses.reduce((total, expense) => total + safeParseNumber(expense.amount, 0), 0)
         : 0;
 
-      // Determine current salary based on salary adjustment timing
-      let currentSalary = safeParseNumber(income.currentSalary, 0);
-      
-      if (income.salaryAdjustmentMonth && income.salaryAdjustmentYear && income.futureSalary) {
-        const adjustmentDate = new Date(income.salaryAdjustmentYear, income.salaryAdjustmentMonth - 1, 1);
-        const currentDate = new Date(currentMonth.year, currentMonth.month - 1, 1);
-        
-        if (currentDate >= adjustmentDate) {
-          currentSalary = safeParseNumber(income.futureSalary, currentSalary);
-        }
-      }
+      // ENHANCED: Use the new getCurrentSalary function
+      const currentSalary = getCurrentSalary(income, currentMonth);
 
       return {
         salary: currentSalary,
@@ -122,8 +150,9 @@ const useFinancialCalculations = () => {
       // Add current month context
       projectionStartMonth: currentMonth.month,
       projectionStartYear: currentMonth.year,
-      // Add yearly bonus integration
+      // ENHANCED: Use the new salary adjustments array
       yearlyBonuses: financialData?.yearlyBonuses || [],
+      salaryAdjustments: financialData?.income?.salaryAdjustments || [],
       // Add savings timeframe
       savingsTimeframe: savingsTimeframe
     };
@@ -211,6 +240,20 @@ const useFinancialCalculations = () => {
       };
     }, [], { source: 'financialMetrics calculation' });
   }, [currentValues, tryCatch]);
+
+  // ENHANCED: Function to clear old salary adjustment fields when updating to new system
+  const clearOldSalaryAdjustmentFields = () => {
+    const updatedIncome = {
+      ...financialData.income,
+      futureSalary: undefined,
+      salaryAdjustmentMonth: undefined,
+      salaryAdjustmentYear: undefined
+    };
+    
+    updateFinancialData({
+      income: updatedIncome
+    });
+  };
 
   // Function to update current savings (liquid cash) for better projections
   const updateCurrentSavings = (newSavingsAmount) => {
@@ -457,11 +500,12 @@ const useFinancialCalculations = () => {
     projectionSettings,
     updateProjectionSettings: updateSettings,
     
-    // New update functions for manual savings/CPF adjustments
+    // ENHANCED: New update functions for manual savings/CPF adjustments
     updateCurrentSavings,
     updateCurrentCpfBalance,
     updateSavingsTimeframe,
     setCustomProjectionStart,
+    clearOldSalaryAdjustmentFields, // NEW function to clear old fields
     
     // Current savings timeframe
     savingsTimeframe,

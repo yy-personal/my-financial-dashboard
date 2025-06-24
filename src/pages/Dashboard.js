@@ -9,6 +9,7 @@ import {
 import Card from "../components/common/Card";
 import { formatCurrency, formatPercent } from "../services/formatters/currencyFormatters";
 import CpfDashboard from "../components/CpfDashboard";
+import SalaryAdjustmentFixer from "../components/utils/SalaryAdjustmentFixer";
 
 /**
  * Dashboard Page Component
@@ -467,6 +468,8 @@ const Dashboard = () => {
       {/* Summary Tab */}
       {activeTab === "summary" && (
         <div className="space-y-6">
+          {/* Temporary Utility Component - Remove after fixing the issue */}
+          <SalaryAdjustmentFixer />
           {/* Financial Snapshot Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Liquid Cash Card */}
