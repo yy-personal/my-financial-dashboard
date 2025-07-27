@@ -21,14 +21,6 @@ export const FinancialProvider = ({ children }) => {
 				month: 9, // September
 				year: 1996,
 			},
-			employmentStart: {
-				month: 8, // August
-				year: 2024,
-			},
-			projectionStart: {
-				month: 3, // March
-				year: 2025,
-			},
 			currentSavings: 11000,
 			currentCpfBalance: 15000, // Added initial CPF balance field
 			remainingLoan: 26848,
@@ -37,18 +29,16 @@ export const FinancialProvider = ({ children }) => {
 		},
 		income: {
 			currentSalary: 4800,
-			futureSalary: 5100,
-			salaryAdjustmentMonth: 7, // July
-			salaryAdjustmentYear: 2025,
 			cpfRate: 20, // percentage
 			employerCpfRate: 17, // percentage
 			employeeType: 'singaporean', // CPF employee type
+			salaryDay: 25, // Day of month when salary is received (23-25th)
 		},
 		expenses: [
-			{ id: 1, name: "Rental", amount: 700 },
-			{ id: 2, name: "Food", amount: 600 },
-			{ id: 3, name: "Transportation", amount: 228 },
-			{ id: 4, name: "Entertainment", amount: 200 },
+			{ id: 1, name: "Rental", amount: 700, dueDay: 1 }, // Due on 1st of month
+			{ id: 2, name: "Food", amount: 600, dueDay: 15 }, // Spread throughout month, assume mid-month
+			{ id: 3, name: "Transportation", amount: 228, dueDay: 10 }, // Assume early month
+			{ id: 4, name: "Entertainment", amount: 200, dueDay: 20 }, // Assume later in month
 		],
 		yearlyBonuses: [
 			{
@@ -61,6 +51,8 @@ export const FinancialProvider = ({ children }) => {
 		],
 		projectionSettings: {
 			rowsToDisplay: 36, // Default to 36 months (3 years)
+			enableIntraMonthAnalysis: true, // Enable detailed cash flow timing
+			minimumCashBuffer: 1000, // Minimum cash to maintain before salary
 		},
 	};
 
@@ -141,6 +133,46 @@ export const FinancialProvider = ({ children }) => {
 			oldData.income.employeeType = initialState.income.employeeType;
 		}
 
+		// Remove legacy salary adjustment fields (cleanup)
+		if (oldData && oldData.income) {
+			if (oldData.income.futureSalary !== undefined) {
+				delete oldData.income.futureSalary;
+			}
+			if (oldData.income.salaryAdjustmentMonth !== undefined) {
+				delete oldData.income.salaryAdjustmentMonth;
+			}
+			if (oldData.income.salaryAdjustmentYear !== undefined) {
+				delete oldData.income.salaryAdjustmentYear;
+			}
+			
+			// Add salaryDay if it doesn't exist
+			if (typeof oldData.income.salaryDay === "undefined") {
+				oldData.income.salaryDay = initialState.income.salaryDay;
+			}
+		}
+
+		// Migrate expenses to include dueDay if missing
+		if (oldData && oldData.expenses && Array.isArray(oldData.expenses)) {
+			oldData.expenses = oldData.expenses.map((expense, index) => ({
+				...expense,
+				dueDay: expense.dueDay !== undefined ? expense.dueDay : 
+					(initialState.expenses[index]?.dueDay || 15) // Default to mid-month
+			}));
+		}
+
+		// Add new projection settings if missing
+		if (oldData && oldData.projectionSettings) {
+			if (typeof oldData.projectionSettings.enableIntraMonthAnalysis === "undefined") {
+				oldData.projectionSettings.enableIntraMonthAnalysis = initialState.projectionSettings.enableIntraMonthAnalysis;
+			}
+			if (typeof oldData.projectionSettings.minimumCashBuffer === "undefined") {
+				oldData.projectionSettings.minimumCashBuffer = initialState.projectionSettings.minimumCashBuffer;
+			}
+		} else if (oldData) {
+			// Initialize projectionSettings if it doesn't exist
+			oldData.projectionSettings = initialState.projectionSettings;
+		}
+
 		// Ensure personalInfo date fields are objects with month and year
 		if (oldData && oldData.personalInfo) {
 			// Birthday
@@ -173,70 +205,14 @@ export const FinancialProvider = ({ children }) => {
 					initialState.personalInfo.birthday;
 			}
 
-			// Employment Start
-			if (
-				oldData.personalInfo.employmentStart &&
-				typeof oldData.personalInfo.employmentStart === "string"
-			) {
-				try {
-					const parts =
-						oldData.personalInfo.employmentStart.split(" ");
-					if (parts.length === 2) {
-						const month = getMonthNumber(parts[0]);
-						const year = parseInt(parts[1]);
-						if (!isNaN(month) && !isNaN(year)) {
-							oldData.personalInfo.employmentStart = {
-								month,
-								year,
-							};
-						} else {
-							oldData.personalInfo.employmentStart =
-								initialState.personalInfo.employmentStart;
-						}
-					} else {
-						oldData.personalInfo.employmentStart =
-							initialState.personalInfo.employmentStart;
-					}
-				} catch (e) {
-					oldData.personalInfo.employmentStart =
-						initialState.personalInfo.employmentStart;
-				}
-			} else if (!oldData.personalInfo.employmentStart) {
-				oldData.personalInfo.employmentStart =
-					initialState.personalInfo.employmentStart;
+			// Remove employmentStart field if it exists (cleanup)
+			if (oldData.personalInfo.employmentStart !== undefined) {
+				delete oldData.personalInfo.employmentStart;
 			}
 
-			// Projection Start
-			if (
-				oldData.personalInfo.projectionStart &&
-				typeof oldData.personalInfo.projectionStart === "string"
-			) {
-				try {
-					const parts =
-						oldData.personalInfo.projectionStart.split(" ");
-					if (parts.length === 2) {
-						const month = getMonthNumber(parts[0]);
-						const year = parseInt(parts[1]);
-						if (!isNaN(month) && !isNaN(year)) {
-							oldData.personalInfo.projectionStart = {
-								month,
-								year,
-							};
-						} else {
-							oldData.personalInfo.projectionStart =
-								initialState.personalInfo.projectionStart;
-						}
-					} else {
-						oldData.personalInfo.projectionStart =
-							initialState.personalInfo.projectionStart;
-					}
-				} catch (e) {
-					oldData.personalInfo.projectionStart =
-						initialState.personalInfo.projectionStart;
-				}
-			} else if (!oldData.personalInfo.projectionStart) {
-				oldData.personalInfo.projectionStart =
-					initialState.personalInfo.projectionStart;
+			// Remove projectionStart field if it exists (cleanup - now auto-detected)
+			if (oldData.personalInfo.projectionStart !== undefined) {
+				delete oldData.personalInfo.projectionStart;
 			}
 		}
 
@@ -431,11 +407,12 @@ export const FinancialProvider = ({ children }) => {
 	};
 
 	// Function to add a new expense category
-	const addExpense = (name, amount) => {
+	const addExpense = (name, amount, dueDay = 15) => {
 		const newExpense = {
 			id: Date.now(), // Use timestamp as unique ID
 			name,
 			amount: parseFloat(amount) || 0,
+			dueDay: parseInt(dueDay) || 15, // Default to mid-month
 		};
 
 		setFinancialData((prev) => ({

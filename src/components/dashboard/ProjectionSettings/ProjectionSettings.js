@@ -9,17 +9,13 @@ import { formatCurrency } from "../../../services/formatters/currencyFormatters"
  * @param {Object} props - Component props
  * @param {Object} props.currentSettings - Current projection settings
  * @param {Object} props.currentValues - Current financial values
- * @param {string} props.savingsTimeframe - Current savings timeframe ('before' or 'after')
  * @param {Function} props.onUpdate - Function to update settings
- * @param {Function} props.onSavingsTimeframeUpdate - Function to update savings timeframe
  * @returns {JSX.Element}
  */
 const ProjectionSettings = ({ 
   currentSettings, 
   currentValues,
-  savingsTimeframe = 'before',
-  onUpdate,
-  onSavingsTimeframeUpdate
+  onUpdate
 }) => {
   const [settings, setSettings] = useState(currentSettings);
   const [hasChanged, setHasChanged] = useState(false);
@@ -45,12 +41,6 @@ const ProjectionSettings = ({
     }
   };
 
-  // Handle savings timeframe toggle
-  const handleSavingsTimeframeChange = (timeframe) => {
-    if (onSavingsTimeframeUpdate) {
-      onSavingsTimeframeUpdate(timeframe);
-    }
-  };
 
   // Handle save button click
   const handleSave = () => {
@@ -83,92 +73,6 @@ const ProjectionSettings = ({
         </p>
       </div>
 
-      {/* Savings Calculation Method */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h4 className="text-md font-medium text-blue-800 mb-3 flex items-center">
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Savings Calculation Method
-        </h4>
-        <p className="text-sm text-blue-700 mb-4">
-          Choose how your monthly savings are calculated in the projections:
-        </p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div 
-            className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-              savingsTimeframe === 'before' 
-                ? 'border-blue-500 bg-blue-100' 
-                : 'border-gray-300 bg-white hover:border-blue-300'
-            }`}
-            onClick={() => handleSavingsTimeframeChange('before')}
-          >
-            <div className="flex items-center mb-2">
-              <input
-                type="radio"
-                id="savings-before"
-                name="savingsTimeframe"
-                value="before"
-                checked={savingsTimeframe === 'before'}
-                onChange={() => handleSavingsTimeframeChange('before')}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-              />
-              <label htmlFor="savings-before" className="ml-2 text-sm font-medium text-gray-900">
-                Before Monthly Expenses
-              </label>
-            </div>
-            <p className="text-xs text-gray-600 ml-6">
-              Savings = Take-home Pay - Monthly Expenses - Loan Payment
-            </p>
-            <p className="text-xs text-blue-600 ml-6 mt-1">
-              <strong>Current calculation:</strong> {formatCurrency((currentValues.takeHomePay || 0) - (currentValues.monthlyExpenses || 0) - (currentValues.loanPayment || 0))}
-            </p>
-          </div>
-          
-          <div 
-            className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-              savingsTimeframe === 'after' 
-                ? 'border-blue-500 bg-blue-100' 
-                : 'border-gray-300 bg-white hover:border-blue-300'
-            }`}
-            onClick={() => handleSavingsTimeframeChange('after')}
-          >
-            <div className="flex items-center mb-2">
-              <input
-                type="radio"
-                id="savings-after"
-                name="savingsTimeframe"
-                value="after"
-                checked={savingsTimeframe === 'after'}
-                onChange={() => handleSavingsTimeframeChange('after')}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-              />
-              <label htmlFor="savings-after" className="ml-2 text-sm font-medium text-gray-900">
-                After Monthly Expenses
-              </label>
-            </div>
-            <p className="text-xs text-gray-600 ml-6">
-              Monthly Expenses include your predetermined savings amount
-            </p>
-            <p className="text-xs text-blue-600 ml-6 mt-1">
-              <strong>Use this if:</strong> You budget a fixed savings amount in your expenses
-            </p>
-          </div>
-        </div>
-        
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-          <div className="flex items-start">
-            <svg className="h-4 w-4 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <p className="text-xs text-yellow-700">
-              <strong>Tip:</strong> Choose "Before" if you want to see potential savings based on your income and expenses. 
-              Choose "After" if you already have a fixed savings amount included in your monthly expenses.
-            </p>
-          </div>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Growth Rates */}
@@ -401,9 +305,7 @@ ProjectionSettings.propTypes = {
     loanRemaining: PropTypes.number,
     takeHomePay: PropTypes.number
   }).isRequired,
-  savingsTimeframe: PropTypes.oneOf(['before', 'after']),
-  onUpdate: PropTypes.func.isRequired,
-  onSavingsTimeframeUpdate: PropTypes.func
+  onUpdate: PropTypes.func.isRequired
 };
 
 export default ProjectionSettings;

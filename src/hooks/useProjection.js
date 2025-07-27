@@ -121,8 +121,7 @@ const useProjection = (initialData, initialSettings) => {
         bonusAmount = safeParseNumber(settings.bonusAmount || salary, salary),
         projectionStartMonth = new Date().getMonth() + 1,
         projectionStartYear = new Date().getFullYear(),
-        yearlyBonuses = [],
-        savingsTimeframe = 'before' // 'before' or 'after' monthly expenses
+        yearlyBonuses = []
       } = settings;
 
       // Convert annual rates to monthly
@@ -190,8 +189,28 @@ const useProjection = (initialData, initialSettings) => {
           currentExpenses *= (1 + monthlyExpenseIncrease);
         }
         
-        // Salary is received at the beginning of the month (simplified)
-        const effectiveSalary = currentSalary;
+        // Check if salary has already been received this month
+        const currentDate = new Date();
+        const isCurrentMonthProjection = month === 0 && isCurrentMonth;
+        const salaryDay = data.salaryDay || 25; // Default to 25th if not specified
+        const salaryAlreadyReceived = isCurrentMonthProjection && currentDate.getDate() > salaryDay;
+        
+        // Debug logging for first month
+        if (month === 0) {
+          console.log('First month projection debug:', {
+            month,
+            isCurrentMonth,
+            isCurrentMonthProjection,
+            currentDate: currentDate.toDateString(),
+            salaryDay,
+            currentDay: currentDate.getDate(),
+            salaryAlreadyReceived,
+            projectionDate: new Date(projectionStartYear, projectionStartMonth - 1 + month, 1).toDateString()
+          });
+        }
+        
+        // For current month, don't add salary if already received
+        const effectiveSalary = (isCurrentMonthProjection && salaryAlreadyReceived) ? 0 : currentSalary;
         
         // Calculate CPF contributions based on effective salary
         const cpfContribution = safeDivide(effectiveSalary * cpfContributionRate, 100, 0);
@@ -223,14 +242,13 @@ const useProjection = (initialData, initialSettings) => {
         // Update cash savings with new savings plus investment returns
         const investmentReturn = currentLiquidCash * monthlyInvestmentReturn;
         
-        // Handle savings timeframe - if 'after', don't add monthly savings for the first month (current month)
-        const shouldAddMonthlySavings = !(month === 0 && isCurrentMonth && savingsTimeframe === 'after');
-        
-        if (shouldAddMonthlySavings) {
-          currentLiquidCash += monthlySavings + investmentReturn;
-        } else {
-          // For 'after' timeframe in current month, only add investment returns
+        // Handle current month logic - don't double-count salary if already received
+        if (month === 0 && isCurrentMonth && salaryAlreadyReceived) {
+          // For current month when salary already received, only add investment returns
           currentLiquidCash += investmentReturn;
+        } else {
+          // Normal case: add monthly savings plus investment returns
+          currentLiquidCash += monthlySavings + investmentReturn;
         }
         
         // Update CPF balance with new contributions plus interest
@@ -278,7 +296,7 @@ const useProjection = (initialData, initialSettings) => {
           principalPayment,
           interestPayment,
           monthlySavings,
-          monthlySavingsAdded: shouldAddMonthlySavings ? monthlySavings : 0,
+          monthlySavingsAdded: (month === 0 && isCurrentMonth && salaryAlreadyReceived) ? 0 : monthlySavings,
           netCashFlow,
           totalOutflow,
           
@@ -294,7 +312,6 @@ const useProjection = (initialData, initialSettings) => {
           
           // Timing analysis
           isCurrentMonth: month === 0 && isCurrentMonth,
-          savingsTimeframe: month === 0 ? savingsTimeframe : 'before', // Only relevant for first month
           
           // Additional metadata
           year,
@@ -348,8 +365,7 @@ const useProjection = (initialData, initialSettings) => {
           averageMonthlySavings: projection.reduce((sum, p) => sum + p.monthlySavings, 0) / projection.length,
           totalProjectedSavings: projection[projection.length - 1]?.cashSavings || 0,
           finalNetWorth: projection[projection.length - 1]?.totalNetWorth || 0,
-          isCurrentMonthStart: isCurrentMonth,
-          savingsTimeframe
+          isCurrentMonthStart: isCurrentMonth
         }
       };
     }, [], { source: 'generateProjection', data, settings });

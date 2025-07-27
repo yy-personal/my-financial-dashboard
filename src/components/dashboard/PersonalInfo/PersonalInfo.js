@@ -26,12 +26,8 @@ const PersonalInfo = ({ personalInfo, currentAge }) => {
           highlighted={true}
         />
         <InfoItem
-          label="Employment Start"
-          value={formatDate(personalInfo.employmentStart)}
-        />
-        <InfoItem
           label="Projection Start"
-          value={formatDate(personalInfo.projectionStart)}
+          value="Current Month (Auto-detected)"
         />
       </div>
     </Card>
@@ -44,14 +40,7 @@ PersonalInfo.propTypes = {
       month: PropTypes.number.isRequired,
       year: PropTypes.number.isRequired
     }).isRequired,
-    employmentStart: PropTypes.shape({
-      month: PropTypes.number.isRequired,
-      year: PropTypes.number.isRequired
-    }).isRequired,
-    projectionStart: PropTypes.shape({
-      month: PropTypes.number.isRequired,
-      year: PropTypes.number.isRequired
-    }).isRequired
+    // projectionStart removed - now auto-detected
   }).isRequired,
   currentAge: PropTypes.number.isRequired
 };

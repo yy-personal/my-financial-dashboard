@@ -18,7 +18,6 @@ const useFinancialCalculations = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [currentMonth, setCurrentMonth] = useState(null);
   const [projectionStartDate, setProjectionStartDate] = useState(null);
-  const [savingsTimeframe, setSavingsTimeframe] = useState('before'); // 'before' or 'after' monthly expenses
   
   // Initialize error handler
   const { 
@@ -127,6 +126,7 @@ const useFinancialCalculations = () => {
         liquidCash: safeParseNumber(personalInfo.currentSavings, 0),
         cpfBalance: safeParseNumber(personalInfo.currentCpfBalance, 0),
         interestRate: safeParseNumber(personalInfo.interestRate, 0),
+        salaryDay: safeParseNumber(income.salaryDay, 25), // Add salary day for timing calculations
         // Add projection timing info
         projectionStartMonth: currentMonth.month,
         projectionStartYear: currentMonth.year,
@@ -152,11 +152,9 @@ const useFinancialCalculations = () => {
       projectionStartYear: currentMonth.year,
       // ENHANCED: Use the new salary adjustments array
       yearlyBonuses: financialData?.yearlyBonuses || [],
-      salaryAdjustments: financialData?.income?.salaryAdjustments || [],
-      // Add savings timeframe
-      savingsTimeframe: savingsTimeframe
+      salaryAdjustments: financialData?.income?.salaryAdjustments || []
     };
-  }, [currentMonth, currentValues, financialData, savingsTimeframe]);
+  }, [currentMonth, currentValues, financialData]);
 
   // Use our custom projection hook with enhanced settings
   const {
@@ -279,10 +277,6 @@ const useFinancialCalculations = () => {
     });
   };
 
-  // Function to update savings timeframe
-  const updateSavingsTimeframe = (timeframe) => {
-    setSavingsTimeframe(timeframe);
-  };
 
   // Function to set a custom projection start date
   const setCustomProjectionStart = (month, year) => {
@@ -503,12 +497,8 @@ const useFinancialCalculations = () => {
     // ENHANCED: New update functions for manual savings/CPF adjustments
     updateCurrentSavings,
     updateCurrentCpfBalance,
-    updateSavingsTimeframe,
     setCustomProjectionStart,
     clearOldSalaryAdjustmentFields, // NEW function to clear old fields
-    
-    // Current savings timeframe
-    savingsTimeframe,
     
     // Enhanced utility functions
     formatCurrency: (amount) => `$${safeParseNumber(amount, 0).toLocaleString()}`,

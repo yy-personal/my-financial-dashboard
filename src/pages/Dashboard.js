@@ -9,7 +9,8 @@ import {
 import Card from "../components/common/Card";
 import { formatCurrency, formatPercent } from "../services/formatters/currencyFormatters";
 import CpfDashboard from "../components/CpfDashboard";
-import SalaryAdjustmentFixer from "../components/utils/SalaryAdjustmentFixer";
+import CashFlowTiming from "../components/dashboard/CashFlowTiming";
+import useIntraMonthCashFlow from "../hooks/useIntraMonthCashFlow";
 
 /**
  * Dashboard Page Component
@@ -29,6 +30,9 @@ const Dashboard = () => {
   } = useContext(FinancialContext);
 
   const [activeTab, setActiveTab] = useState("summary");
+
+  // Cash flow timing analysis
+  const { cashFlowAnalysis, liquidityWarnings, getCurrentMonthRisk } = useIntraMonthCashFlow(financialData);
 
   // State for projection rows to display
   const [rowsToDisplay, setRowsToDisplay] = useState(
@@ -67,9 +71,10 @@ const Dashboard = () => {
     const annualInterestRate = personalInfo.interestRate / 100;
     const monthlyInterestRate = annualInterestRate / 12;
 
-    // Calculate months
-    let startMonth = personalInfo.projectionStart.month;
-    let startYear = personalInfo.projectionStart.year;
+    // Calculate months - auto-detect current month
+    const currentDate = new Date();
+    let startMonth = currentDate.getMonth() + 1;
+    let startYear = currentDate.getFullYear();
 
     // Get salary adjustments if available, or create from legacy data
     const salaryAdjustments = income.salaryAdjustments || [];
@@ -174,13 +179,48 @@ const Dashboard = () => {
         loanPaidOffMonth = month;
       }
 
+      // Check if this is the current month and handle salary timing
+      const isCurrentMonthProjection = month === 0;
+      const salaryDay = income.salaryDay || 25; // Default to 25th if not specified
+      const salaryAlreadyReceived = isCurrentMonthProjection && currentDate.getDate() > salaryDay;
+      
+      // For current month, don't add salary if already received (it's in current savings)
+      const effectiveSalary = (isCurrentMonthProjection && salaryAlreadyReceived) ? 0 : currentSalary;
+      const effectiveTakeHomePay = effectiveSalary - (effectiveSalary * cpfRate);
+      const effectiveCpfContribution = effectiveSalary * cpfRate;
+      const effectiveEmployerCpf = effectiveSalary * employerCpfRate;
+      
       // Calculate monthly savings (including any bonuses)
       const monthlySavings =
-        takeHomePay - monthlyExpenses - actualLoanPayment + bonusAmount;
+        effectiveTakeHomePay - monthlyExpenses - actualLoanPayment + bonusAmount;
 
-      // Update balances
-      cpfBalance += cpfContribution + employerCpf;
-      currentSavings += monthlySavings;
+      // Update balances - use effective values for current month
+      cpfBalance += effectiveCpfContribution + effectiveEmployerCpf;
+      
+      // For current month, only add savings if salary hasn't been received yet
+      if (isCurrentMonthProjection && salaryAlreadyReceived) {
+        // Don't add monthly savings to avoid double-counting
+        console.log('Dashboard calculateProjection - Current month (July 2025): salary already received on day', salaryDay, ', current day:', currentDate.getDate(), ', not adding monthly savings to avoid double counting');
+      } else {
+        currentSavings += monthlySavings;
+      }
+      
+      // Debug logging for first month
+      if (month === 0) {
+        console.log('Dashboard calculateProjection - First month debug:', {
+          month,
+          monthYearStr,
+          isCurrentMonthProjection,
+          currentDate: currentDate.toDateString(),
+          salaryDay,
+          currentDay: currentDate.getDate(),
+          salaryAlreadyReceived,
+          effectiveSalary,
+          originalSalary: currentSalary,
+          monthlySavings,
+          currentSavings
+        });
+      }
       const totalNetWorth = currentSavings + cpfBalance - loanRemaining;
 
       // Record savings goal milestone - now only for cash savings (excluding CPF)
@@ -193,17 +233,19 @@ const Dashboard = () => {
         month: month + 1,
         date: monthYearStr,
         age: ageStr,
-        monthlySalary: currentSalary,
-        takeHomePay: takeHomePay,
+        monthlySalary: effectiveSalary, // Use effective salary for current month
+        monthlyIncome: effectiveSalary + bonusAmount, // Total income including bonus for table display
+        takeHomePay: effectiveTakeHomePay, // Use effective take-home for current month
+        monthlyExpenses: monthlyExpenses, // Match the expected field name
         expenses: monthlyExpenses,
         loanPayment: actualLoanPayment,
         loanRemaining: loanRemaining,
         monthlySavings: monthlySavings,
         bonusAmount: bonusAmount,
         bonusDescription: bonusDescription,
-        cpfContribution: cpfContribution,
-        employerCpfContribution: employerCpf,
-        totalCpfContribution: cpfContribution + employerCpf,
+        cpfContribution: effectiveCpfContribution, // Use effective CPF for current month
+        employerCpfContribution: effectiveEmployerCpf, // Use effective employer CPF for current month
+        totalCpfContribution: effectiveCpfContribution + effectiveEmployerCpf,
         cpfBalance: cpfBalance,
         cashSavings: currentSavings,
         totalNetWorth: totalNetWorth,
@@ -468,8 +510,6 @@ const Dashboard = () => {
       {/* Summary Tab */}
       {activeTab === "summary" && (
         <div className="space-y-6">
-          {/* Temporary Utility Component - Remove after fixing the issue */}
-          <SalaryAdjustmentFixer />
           {/* Financial Snapshot Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Liquid Cash Card */}
@@ -677,6 +717,12 @@ const Dashboard = () => {
             expenseData={expenseData} 
             totalExpenses={totalExpenses} 
             loanPayment={loanPayment} 
+          />
+
+          {/* Cash Flow Timing Analysis */}
+          <CashFlowTiming 
+            cashFlowAnalysis={cashFlowAnalysis}
+            liquidityWarnings={liquidityWarnings}
           />
 
           {/* More cards and content... */}
@@ -918,18 +964,8 @@ const Dashboard = () => {
                         <p className="mt-1 text-green-700">
                           Total repayment period:{" "}
                           {timeToPayLoan} from{" "}
-                          {getMonthName(
-                            financialData
-                              .personalInfo
-                              .projectionStart
-                              .month
-                          )}{" "}
-                          {
-                            financialData
-                              .personalInfo
-                              .projectionStart
-                              .year
-                          }
+                          {getMonthName(new Date().getMonth() + 1)}{" "}
+                          {new Date().getFullYear()}
                         </p>
                       </div>
                     </div>
@@ -1084,18 +1120,8 @@ const Dashboard = () => {
                         <p className="mt-1 text-green-700">
                           Total savings period:{" "}
                           {timeToSavingsGoal} from{" "}
-                          {getMonthName(
-                            financialData
-                              .personalInfo
-                              .projectionStart
-                              .month
-                          )}{" "}
-                          {
-                            financialData
-                              .personalInfo
-                              .projectionStart
-                              .year
-                          }
+                          {getMonthName(new Date().getMonth() + 1)}{" "}
+                          {new Date().getFullYear()}
                         </p>
                       </div>
                     </div>

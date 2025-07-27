@@ -72,20 +72,14 @@ const EditParameters = () => {
 					financialData.personalInfo.monthlyRepayment
 				),
 				birthday: { ...financialData.personalInfo.birthday },
-				employmentStart: {
-					...financialData.personalInfo.employmentStart,
-				},
-				projectionStart: {
-					...financialData.personalInfo.projectionStart,
-				},
 				// Add savings timeframe setting
-				savingsTimeframe: financialData.personalInfo.savingsTimeframe || 'before',
 			},
 			income: {
 				...financialData.income,
 				currentSalary: String(financialData.income.currentSalary),
 				cpfRate: String(financialData.income.cpfRate),
 				employerCpfRate: String(financialData.income.employerCpfRate),
+				salaryDay: String(financialData.income.salaryDay || 25),
 				salaryAdjustments: salaryAdjustments.map((adj) => ({
 					...adj,
 					newSalary: String(adj.newSalary),
@@ -94,12 +88,13 @@ const EditParameters = () => {
 			expenses: financialData.expenses.map((expense) => ({
 				...expense,
 				amount: String(expense.amount),
+				dueDay: String(expense.dueDay || 15), // Default to 15th if not set
 			})),
 			yearlyBonuses: yearlyBonuses.map((bonus) => ({
 				...bonus,
 				amount: String(bonus.amount),
 			})),
-			newExpense: { name: "", amount: "" },
+			newExpense: { name: "", amount: "", dueDay: "15" },
 			newSalaryAdjustment: {
 				month: new Date().getMonth() + 1,
 				year: new Date().getFullYear() + 1,
@@ -125,14 +120,6 @@ const EditParameters = () => {
 		setActiveSection(activeSection === section ? "" : section);
 	};
 
-	// Handle savings timeframe change
-	const handleSavingsTimeframeChange = (timeframe) => {
-		setFormData((prevData) => {
-			const newData = { ...prevData };
-			newData.personalInfo.savingsTimeframe = timeframe;
-			return newData;
-		});
-	};
 
 	// Generate year options for dropdowns
 	const currentYear = new Date().getFullYear();
@@ -163,7 +150,7 @@ const EditParameters = () => {
 		}
 	};
 
-	// Handle nested date changes (birthday, employmentStart, projectionStart)
+	// Handle nested date changes (birthday)
 	const handleDateChange = (dateType, field, value) => {
 		setFormData((prevData) => {
 			const newData = { ...prevData };
@@ -360,12 +347,13 @@ const EditParameters = () => {
 				id: Date.now(), // Use timestamp as a unique identifier
 				name: formData.newExpense.name.trim(),
 				amount: formData.newExpense.amount,
+				dueDay: formData.newExpense.dueDay,
 			};
 
 			setFormData((prevData) => {
 				const newData = { ...prevData };
 				newData.expenses = [...newData.expenses, newExpenseItem];
-				newData.newExpense = { name: "", amount: "" };
+				newData.newExpense = { name: "", amount: "", dueDay: "15" };
 				return newData;
 			});
 		}
@@ -390,7 +378,6 @@ const EditParameters = () => {
 				monthlyRepayment:
 					parseFloat(formData.personalInfo.monthlyRepayment) || 0,
 				// Include savings timeframe setting
-				savingsTimeframe: formData.personalInfo.savingsTimeframe,
 			},
 			income: {
 				...formData.income,
@@ -398,6 +385,7 @@ const EditParameters = () => {
 				cpfRate: parseFloat(formData.income.cpfRate) || 0,
 				employerCpfRate:
 					parseFloat(formData.income.employerCpfRate) || 0,
+				salaryDay: parseInt(formData.income.salaryDay) || 25,
 				// Process salary adjustments
 				salaryAdjustments: formData.income.salaryAdjustments.map(
 					(adj) => ({
@@ -408,10 +396,11 @@ const EditParameters = () => {
 			},
 		};
 
-		// Process expenses - convert amount strings to numbers
+		// Process expenses - convert amount strings to numbers and dueDay to int
 		const processedExpenses = formData.expenses.map((expense) => ({
 			...expense,
 			amount: parseFloat(expense.amount) || 0,
+			dueDay: parseInt(expense.dueDay) || 15,
 		}));
 
 		// Process yearly bonuses - convert strings to proper types
@@ -611,15 +600,19 @@ const EditParameters = () => {
 									</p>
 								</div>
 
-								<DateDropdowns
-									dateType="employmentStart"
-									label="Employment Start"
-								/>
 
-								<DateDropdowns
-									dateType="projectionStart"
-									label="Projection Start"
-								/>
+								{/* Projection Start removed - now auto-detected from current month */}
+								<div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+									<div className="flex items-center">
+										<svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+										</svg>
+										<div>
+											<h4 className="text-blue-800 font-medium">Projection Start</h4>
+											<p className="text-blue-700 text-sm">Automatically starts from current month for accurate projections</p>
+										</div>
+									</div>
+								</div>
 
 								{/* Personal Information inputs - Simple version like expenses */}
 								<div className="mb-4">
@@ -739,95 +732,6 @@ const EditParameters = () => {
 								</div>
 							</div>
 
-							{/* NEW: Savings Calculation Method Section */}
-							<div className="mt-6">
-								<div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-									<h4 className="text-md font-medium text-blue-800 mb-3 flex items-center">
-										<svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-										</svg>
-										Savings Calculation Method
-									</h4>
-									<p className="text-sm text-blue-700 mb-4">
-										Choose how your monthly savings are calculated in financial projections:
-									</p>
-									
-									<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-										<div 
-											className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-												formData.personalInfo.savingsTimeframe === 'before' 
-													? 'border-blue-500 bg-blue-100' 
-													: 'border-gray-300 bg-white hover:border-blue-300'
-											}`}
-											onClick={() => handleSavingsTimeframeChange('before')}
-										>
-											<div className="flex items-center mb-2">
-												<input
-													type="radio"
-													id="savings-before"
-													name="savingsTimeframe"
-													value="before"
-													checked={formData.personalInfo.savingsTimeframe === 'before'}
-													onChange={() => handleSavingsTimeframeChange('before')}
-													className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-												/>
-												<label htmlFor="savings-before" className="ml-2 text-sm font-medium text-gray-900">
-													Before Monthly Expenses
-												</label>
-											</div>
-											<p className="text-xs text-gray-600 ml-6">
-												Savings = Take-home Pay - Monthly Expenses - Loan Payment
-											</p>
-											<p className="text-xs text-blue-600 ml-6 mt-1">
-												<strong>This is the standard method</strong> - calculates savings as what's left after expenses
-											</p>
-										</div>
-										
-										<div 
-											className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-												formData.personalInfo.savingsTimeframe === 'after' 
-													? 'border-blue-500 bg-blue-100' 
-													: 'border-gray-300 bg-white hover:border-blue-300'
-											}`}
-											onClick={() => handleSavingsTimeframeChange('after')}
-										>
-											<div className="flex items-center mb-2">
-												<input
-													type="radio"
-													id="savings-after"
-													name="savingsTimeframe"
-													value="after"
-													checked={formData.personalInfo.savingsTimeframe === 'after'}
-													onChange={() => handleSavingsTimeframeChange('after')}
-													className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-												/>
-												<label htmlFor="savings-after" className="ml-2 text-sm font-medium text-gray-900">
-													After Monthly Expenses
-												</label>
-											</div>
-											<p className="text-xs text-gray-600 ml-6">
-												Monthly expenses already include your predetermined savings amount
-											</p>
-											<p className="text-xs text-blue-600 ml-6 mt-1">
-												<strong>Use this if:</strong> You budget a fixed savings amount within your expenses
-											</p>
-										</div>
-									</div>
-									
-									<div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-										<div className="flex items-start">
-											<svg className="h-4 w-4 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
-											</svg>
-											<p className="text-xs text-yellow-700">
-												<strong>Example:</strong> If you budget $500/month for savings within your "Monthly Expenses", 
-												choose "After Monthly Expenses". If you want to see potential savings based on what's left after 
-												expenses, choose "Before Monthly Expenses".
-											</p>
-										</div>
-									</div>
-								</div>
-							</div>
 						</div>
 					)}
 				</div>
@@ -1635,6 +1539,34 @@ const EditParameters = () => {
 										</p>
 									</div>
 
+									{/* Salary Day input */}
+									<div className="mb-4">
+										<label className="block text-gray-700 font-medium mb-2">
+											Salary Payment Day
+										</label>
+										<select
+											value={formData.income.salaryDay}
+											onChange={(e) => {
+												const updatedData = { ...formData };
+												updatedData.income.salaryDay = e.target.value;
+												setFormData(updatedData);
+											}}
+											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+										>
+											{[...Array(31)].map((_, i) => {
+												const day = i + 1;
+												return (
+													<option key={day} value={day}>
+														{day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'} of the month
+													</option>
+												);
+											})}
+										</select>
+										<p className="text-xs text-gray-500 mt-1">
+											Day of month when you typically receive your salary
+										</p>
+									</div>
+
 									<div className="md:col-span-2">
 										<div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
 											<div className="flex items-start">
@@ -1705,6 +1637,9 @@ const EditParameters = () => {
 												Amount (SGD)
 											</th>
 											<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Due Day
+											</th>
+											<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Actions
 											</th>
 										</tr>
@@ -1754,6 +1689,28 @@ const EditParameters = () => {
 																className="w-full pl-6 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 															/>
 														</div>
+													</td>
+													<td className="px-4 py-2 whitespace-nowrap">
+														<select
+															value={expense.dueDay}
+															onChange={(e) =>
+																handleExpenseChange(
+																	index,
+																	"dueDay",
+																	e.target.value
+																)
+															}
+															className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+														>
+															{[...Array(31)].map((_, i) => {
+																const day = i + 1;
+																return (
+																	<option key={day} value={day}>
+																		{day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}
+																	</option>
+																);
+															})}
+														</select>
 													</td>
 													<td className="px-4 py-2">
 														<button
@@ -1806,7 +1763,7 @@ const EditParameters = () => {
 								<h3 className="font-medium text-gray-700 mb-3">
 									Add New Expense Category
 								</h3>
-								<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+								<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
 									<input
 										type="text"
 										name="name"
@@ -1830,6 +1787,21 @@ const EditParameters = () => {
 											className="pl-8 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 										/>
 									</div>
+									<select
+										name="dueDay"
+										value={formData.newExpense.dueDay}
+										onChange={handleNewExpenseChange}
+										className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+									>
+										{[...Array(31)].map((_, i) => {
+											const day = i + 1;
+											return (
+												<option key={day} value={day}>
+													{day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'} of month
+												</option>
+											);
+										})}
+									</select>
 									<button
 										type="button"
 										onClick={handleAddExpense}
