@@ -200,27 +200,10 @@ const Dashboard = () => {
       // For current month, only add savings if salary hasn't been received yet
       if (isCurrentMonthProjection && salaryAlreadyReceived) {
         // Don't add monthly savings to avoid double-counting
-        console.log('Dashboard calculateProjection - Current month (July 2025): salary already received on day', salaryDay, ', current day:', currentDate.getDate(), ', not adding monthly savings to avoid double counting');
       } else {
         currentSavings += monthlySavings;
       }
       
-      // Debug logging for first month
-      if (month === 0) {
-        console.log('Dashboard calculateProjection - First month debug:', {
-          month,
-          monthYearStr,
-          isCurrentMonthProjection,
-          currentDate: currentDate.toDateString(),
-          salaryDay,
-          currentDay: currentDate.getDate(),
-          salaryAlreadyReceived,
-          effectiveSalary,
-          originalSalary: currentSalary,
-          monthlySavings,
-          currentSavings
-        });
-      }
       const totalNetWorth = currentSavings + cpfBalance - loanRemaining;
 
       // Record savings goal milestone - now only for cash savings (excluding CPF)

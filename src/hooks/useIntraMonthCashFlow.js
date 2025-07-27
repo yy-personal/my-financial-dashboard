@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import useErrorHandler from './useErrorHandler';
-import { safeParseNumber, safeDivide, createFinancialError } from '../utils/errors/ErrorUtils';
+import { safeParseNumber } from '../utils/errors/ErrorUtils';
 
 /**
  * Enhanced cash flow projection that considers intra-month timing
@@ -20,8 +20,7 @@ const useIntraMonthCashFlow = (financialData, settings = {}) => {
     error, 
     hasError, 
     handleError, 
-    clearError, 
-    tryCatch 
+    clearError
   } = useErrorHandler('useIntraMonthCashFlow');
 
   // Calculate detailed intra-month cash flow
@@ -191,7 +190,7 @@ const useIntraMonthCashFlow = (financialData, settings = {}) => {
       
       // Basic monthly calculation (simplified from useProjection)
       const currentSalary = safeParseNumber(income.currentSalary, 0);
-      const cpfContribution = safeDivide(currentSalary * (income.cpfRate || 20), 100, 0);
+      const cpfContribution = currentSalary * ((income.cpfRate || 20) / 100);
       const takeHomePay = currentSalary - cpfContribution;
       const totalExpenses = Array.isArray(expenses) ? 
         expenses.reduce((sum, exp) => sum + safeParseNumber(exp.amount, 0), 0) : 0;

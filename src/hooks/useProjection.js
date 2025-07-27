@@ -195,26 +195,13 @@ const useProjection = (initialData, initialSettings) => {
         const salaryDay = data.salaryDay || 25; // Default to 25th if not specified
         const salaryAlreadyReceived = isCurrentMonthProjection && currentDate.getDate() > salaryDay;
         
-        // Debug logging for first month
-        if (month === 0) {
-          console.log('First month projection debug:', {
-            month,
-            isCurrentMonth,
-            isCurrentMonthProjection,
-            currentDate: currentDate.toDateString(),
-            salaryDay,
-            currentDay: currentDate.getDate(),
-            salaryAlreadyReceived,
-            projectionDate: new Date(projectionStartYear, projectionStartMonth - 1 + month, 1).toDateString()
-          });
-        }
         
         // For current month, don't add salary if already received
         const effectiveSalary = (isCurrentMonthProjection && salaryAlreadyReceived) ? 0 : currentSalary;
         
         // Calculate CPF contributions based on effective salary
-        const cpfContribution = safeDivide(effectiveSalary * cpfContributionRate, 100, 0);
-        const employerCpfContribution = safeDivide(effectiveSalary * employerCpfContributionRate, 100, 0);
+        const cpfContribution = effectiveSalary * (cpfContributionRate / 100);
+        const employerCpfContribution = effectiveSalary * (employerCpfContributionRate / 100);
         
         // Calculate take-home pay
         const takeHomePay = effectiveSalary - cpfContribution;

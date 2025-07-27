@@ -14,7 +14,6 @@ import { safeGet, safeParseNumber, safeDivide, validateFinancialData } from "../
 const useFinancialCalculations = () => {
   const { financialData, updateFinancialData } = useFinancial();
   const [expenseData, setExpenseData] = useState([]);
-  const [assetAllocationData, setAssetAllocationData] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [currentMonth, setCurrentMonth] = useState(null);
   const [projectionStartDate, setProjectionStartDate] = useState(null);
@@ -212,8 +211,8 @@ const useFinancialCalculations = () => {
       } = currentValues;
   
       // Calculate CPF contributions
-      const cpfContribution = safeDivide(salary * cpfContributionRate, 100, 0);
-      const employerCpfContribution = safeDivide(salary * employerCpfContributionRate, 100, 0);
+      const cpfContribution = salary * (cpfContributionRate / 100);
+      const employerCpfContribution = salary * (employerCpfContributionRate / 100);
       
       // Calculate take-home pay and savings
       const takeHomePay = salary - cpfContribution;
@@ -485,7 +484,6 @@ const useFinancialCalculations = () => {
       safeDivide(currentValues.cpfBalance, Math.max(0.01, currentValues.liquidCash + currentValues.cpfBalance), 0) * 100 : 0,
     
     // Data for UI components
-    assetAllocationData,
     expenseData,
     upcomingEvents,
     milestones,
