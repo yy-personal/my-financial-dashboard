@@ -123,27 +123,25 @@ npm run build
 
 ### Deploying to GitHub Pages
 
-To deploy this application to GitHub Pages:
+This application is configured for automatic deployment to GitHub Pages from the master branch:
 
-1. Install the GitHub Pages package as a dev dependency:
-   ```
-   npm install --save-dev gh-pages
-   ```
-
-2. Add the following fields to your `package.json`:
+1. Ensure your `package.json` includes the homepage field:
    ```json
    {
-     "homepage": "https://yourusername.github.io/my-financial-dashboard",
-     "scripts": {
-       "predeploy": "npm run build",
-       "deploy": "gh-pages -d build"
-     }
+     "homepage": "https://yourusername.github.io/my-financial-dashboard"
    }
    ```
 
-3. Deploy the application:
+2. In your GitHub repository settings:
+   - Go to Settings → Pages
+   - Set Source to "Deploy from a branch"
+   - Select "master" branch and "/ (root)" folder
+
+3. GitHub Actions will automatically build and deploy when you push to master:
    ```
-   npm run deploy
+   git add .
+   git commit -m "Deploy updates"
+   git push origin master
    ```
 
 4. Access your deployed application at the URL specified in the homepage field
@@ -151,8 +149,9 @@ To deploy this application to GitHub Pages:
 #### Troubleshooting GitHub Pages Deployment
 
 - Ensure your repository is set to use GitHub Pages in the repository settings
-- For a project site, set the source to the `gh-pages` branch
+- For automatic deployment, set the source to the `master` branch with `/ (root)` folder
 - If using a custom domain, configure it in the GitHub repository settings
+- GitHub Actions will handle the build process automatically
 
 ### Code Style and Quality
 
