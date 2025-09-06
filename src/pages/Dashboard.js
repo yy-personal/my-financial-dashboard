@@ -1363,11 +1363,16 @@ const Dashboard = () => {
                             : "-"}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-red-600">
-                          {month.upcomingSpendingAmount > 0
-                            ? formatCurrency(
-                                month.upcomingSpendingAmount
-                              )
-                            : "-"}
+                          {month.upcomingSpendingAmount > 0 ? (
+                            <div className="text-xs">
+                              <div>{formatCurrency(month.upcomingSpendingAmount)}</div>
+                              {month.upcomingSpendingDescription && (
+                                <div className="text-gray-500 font-normal truncate max-w-20" title={month.upcomingSpendingDescription}>
+                                  {month.upcomingSpendingDescription}
+                                </div>
+                              )}
+                            </div>
+                          ) : "-"}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-green-600">
                           {formatCurrency(
