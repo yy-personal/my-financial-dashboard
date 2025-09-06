@@ -13,8 +13,8 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  LineChart,
-  Line,
+  // LineChart,
+  // Line,
   AreaChart,
   Area
 } from "recharts";

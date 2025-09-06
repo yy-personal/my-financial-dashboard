@@ -11,7 +11,7 @@ const CpfCalculator = ({ initialData = {}, onChange }) => {
   // Initialize with provided data or defaults
   const {
     cpfInputs,
-    cpfResults,
+    // cpfResults,
     monthlyCpf,
     bonusCpf,
     yearlyCpf,

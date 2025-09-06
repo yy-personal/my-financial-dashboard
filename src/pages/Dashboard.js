@@ -135,8 +135,8 @@ const Dashboard = () => {
       }
 
       // Calculate take-home pay
-      const cpfContribution = currentSalary * cpfRate;
-      const employerCpf = currentSalary * employerCpfRate;
+      // const cpfContribution = currentSalary * cpfRate;
+      // const employerCpf = currentSalary * employerCpfRate;
 
       // Check for yearly bonuses in this month
       let bonusAmount = 0;

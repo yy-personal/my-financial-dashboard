@@ -39,28 +39,28 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   // State for application-level errors
-  const [appError, setAppError] = useState(null);
+  // const [appError, setAppError] = useState(null);
 
   // Handle application-level error reset
-  const handleAppErrorReset = () => {
-    setAppError(null);
-    // Optionally reload the application or perform other recovery actions
-    // window.location.reload();
-  };
+  // const handleAppErrorReset = () => {
+  //   setAppError(null);
+  //   // Optionally reload the application or perform other recovery actions
+  //   // window.location.reload();
+  // };
 
   // Custom error handler for the top-level ErrorBoundary
-  const handleAppError = (error, errorInfo) => {
-    console.error("Critical application error:", error);
-    console.error("Component stack:", errorInfo?.componentStack);
-    
-    // Set the app error state
-    setAppError({ error, errorInfo });
-    
-    // You could also log to an error tracking service here
-    // if (process.env.NODE_ENV === 'production') {
-    //   logErrorToService(error, errorInfo);
-    // }
-  };
+  // const handleAppError = (error, errorInfo) => {
+  //   console.error("Critical application error:", error);
+  //   console.error("Component stack:", errorInfo?.componentStack);
+  //   
+  //   // Set the app error state
+  //   setAppError({ error, errorInfo });
+  //   
+  //   // You could also log to an error tracking service here
+  //   // if (process.env.NODE_ENV === 'production') {
+  //   //   logErrorToService(error, errorInfo);
+  //   // }
+  // };
 
   return (
     <ErrorBoundary 
