@@ -110,7 +110,7 @@ class ErrorBoundary extends Component {
       children, 
       showDetails = false,
       isFinancialComponent = false,
-      maxRetries
+      // maxRetries
     } = this.props;
 
     if (hasError) {

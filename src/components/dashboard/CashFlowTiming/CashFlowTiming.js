@@ -36,7 +36,7 @@ const CashFlowTiming = ({ cashFlowAnalysis, liquidityWarnings = [] }) => {
     );
   }
 
-  const { dailyEvents, dailyBalances, minBalance, minBalanceDay, metrics } = cashFlowAnalysis.intraMonthAnalysis;
+  const { dailyEvents, minBalance, minBalanceDay, metrics } = cashFlowAnalysis.intraMonthAnalysis;
 
   // Get salary and major expense events
   const salaryEvent = dailyEvents.find(event => event.type === 'income');

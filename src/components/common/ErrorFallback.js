@@ -251,10 +251,12 @@ export const CriticalErrorFallback = ({ onRetry, error, errorInfo }) => {
   );
 };
 
-export default {
+const ErrorFallbacks = {
   ErrorFallback,
   FinancialCalculationErrorFallback,
   ChartErrorFallback,
   ProjectionErrorFallback,
   CriticalErrorFallback
 };
+
+export default ErrorFallbacks;

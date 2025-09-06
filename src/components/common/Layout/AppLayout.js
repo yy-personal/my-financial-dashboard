@@ -17,7 +17,7 @@ const AppLayout = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isAuthenticated, currentUser, logout } = useAuth();
   const { syncStatus } = useFinancial();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);

@@ -18,7 +18,7 @@ const CpfDashboard = () => {
     calculateAge
   } = useFinancial();
   
-  const { getChartColorPalette } = useUIPreferences();
+  // const { getChartColorPalette } = useUIPreferences();
   
   // Local state to track changes before committing to global state
   const [localCpfData, setLocalCpfData] = useState({
@@ -44,7 +44,7 @@ const CpfDashboard = () => {
       // Generate projection data for the chart
       generateProjectionData();
     }
-  }, [financialData, calculateAge]);
+  }, [financialData, calculateAge, generateProjectionData]);
 
   // Generate projection data for the CPF growth chart
   const generateProjectionData = () => {
