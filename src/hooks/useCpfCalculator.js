@@ -173,7 +173,7 @@ const useCpfCalculator = (initialData = {}) => {
         }));
       }
     }
-  }, [initialData]);
+  }, [initialData, cpfInputs.salary, cpfInputs.age, cpfInputs.employeeType, cpfInputs.bonusMonths, cpfInputs.annualBonusAmount]);
 
   return {
     // Current state

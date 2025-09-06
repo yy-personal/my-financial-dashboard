@@ -1,5 +1,5 @@
 // src/context/FinancialContext.js - Modified for better Firebase syncing
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
 import { saveFinancialData, loadFinancialData } from "../firebase/firebase";
 import { useAuth } from "./AuthContext";
 
@@ -249,7 +249,7 @@ export const FinancialProvider = ({ children }) => {
 	};
 
 	// Load data from Firebase or localStorage depending on authentication state
-	const loadSavedData = async () => {
+	const loadSavedData = useCallback(async () => {
 		try {
 			setSyncStatus({ status: "loading", lastSync: null });
 			// First check if we're authenticated
@@ -311,7 +311,7 @@ export const FinancialProvider = ({ children }) => {
 		} finally {
 			setIsLoading(false);
 		}
-	};
+	}, [currentUser, initialState, migrateData]);
 
 	const [financialData, setFinancialData] = useState(initialState);
 
@@ -322,7 +322,7 @@ export const FinancialProvider = ({ children }) => {
 		loadSavedData().then((data) => {
 			setFinancialData(data);
 		});
-	}, [currentUser]); // This will reload data whenever the user changes
+	}, [currentUser, loadSavedData]); // This will reload data whenever the user changes
 
 	// Save data whenever it changes
 	useEffect(() => {
@@ -364,7 +364,7 @@ export const FinancialProvider = ({ children }) => {
 		if (!isLoading) {
 			saveData();
 		}
-	}, [financialData, currentUser, isLoading]);
+	}, [financialData, currentUser, isLoading, syncStatus.lastSync]);
 
 	// Function to update financial data
 	const updateFinancialData = (newData) => {

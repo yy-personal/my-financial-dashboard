@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useFinancial } from '../context/FinancialContext';
 import CpfCalculator from '../components/CpfCalculator';
 import { EMPLOYEE_TYPE } from '../services/calculations/cpf';
@@ -31,23 +31,8 @@ const CpfDashboard = () => {
   // Generate projection data for the CPF growth chart
   const [projectionData, setProjectionData] = useState([]);
   
-  // Effect to update local state when financial data changes
-  useEffect(() => {
-    if (financialData) {
-      setLocalCpfData(prevData => ({
-        ...prevData,
-        salary: financialData.income?.currentSalary || prevData.salary,
-        age: calculateAge() || prevData.age,
-        bonusMonths: financialData.yearlyBonuses?.length || prevData.bonusMonths
-      }));
-      
-      // Generate projection data for the chart
-      generateProjectionData();
-    }
-  }, [financialData, calculateAge, generateProjectionData]);
-
-  // Generate projection data for the CPF growth chart
-  const generateProjectionData = () => {
+  // Generate projection data for the CPF growth chart - wrapped in useCallback to prevent infinite re-renders
+  const generateProjectionData = useCallback(() => {
     const currentCpfBalance = financialData.personalInfo?.currentCpfBalance || 0;
     const monthlyContribution = (
       (financialData.income?.currentSalary * financialData.income?.cpfRate / 100) +
@@ -92,7 +77,22 @@ const CpfDashboard = () => {
     }
     
     setProjectionData(data);
-  };
+  }, [financialData.personalInfo?.currentCpfBalance, financialData.income?.currentSalary, financialData.income?.cpfRate, financialData.income?.employerCpfRate]);
+  
+  // Effect to update local state when financial data changes
+  useEffect(() => {
+    if (financialData) {
+      setLocalCpfData(prevData => ({
+        ...prevData,
+        salary: financialData.income?.currentSalary || prevData.salary,
+        age: calculateAge() || prevData.age,
+        bonusMonths: financialData.yearlyBonuses?.length || prevData.bonusMonths
+      }));
+      
+      // Generate projection data for the chart
+      generateProjectionData();
+    }
+  }, [financialData, calculateAge, generateProjectionData]);
   
   // Handle changes in the calculator
   const handleCpfCalculatorChange = (updatedData) => {
