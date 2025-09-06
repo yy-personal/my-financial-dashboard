@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from "react";
+import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import AppLayout from "./components/common/Layout";
@@ -73,7 +73,7 @@ function App() {
           errorInfo={errorInfo} 
         />
       )}
-      resetAction={handleAppErrorReset}
+      resetAction={() => window.location.reload()}
       maxRetries={3}
     >
       <AppLayout>
