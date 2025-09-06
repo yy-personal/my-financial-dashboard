@@ -10,6 +10,7 @@ import Card from "../components/common/Card";
 import { formatCurrency, formatPercent } from "../services/formatters/currencyFormatters";
 import CpfDashboard from "../components/CpfDashboard";
 import CashFlowTiming from "../components/dashboard/CashFlowTiming";
+import UpcomingSpending from "../components/dashboard/UpcomingSpending";
 import useIntraMonthCashFlow from "../hooks/useIntraMonthCashFlow";
 
 /**
@@ -53,7 +54,7 @@ const Dashboard = () => {
     const projection = [];
 
     // Extract values from context
-    const { personalInfo, income, expenses, yearlyBonuses } = financialData;
+    const { personalInfo, income, expenses, yearlyBonuses, upcomingSpending } = financialData;
 
     // Initial values
     let currentSavings = personalInfo.currentSavings;
@@ -157,6 +158,24 @@ const Dashboard = () => {
         }
       }
 
+      // Check for upcoming spending in this month
+      let upcomingSpendingAmount = 0;
+      let upcomingSpendingDescription = "";
+
+      if (upcomingSpending && Array.isArray(upcomingSpending)) {
+        for (const spending of upcomingSpending) {
+          if (
+            currentMonth === spending.month &&
+            currentYear === spending.year
+          ) {
+            upcomingSpendingAmount += spending.amount;
+            upcomingSpendingDescription = upcomingSpendingDescription
+              ? `${upcomingSpendingDescription}, ${spending.name}`
+              : spending.name;
+          }
+        }
+      }
+
       // Calculate loan payment and remaining balance
       let actualLoanPayment = loanPayment;
       let interestForMonth = loanRemaining * monthlyInterestRate;
@@ -190,9 +209,9 @@ const Dashboard = () => {
       const effectiveCpfContribution = effectiveSalary * cpfRate;
       const effectiveEmployerCpf = effectiveSalary * employerCpfRate;
       
-      // Calculate monthly savings (including any bonuses)
+      // Calculate monthly savings (including any bonuses, minus upcoming spending)
       const monthlySavings =
-        effectiveTakeHomePay - monthlyExpenses - actualLoanPayment + bonusAmount;
+        effectiveTakeHomePay - monthlyExpenses - actualLoanPayment + bonusAmount - upcomingSpendingAmount;
 
       // Update balances - use effective values for current month
       cpfBalance += effectiveCpfContribution + effectiveEmployerCpf;
@@ -226,6 +245,9 @@ const Dashboard = () => {
         monthlySavings: monthlySavings,
         bonusAmount: bonusAmount,
         bonusDescription: bonusDescription,
+        upcomingSpendingAmount: upcomingSpendingAmount,
+        upcomingSpendingDescription: upcomingSpendingDescription,
+        hasUpcomingSpending: upcomingSpendingAmount > 0,
         cpfContribution: effectiveCpfContribution, // Use effective CPF for current month
         employerCpfContribution: effectiveEmployerCpf, // Use effective employer CPF for current month
         totalCpfContribution: effectiveCpfContribution + effectiveEmployerCpf,
@@ -239,6 +261,8 @@ const Dashboard = () => {
             ? "100K Cash Savings Goal"
             : bonusAmount > 0
             ? bonusDescription
+            : upcomingSpendingAmount > 0
+            ? `Spending: ${upcomingSpendingDescription}`
             : null,
       });
     }
@@ -708,7 +732,8 @@ const Dashboard = () => {
             liquidityWarnings={liquidityWarnings}
           />
 
-          {/* More cards and content... */}
+          {/* Upcoming Spending */}
+          <UpcomingSpending />
         </div>
       )}
 
@@ -1277,6 +1302,9 @@ const Dashboard = () => {
                       Bonus
                     </th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Upcoming Spending
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Monthly Savings
                     </th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -1331,6 +1359,13 @@ const Dashboard = () => {
                           {month.bonusAmount > 0
                             ? formatCurrency(
                                 month.bonusAmount
+                              )
+                            : "-"}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-red-600">
+                          {month.upcomingSpendingAmount > 0
+                            ? formatCurrency(
+                                month.upcomingSpendingAmount
                               )
                             : "-"}
                         </td>

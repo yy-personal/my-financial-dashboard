@@ -49,6 +49,7 @@ export const FinancialProvider = ({ children }) => {
 				description: "Year End Bonus",
 			},
 		],
+		upcomingSpending: [],
 		projectionSettings: {
 			rowsToDisplay: 36, // Default to 36 months (3 years)
 			enableIntraMonthAnalysis: true, // Enable detailed cash flow timing
@@ -107,6 +108,11 @@ export const FinancialProvider = ({ children }) => {
 		// Add yearlyBonuses if it doesn't exist
 		if (!oldData.yearlyBonuses) {
 			oldData.yearlyBonuses = initialState.yearlyBonuses;
+		}
+
+		// Add upcomingSpending if it doesn't exist
+		if (!oldData.upcomingSpending) {
+			oldData.upcomingSpending = initialState.upcomingSpending;
 		}
 
 		// Add projectionSettings if it doesn't exist
@@ -485,6 +491,48 @@ export const FinancialProvider = ({ children }) => {
 		}));
 	};
 
+	// Function to add a new upcoming spending
+	const addUpcomingSpending = (name, amount, day, month, year, description) => {
+		const newSpending = {
+			id: Date.now(),
+			name,
+			amount: parseFloat(amount) || 0,
+			day: parseInt(day) || 15,
+			month: parseInt(month),
+			year: parseInt(year),
+			description: description || "",
+		};
+
+		setFinancialData((prev) => ({
+			...prev,
+			upcomingSpending: Array.isArray(prev.upcomingSpending)
+				? [...prev.upcomingSpending, newSpending]
+				: [newSpending],
+		}));
+	};
+
+	// Function to remove an upcoming spending
+	const removeUpcomingSpending = (id) => {
+		setFinancialData((prev) => ({
+			...prev,
+			upcomingSpending: Array.isArray(prev.upcomingSpending)
+				? prev.upcomingSpending.filter((spending) => spending.id !== id)
+				: [],
+		}));
+	};
+
+	// Function to update an existing upcoming spending
+	const updateUpcomingSpending = (id, updates) => {
+		setFinancialData((prev) => ({
+			...prev,
+			upcomingSpending: Array.isArray(prev.upcomingSpending)
+				? prev.upcomingSpending.map((spending) =>
+						spending.id === id ? { ...spending, ...updates } : spending
+				  )
+				: [],
+		}));
+	};
+
 	// Get month name
 	const getMonthName = (monthNumber) => {
 		const months = [
@@ -567,6 +615,9 @@ export const FinancialProvider = ({ children }) => {
 				addYearlyBonus,
 				removeYearlyBonus,
 				updateYearlyBonus,
+				addUpcomingSpending,
+				removeUpcomingSpending,
+				updateUpcomingSpending,
 				getMonthName,
 				formatDate,
 				resetData,

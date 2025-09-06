@@ -92,6 +92,23 @@ const useProjection = (initialData, initialSettings) => {
     return bonus ? safeParseNumber(bonus.amount, 0) : 0;
   }, []);
 
+  // Get upcoming spending for a specific month
+  const getUpcomingSpendingForMonth = useCallback((year, month, day, upcomingSpending = []) => {
+    if (!Array.isArray(upcomingSpending)) return { totalAmount: 0, items: [] };
+    
+    const monthSpending = upcomingSpending.filter(spending => 
+      spending.year === year && spending.month === month
+    );
+    
+    const totalAmount = monthSpending.reduce((sum, spending) => sum + safeParseNumber(spending.amount, 0), 0);
+    
+    return { 
+      totalAmount, 
+      items: monthSpending,
+      description: monthSpending.map(s => s.name).join(', ')
+    };
+  }, []);
+
   // Generate enhanced projection with current month start
   const generateProjection = useCallback(() => {
     if (!validateInputs()) {
@@ -121,7 +138,8 @@ const useProjection = (initialData, initialSettings) => {
         bonusAmount = safeParseNumber(settings.bonusAmount || salary, salary),
         projectionStartMonth = new Date().getMonth() + 1,
         projectionStartYear = new Date().getFullYear(),
-        yearlyBonuses = []
+        yearlyBonuses = [],
+        upcomingSpending = []
       } = settings;
 
       // Convert annual rates to monthly
@@ -182,6 +200,11 @@ const useProjection = (initialData, initialSettings) => {
         const monthBonusAmount = yearlyBonus > 0 ? yearlyBonus : 
           (isTraditionalBonus ? bonusAmount : 0);
         const isBonus = monthBonusAmount > 0;
+
+        // Check for upcoming spending this month
+        const upcomingSpendingData = getUpcomingSpendingForMonth(year, monthIndex + 1, 15, upcomingSpending);
+        const monthSpendingAmount = upcomingSpendingData.totalAmount;
+        const hasUpcomingSpending = monthSpendingAmount > 0;
         
         // Increment salary and expenses with monthly increases
         if (month > 0) {
@@ -223,8 +246,8 @@ const useProjection = (initialData, initialSettings) => {
           loanPaidOffIndex = month;
         }
         
-        // Calculate monthly savings (take-home minus expenses and loan payment, plus bonus)
-        const monthlySavings = takeHomePay - currentExpenses - actualLoanPayment + monthBonusAmount;
+        // Calculate monthly savings (take-home minus expenses and loan payment, plus bonus, minus upcoming spending)
+        const monthlySavings = takeHomePay - currentExpenses - actualLoanPayment + monthBonusAmount - monthSpendingAmount;
         
         // Update cash savings with new savings plus investment returns
         const investmentReturn = currentLiquidCash * monthlyInvestmentReturn;
@@ -255,7 +278,7 @@ const useProjection = (initialData, initialSettings) => {
         
         // Calculate cash flow components for better analysis
         const totalIncome = effectiveSalary + employerCpfContribution + monthBonusAmount;
-        const totalOutflow = currentExpenses + actualLoanPayment + cpfContribution;
+        const totalOutflow = currentExpenses + actualLoanPayment + cpfContribution + monthSpendingAmount;
         const netCashFlow = totalIncome - totalOutflow;
         
         // Add enhanced month data to projection
@@ -299,6 +322,12 @@ const useProjection = (initialData, initialSettings) => {
           
           // Timing analysis
           isCurrentMonth: month === 0 && isCurrentMonth,
+          
+          // Upcoming spending data
+          upcomingSpendingAmount: monthSpendingAmount,
+          upcomingSpendingItems: upcomingSpendingData.items,
+          upcomingSpendingDescription: upcomingSpendingData.description,
+          hasUpcomingSpending,
           
           // Additional metadata
           year,
@@ -356,7 +385,7 @@ const useProjection = (initialData, initialSettings) => {
         }
       };
     }, [], { source: 'generateProjection', data, settings });
-  }, [data, settings, validateInputs, tryCatch, getBonusForMonth]);
+  }, [data, settings, validateInputs, tryCatch, getBonusForMonth, getUpcomingSpendingForMonth]);
 
   // Effect to regenerate projection when data or settings change
   useEffect(() => {

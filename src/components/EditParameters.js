@@ -20,6 +20,9 @@ const EditParameters = () => {
 	// Use useRef to keep track of next id for yearly bonuses
 	const nextYearlyBonusId = useRef(1);
 
+	// Use useRef to keep track of next id for upcoming spending
+	const nextUpcomingSpendingId = useRef(1);
+
 	// Initialize formData with proper structure for salary adjustments and yearly bonuses
 	const initializeFormData = () => {
 		// Check if there are salary adjustments in the context
@@ -55,6 +58,17 @@ const EditParameters = () => {
 				...yearlyBonuses.map((bonus) => bonus.id)
 			);
 			nextYearlyBonusId.current = maxBonusId + 1;
+		}
+
+		// Check if there are upcoming spending items in the context
+		const upcomingSpending = financialData.upcomingSpending || [];
+
+		// Find the largest ID for upcoming spending to update the ref
+		if (upcomingSpending.length > 0) {
+			const maxSpendingId = Math.max(
+				...upcomingSpending.map((spending) => spending.id)
+			);
+			nextUpcomingSpendingId.current = maxSpendingId + 1;
 		}
 
 		return {
@@ -94,6 +108,11 @@ const EditParameters = () => {
 				...bonus,
 				amount: String(bonus.amount),
 			})),
+			upcomingSpending: upcomingSpending.map((spending) => ({
+				...spending,
+				amount: String(spending.amount),
+				day: String(spending.day || 15),
+			})),
 			newExpense: { name: "", amount: "", dueDay: "15" },
 			newSalaryAdjustment: {
 				month: new Date().getMonth() + 1,
@@ -105,6 +124,14 @@ const EditParameters = () => {
 				year: new Date().getFullYear(),
 				amount: "",
 				description: "Year End Bonus",
+			},
+			newUpcomingSpending: {
+				name: "",
+				amount: "",
+				day: "15",
+				month: new Date().getMonth() + 1,
+				year: new Date().getFullYear(),
+				description: "",
 			},
 		};
 	};
@@ -124,7 +151,7 @@ const EditParameters = () => {
 	// Generate year options for dropdowns
 	const currentYear = new Date().getFullYear();
 	const yearOptions = [];
-	for (let year = currentYear - 50; year <= currentYear + 10; year++) {
+	for (let year = currentYear; year <= currentYear + 10; year++) {
 		yearOptions.push(year);
 	}
 
@@ -315,6 +342,76 @@ const EditParameters = () => {
 		});
 	};
 
+	// Handle upcoming spending field changes
+	const handleUpcomingSpendingChange = (index, field, value) => {
+		setFormData((prevData) => {
+			const newData = { ...prevData };
+			const updatedSpending = [...newData.upcomingSpending];
+			updatedSpending[index] = {
+				...updatedSpending[index],
+				[field]: value,
+			};
+			newData.upcomingSpending = updatedSpending;
+			return newData;
+		});
+	};
+
+	// Handle changes to new upcoming spending form
+	const handleNewUpcomingSpendingChange = (field, value) => {
+		setFormData((prevData) => {
+			const newData = { ...prevData };
+			newData.newUpcomingSpending = {
+				...newData.newUpcomingSpending,
+				[field]: value,
+			};
+			return newData;
+		});
+	};
+
+	// Handle adding a new upcoming spending
+	const handleAddUpcomingSpending = () => {
+		if (
+			formData.newUpcomingSpending.name &&
+			formData.newUpcomingSpending.amount
+		) {
+			const newSpending = {
+				id: nextUpcomingSpendingId.current++,
+				name: formData.newUpcomingSpending.name,
+				amount: formData.newUpcomingSpending.amount,
+				day: parseInt(formData.newUpcomingSpending.day) || 15,
+				month: parseInt(formData.newUpcomingSpending.month),
+				year: parseInt(formData.newUpcomingSpending.year),
+				description: formData.newUpcomingSpending.description,
+			};
+
+			setFormData((prevData) => {
+				const newData = { ...prevData };
+				newData.upcomingSpending = [...newData.upcomingSpending, newSpending];
+				// Reset the new spending form
+				newData.newUpcomingSpending = {
+					name: "",
+					amount: "",
+					day: "15",
+					month: new Date().getMonth() + 1,
+					year: new Date().getFullYear(),
+					description: "",
+				};
+				return newData;
+			});
+		}
+	};
+
+	// Handle removing an upcoming spending
+	const handleRemoveUpcomingSpending = (id) => {
+		setFormData((prevData) => {
+			const newData = { ...prevData };
+			newData.upcomingSpending = newData.upcomingSpending.filter(
+				(spending) => spending.id !== id
+			);
+			return newData;
+		});
+	};
+
 	// Handle removing an expense
 	const handleRemoveExpense = (id) => {
 		setFormData((prevData) => {
@@ -411,11 +508,21 @@ const EditParameters = () => {
 			month: parseInt(bonus.month) || 12,
 		}));
 
+		// Process upcoming spending - convert strings to proper types
+		const processedUpcomingSpending = formData.upcomingSpending.map((spending) => ({
+			...spending,
+			amount: parseFloat(spending.amount) || 0,
+			day: parseInt(spending.day) || 15,
+			month: parseInt(spending.month) || 1,
+			year: parseInt(spending.year) || new Date().getFullYear(),
+		}));
+
 		// Update the financial data with properly converted values
 		updateFinancialData({
 			...processedData,
 			expenses: processedExpenses,
 			yearlyBonuses: processedBonuses,
+			upcomingSpending: processedUpcomingSpending,
 		});
 
 		navigate("/");
@@ -1822,6 +1929,460 @@ const EditParameters = () => {
 										</svg>
 										Add Category
 									</button>
+								</div>
+
+								{/* Upcoming One-Time Spending */}
+								<div className="mt-8">
+									<h4 className="text-lg font-semibold mb-4 text-purple-700 border-b border-purple-200 pb-2">
+										Upcoming One-Time Spending
+									</h4>
+									<p className="text-sm text-gray-600 mb-4">
+										Plan future one-time purchases and see their impact on your finances.
+									</p>
+
+									{/* Existing Upcoming Spending */}
+									{formData.upcomingSpending &&
+									formData.upcomingSpending.length > 0 ? (
+										<div className="mb-4 overflow-x-auto">
+											<table className="w-full border-collapse">
+												<thead>
+													<tr className="bg-gray-50">
+														<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+															Date
+														</th>
+														<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+															Name
+														</th>
+														<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+															Description
+														</th>
+														<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+															Amount (SGD)
+														</th>
+														<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+															Actions
+														</th>
+													</tr>
+												</thead>
+												<tbody className="bg-white divide-y divide-gray-200">
+													{formData.upcomingSpending.map(
+														(spending, index) => (
+															<tr
+																key={spending.id}
+																className="hover:bg-gray-50"
+															>
+																<td className="px-4 py-2">
+																	<div className="grid grid-cols-3 gap-1 text-xs">
+																		<select
+																			value={
+																				spending.day
+																			}
+																			onChange={(
+																				e
+																			) =>
+																				handleUpcomingSpendingChange(
+																					index,
+																					"day",
+																					e
+																						.target
+																						.value
+																				)
+																			}
+																			className="w-full px-1 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+																		>
+																			{Array.from(
+																				{
+																					length: 31,
+																				},
+																				(
+																					_,
+																					i
+																				) => (
+																					<option
+																						key={
+																							i +
+																							1
+																						}
+																						value={
+																							i +
+																							1
+																						}
+																					>
+																						{i +
+																							1}
+																					</option>
+																				)
+																			)}
+																		</select>
+																		<select
+																			value={
+																				spending.month
+																			}
+																			onChange={(
+																				e
+																			) =>
+																				handleUpcomingSpendingChange(
+																					index,
+																					"month",
+																					parseInt(
+																						e
+																							.target
+																							.value
+																					)
+																				)
+																			}
+																			className="w-full px-1 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+																		>
+																			{monthOptions.map(
+																				(
+																					month
+																				) => (
+																					<option
+																						key={
+																							month.value
+																						}
+																						value={
+																							month.value
+																						}
+																					>
+																						{month.label.substring(
+																							0,
+																							3
+																						)}
+																					</option>
+																				)
+																			)}
+																		</select>
+																		<select
+																			value={
+																				spending.year
+																			}
+																			onChange={(
+																				e
+																			) =>
+																				handleUpcomingSpendingChange(
+																					index,
+																					"year",
+																					parseInt(
+																						e
+																							.target
+																							.value
+																					)
+																				)
+																			}
+																			className="w-full px-1 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+																		>
+																			{yearOptions.map(
+																				(
+																					year
+																				) => (
+																					<option
+																						key={
+																							year
+																						}
+																						value={
+																							year
+																						}
+																					>
+																						{year}
+																					</option>
+																				)
+																			)}
+																		</select>
+																	</div>
+																</td>
+																<td className="px-4 py-2">
+																	<input
+																		type="text"
+																		value={
+																			spending.name
+																		}
+																		onChange={(
+																			e
+																		) =>
+																			handleUpcomingSpendingChange(
+																				index,
+																				"name",
+																				e
+																					.target
+																					.value
+																			)
+																		}
+																		className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+																	/>
+																</td>
+																<td className="px-4 py-2">
+																	<input
+																		type="text"
+																		value={
+																			spending.description
+																		}
+																		onChange={(
+																			e
+																		) =>
+																			handleUpcomingSpendingChange(
+																				index,
+																				"description",
+																				e
+																					.target
+																					.value
+																			)
+																		}
+																		className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+																	/>
+																</td>
+																<td className="px-4 py-2">
+																	<div className="relative">
+																		<span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+																			$
+																		</span>
+																		<input
+																			type="number"
+																			step="0.01"
+																			min="0"
+																			value={
+																				spending.amount
+																			}
+																			onChange={(
+																				e
+																			) =>
+																				handleUpcomingSpendingChange(
+																					index,
+																					"amount",
+																					e
+																						.target
+																						.value
+																				)
+																			}
+																			className="w-full pl-6 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+																		/>
+																	</div>
+																</td>
+																<td className="px-4 py-2">
+																	<button
+																		type="button"
+																		onClick={() =>
+																			handleRemoveUpcomingSpending(
+																				spending.id
+																			)
+																		}
+																		className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+																	>
+																		<span className="md:hidden">
+																			✕
+																		</span>
+																		<span className="hidden md:inline">
+																			Remove
+																		</span>
+																	</button>
+																</td>
+															</tr>
+														)
+													)}
+												</tbody>
+											</table>
+										</div>
+									) : (
+										<p className="text-sm text-gray-600 mb-4">
+											No upcoming spending planned yet.
+										</p>
+									)}
+
+									{/* Add New Upcoming Spending */}
+									<div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+										<h5 className="font-medium text-purple-700 mb-3">
+											Add New One-Time Spending
+										</h5>
+										<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+											<div>
+												<label className="block text-sm font-medium text-gray-700 mb-1">
+													Item Name *
+												</label>
+												<input
+													type="text"
+													value={
+														formData.newUpcomingSpending
+															.name
+													}
+													onChange={(e) =>
+														handleNewUpcomingSpendingChange(
+															"name",
+															e.target.value
+														)
+													}
+													placeholder="e.g., New Laptop"
+													className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+												/>
+											</div>
+											<div>
+												<label className="block text-sm font-medium text-gray-700 mb-1">
+													Amount (SGD) *
+												</label>
+												<div className="relative">
+													<span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+														$
+													</span>
+													<input
+														type="number"
+														step="0.01"
+														min="0"
+														value={
+															formData
+																.newUpcomingSpending
+																.amount
+														}
+														onChange={(e) =>
+															handleNewUpcomingSpendingChange(
+																"amount",
+																e.target.value
+															)
+														}
+														placeholder="2000"
+														className="pl-8 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+													/>
+												</div>
+											</div>
+											<div className="grid grid-cols-3 gap-2">
+												<div>
+													<label className="block text-sm font-medium text-gray-700 mb-1">
+														Day
+													</label>
+													<select
+														value={
+															formData
+																.newUpcomingSpending
+																.day
+														}
+														onChange={(e) =>
+															handleNewUpcomingSpendingChange(
+																"day",
+																e.target.value
+															)
+														}
+														className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+													>
+														{Array.from(
+															{ length: 31 },
+															(_, i) => (
+																<option
+																	key={i + 1}
+																	value={i + 1}
+																>
+																	{i + 1}
+																</option>
+															)
+														)}
+													</select>
+												</div>
+												<div>
+													<label className="block text-sm font-medium text-gray-700 mb-1">
+														Month *
+													</label>
+													<select
+														value={
+															formData
+																.newUpcomingSpending
+																.month
+														}
+														onChange={(e) =>
+															handleNewUpcomingSpendingChange(
+																"month",
+																parseInt(
+																	e.target.value
+																)
+															)
+														}
+														className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+													>
+														{monthOptions.map(
+															(month) => (
+																<option
+																	key={
+																		month.value
+																	}
+																	value={
+																		month.value
+																	}
+																>
+																	{month.label}
+																</option>
+															)
+														)}
+													</select>
+												</div>
+												<div>
+													<label className="block text-sm font-medium text-gray-700 mb-1">
+														Year *
+													</label>
+													<select
+														value={
+															formData
+																.newUpcomingSpending
+																.year
+														}
+														onChange={(e) =>
+															handleNewUpcomingSpendingChange(
+																"year",
+																parseInt(
+																	e.target.value
+																)
+															)
+														}
+														className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+													>
+														{yearOptions.map((year) => (
+															<option
+																key={year}
+																value={year}
+															>
+																{year}
+															</option>
+														))}
+													</select>
+												</div>
+											</div>
+											<div>
+												<label className="block text-sm font-medium text-gray-700 mb-1">
+													Description
+												</label>
+												<input
+													type="text"
+													value={
+														formData.newUpcomingSpending
+															.description
+													}
+													onChange={(e) =>
+														handleNewUpcomingSpendingChange(
+															"description",
+															e.target.value
+														)
+													}
+													placeholder="Optional details"
+													className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+												/>
+											</div>
+											<button
+												type="button"
+												onClick={handleAddUpcomingSpending}
+												className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center md:col-span-2"
+											>
+												<svg
+													className="w-4 h-4 mr-1"
+													fill="none"
+													stroke="currentColor"
+													viewBox="0 0 24 24"
+												>
+													<path
+														strokeLinecap="round"
+														strokeLinejoin="round"
+														strokeWidth="2"
+														d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+													/>
+												</svg>
+												Add One-Time Spending
+											</button>
+										</div>
+									</div>
 								</div>
 							</div>
 						</div>
