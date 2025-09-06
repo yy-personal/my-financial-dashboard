@@ -22,18 +22,15 @@ import useIntraMonthCashFlow from "../hooks/useIntraMonthCashFlow";
 const Dashboard = () => {
   const {
     financialData,
-    updateFinancialData,
     updateProjectionSettings,
     totalExpenses,
-    calculateAge,
     getMonthName,
-    formatDate,
   } = useContext(FinancialContext);
 
   const [activeTab, setActiveTab] = useState("summary");
 
   // Cash flow timing analysis
-  const { cashFlowAnalysis, liquidityWarnings, getCurrentMonthRisk } = useIntraMonthCashFlow(financialData);
+  const { cashFlowAnalysis, liquidityWarnings } = useIntraMonthCashFlow(financialData);
 
   // State for projection rows to display
   const [rowsToDisplay, setRowsToDisplay] = useState(
@@ -54,7 +51,7 @@ const Dashboard = () => {
     const projection = [];
 
     // Extract values from context
-    const { personalInfo, income, expenses, yearlyBonuses, upcomingSpending } = financialData;
+    const { personalInfo, income, yearlyBonuses, upcomingSpending } = financialData;
 
     // Initial values
     let currentSavings = personalInfo.currentSavings;
@@ -140,7 +137,6 @@ const Dashboard = () => {
       // Calculate take-home pay
       const cpfContribution = currentSalary * cpfRate;
       const employerCpf = currentSalary * employerCpfRate;
-      const takeHomePay = currentSalary - cpfContribution;
 
       // Check for yearly bonuses in this month
       let bonusAmount = 0;
@@ -310,45 +306,35 @@ const Dashboard = () => {
   const currentSalary = financialData.income.currentSalary;
   const cpfContribution =
     currentSalary * (financialData.income.cpfRate / 100);
-  const employerCpfContribution =
-    currentSalary * (financialData.income.employerCpfRate / 100);
   const takeHomePay = currentSalary - cpfContribution;
   const monthlyExpenses = totalExpenses;
   const loanPayment = financialData.personalInfo.monthlyRepayment;
   const monthlySavings = takeHomePay - monthlyExpenses - loanPayment;
   const savingsRate = monthlySavings / takeHomePay;
-  const totalMonthlyIncome = currentSalary + employerCpfContribution;
-
-  // Calculate total yearly bonuses for current year
-  const currentYear = new Date().getFullYear();
-  const yearlyBonusesThisYear = financialData.yearlyBonuses
-    ? financialData.yearlyBonuses
-        .filter((bonus) => bonus.year === currentYear)
-        .reduce((total, bonus) => total + bonus.amount, 0)
-    : 0;
 
   // Filtered data for charts (every 3 months)
   const chartData = projection.filter((item, index) => index % 3 === 0);
 
   // Calculate asset allocation percentages
-  const liquidCash = financialData.personalInfo.currentSavings;
-  const cpfSavings = financialData.personalInfo.currentCpfBalance || 0;
-  const totalAssets = liquidCash + cpfSavings;
+  // const liquidCash = financialData.personalInfo.currentSavings;
+  // const cpfSavings = financialData.personalInfo.currentCpfBalance || 0;
+  // const totalAssets = liquidCash + cpfSavings;
 
-  const liquidCashPercentage =
-    totalAssets > 0 ? (liquidCash / totalAssets) * 100 : 0;
-  const cpfPercentage =
-    totalAssets > 0 ? (cpfSavings / totalAssets) * 100 : 0;
+  // const liquidCashPercentage =
+  //   totalAssets > 0 ? (liquidCash / totalAssets) * 100 : 0;
+  // const cpfPercentage =
+  //   totalAssets > 0 ? (cpfSavings / totalAssets) * 100 : 0;
 
   // Asset allocation data for pie chart
-  const assetAllocationData = [
-    { name: "Liquid Cash", value: liquidCash },
-    { name: "CPF (Locked)", value: cpfSavings },
-  ];
+  // const assetAllocationData = [
+  //   { name: "Liquid Cash", value: liquidCash },
+  //   { name: "CPF (Locked)", value: cpfSavings },
+  // ];
 
   // Calculate upcoming financial events (next 3 months)
   const upcomingEvents = [];
   const today = new Date();
+  const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1;
   const nextThreeMonths = [
     { month: currentMonth, year: currentYear },
@@ -412,20 +398,20 @@ const Dashboard = () => {
   }
 
   // InfoItem component for consistent display of key-value pairs
-  const InfoItem = ({ label, value, highlighted = false }) => (
-    <div
-      className={`py-2 flex justify-between items-center border-b ${
-        highlighted ? "bg-blue-50" : ""
-      }`}
-    >
-      <span className="text-gray-700">{label}</span>
-      <span
-        className={`font-medium ${highlighted ? "text-blue-700" : ""}`}
-      >
-        {value}
-      </span>
-    </div>
-  );
+  // const InfoItem = ({ label, value, highlighted = false }) => (
+  //   <div
+  //     className={`py-2 flex justify-between items-center border-b ${
+  //       highlighted ? "bg-blue-50" : ""
+  //     }`}
+  //   >
+  //     <span className="text-gray-700">{label}</span>
+  //     <span
+  //       className={`font-medium ${highlighted ? "text-blue-700" : ""}`}
+  //     >
+  //       {value}
+  //     </span>
+  //   </div>
+  // );
 
   // Status indicator component
   const StatusIndicator = ({

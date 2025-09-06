@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useRef } from "react";
+import React, { useContext, useState, useRef } from "react";
 import { FinancialContext } from "../context/FinancialContext";
 import { useNavigate } from "react-router-dom";
 
@@ -6,8 +6,6 @@ const EditParameters = () => {
 	const {
 		financialData,
 		updateFinancialData,
-		addExpense,
-		removeExpense,
 		getMonthName,
 		calculateAge,
 	} = useContext(FinancialContext);
@@ -162,20 +160,20 @@ const EditParameters = () => {
 	}));
 
 	// Direct input change handler with optimized focus retention
-	const handleDirectInputChange = (e) => {
-		const { name, value } = e.target;
-		const [section, field] = name.split(".");
-
-		if (section && field) {
-			setFormData((prevData) => {
-				// Create a deep copy to avoid unintended references
-				const newData = JSON.parse(JSON.stringify(prevData));
-				// Update only the specific field that changed
-				newData[section][field] = value;
-				return newData;
-			});
-		}
-	};
+	// const handleDirectInputChange = (e) => {
+	// 	const { name, value } = e.target;
+	// 	const [section, field] = name.split(".");
+	//
+	// 	if (section && field) {
+	// 		setFormData((prevData) => {
+	// 			// Create a deep copy to avoid unintended references
+	// 			const newData = JSON.parse(JSON.stringify(prevData));
+	// 			// Update only the specific field that changed
+	// 			newData[section][field] = value;
+	// 			return newData;
+	// 		});
+	// 	}
+	// };
 
 	// Handle nested date changes (birthday)
 	const handleDateChange = (dateType, field, value) => {
@@ -529,56 +527,56 @@ const EditParameters = () => {
 	};
 
 	// Create a modern form input component with better focus handling
-	const FormInput = ({
-		label,
-		id,
-		name,
-		value,
-		onChange,
-		type = "text",
-		placeholder = "",
-		prefix = "",
-		suffix = "",
-		className = "",
-	}) => {
-		// Create a unique stable key for this input
-		const inputKey = `${id}-${name}`;
-
-		return (
-			<div className={`mb-4 ${className}`}>
-				<label
-					htmlFor={id}
-					className="block text-gray-700 font-medium mb-2"
-				>
-					{label}
-				</label>
-				<div className="relative">
-					{prefix && (
-						<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-							<span className="text-gray-500">{prefix}</span>
-						</div>
-					)}
-					<input
-						key={inputKey}
-						type={type}
-						id={id}
-						name={name}
-						value={value}
-						onChange={onChange}
-						placeholder={placeholder}
-						className={`w-full px-3 py-2 ${prefix ? "pl-8" : ""} ${
-							suffix ? "pr-8" : ""
-						} border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
-					/>
-					{suffix && (
-						<div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-							<span className="text-gray-500">{suffix}</span>
-						</div>
-					)}
-				</div>
-			</div>
-		);
-	};
+	// const FormInput = ({
+	// 	label,
+	// 	id,
+	// 	name,
+	// 	value,
+	// 	onChange,
+	// 	type = "text",
+	// 	placeholder = "",
+	// 	prefix = "",
+	// 	suffix = "",
+	// 	className = "",
+	// }) => {
+	// 	// Create a unique stable key for this input
+	// 	const inputKey = `${id}-${name}`;
+	//
+	// 	return (
+	// 		<div className={`mb-4 ${className}`}>
+	// 			<label
+	// 				htmlFor={id}
+	// 				className="block text-gray-700 font-medium mb-2"
+	// 			>
+	// 				{label}
+	// 			</label>
+	// 			<div className="relative">
+	// 				{prefix && (
+	// 					<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+	// 						<span className="text-gray-500">{prefix}</span>
+	// 					</div>
+	// 				)}
+	// 				<input
+	// 					key={inputKey}
+	// 					type={type}
+	// 					id={id}
+	// 					name={name}
+	// 					value={value}
+	// 					onChange={onChange}
+	// 					placeholder={placeholder}
+	// 					className={`w-full px-3 py-2 ${prefix ? "pl-8" : ""} ${
+	// 						suffix ? "pr-8" : ""
+	// 					} border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+	// 				/>
+	// 				{suffix && (
+	// 					<div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+	// 						<span className="text-gray-500">{suffix}</span>
+	// 					</div>
+	// 				)}
+	// 			</div>
+	// 		</div>
+	// 	);
+	// };
 
 	// Create a date dropdown component
 	const DateDropdowns = ({ dateType, label, className = "" }) => (
