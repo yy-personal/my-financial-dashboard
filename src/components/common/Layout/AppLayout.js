@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { useFinancial } from "../../../context/FinancialContext";
 import SyncStatusIndicator from "../../common/SyncStatusIndicator";

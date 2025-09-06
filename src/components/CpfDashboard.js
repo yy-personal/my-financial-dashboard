@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useFinancial } from '../context/FinancialContext';
 import CpfCalculator from '../components/CpfCalculator';
 import { EMPLOYEE_TYPE } from '../services/calculations/cpf';
-import useUIPreferences from '../hooks/useUIPreferences';
+// import useUIPreferences from '../hooks/useUIPreferences';
 import { CpfGrowthChart } from './charts';
 
 /**

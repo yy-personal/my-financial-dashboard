@@ -1,6 +1,6 @@
 // src/firebase/firebase.js
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+// import { getAnalytics } from "firebase/analytics";
 import {
 	getAuth,
 	signInWithEmailAndPassword,
