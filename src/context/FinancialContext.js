@@ -1,5 +1,5 @@
 // src/context/FinancialContext.js - Modified for better Firebase syncing
-import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
+import React, { createContext, useState, useEffect, useContext, useCallback, useMemo } from "react";
 import { saveFinancialData, loadFinancialData } from "../firebase/firebase";
 import { useAuth } from "./AuthContext";
 
@@ -14,8 +14,8 @@ export const FinancialProvider = ({ children }) => {
 		lastSync: null,
 	});
 
-	// Initialize state with default values
-	const initialState = {
+	// Initialize state with default values - memoized to prevent re-creation
+	const initialState = useMemo(() => ({
 		personalInfo: {
 			birthday: {
 				month: 9, // September
@@ -55,10 +55,10 @@ export const FinancialProvider = ({ children }) => {
 			enableIntraMonthAnalysis: true, // Enable detailed cash flow timing
 			minimumCashBuffer: 1000, // Minimum cash to maintain before salary
 		},
-	};
+	}), []);
 
-	// Function to migrate old data format to new format
-	const migrateData = (oldData) => {
+	// Function to migrate old data format to new format - memoized to prevent re-creation
+	const migrateData = useCallback((oldData) => {
 		if (!oldData) return initialState;
 
 		// Check if we need to migrate the expenses format from object to array
@@ -223,7 +223,7 @@ export const FinancialProvider = ({ children }) => {
 		}
 
 		return oldData;
-	};
+	}, [initialState]);
 
 	// Get month number from month name
 	const getMonthNumber = (monthName) => {
@@ -322,7 +322,7 @@ export const FinancialProvider = ({ children }) => {
 		loadSavedData().then((data) => {
 			setFinancialData(data);
 		});
-	}, [currentUser]); // Remove loadSavedData from dependencies to prevent infinite loop
+	}, [currentUser, loadSavedData]);
 
 	// Save data whenever it changes
 	useEffect(() => {
@@ -338,10 +338,10 @@ export const FinancialProvider = ({ children }) => {
 			if (currentUser && !isLoading) {
 				try {
 					console.log("Saving data to Firebase");
-					setSyncStatus({
+					setSyncStatus(prev => ({
 						status: "saving",
-						lastSync: syncStatus.lastSync,
-					});
+						lastSync: prev.lastSync,
+					}));
 					await saveFinancialData(currentUser.uid, financialData);
 					console.log("Successfully saved data to Firebase");
 					setSyncStatus({
@@ -350,10 +350,10 @@ export const FinancialProvider = ({ children }) => {
 					});
 				} catch (error) {
 					console.error("Error saving to Firebase:", error);
-					setSyncStatus({
+					setSyncStatus(prev => ({
 						status: "error",
-						lastSync: syncStatus.lastSync,
-					});
+						lastSync: prev.lastSync,
+					}));
 				}
 			} else if (!currentUser) {
 				console.log("User not authenticated, data only saved locally");
@@ -586,7 +586,7 @@ export const FinancialProvider = ({ children }) => {
 		}
 
 		try {
-			setSyncStatus({ status: "saving", lastSync: syncStatus.lastSync });
+			setSyncStatus(prev => ({ status: "saving", lastSync: prev.lastSync }));
 			await saveFinancialData(currentUser.uid, financialData);
 			setSyncStatus({
 				status: "synced",
@@ -595,7 +595,7 @@ export const FinancialProvider = ({ children }) => {
 			return { success: true, error: null };
 		} catch (error) {
 			console.error("Force sync error:", error);
-			setSyncStatus({ status: "error", lastSync: syncStatus.lastSync });
+			setSyncStatus(prev => ({ status: "error", lastSync: prev.lastSync }));
 			return { success: false, error: error.message };
 		}
 	};
