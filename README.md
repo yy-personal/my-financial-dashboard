@@ -226,3 +226,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - All the open-source libraries and tools that made this project possible
 - Financial modeling best practices that informed our projection algorithms
+# Trigger workflow
