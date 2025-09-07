@@ -367,15 +367,15 @@ export const FinancialProvider = ({ children }) => {
 	}, [financialData, currentUser, isLoading]); // Remove syncStatus.lastSync to prevent infinite loop
 
 	// Function to update financial data
-	const updateFinancialData = (newData) => {
+	const updateFinancialData = useCallback((newData) => {
 		setFinancialData((prev) => ({
 			...prev,
 			...newData,
 		}));
-	};
+	}, []);
 
 	// Function to update projection settings
-	const updateProjectionSettings = (settings) => {
+	const updateProjectionSettings = useCallback((settings) => {
 		setFinancialData((prev) => ({
 			...prev,
 			projectionSettings: {
@@ -383,7 +383,7 @@ export const FinancialProvider = ({ children }) => {
 				...settings,
 			},
 		}));
-	};
+	}, []);
 
 	// Calculate total expenses from the expenses array
 	const totalExpenses = Array.isArray(financialData.expenses)
@@ -394,7 +394,7 @@ export const FinancialProvider = ({ children }) => {
 		: 0;
 
 	// Calculate current age based on birthday
-	const calculateAge = () => {
+	const calculateAge = useCallback(() => {
 		const today = new Date();
 		const birthMonth = financialData.personalInfo.birthday.month;
 		const birthYear = financialData.personalInfo.birthday.year;
@@ -410,10 +410,10 @@ export const FinancialProvider = ({ children }) => {
 		}
 
 		return age;
-	};
+	}, [financialData.personalInfo.birthday]);
 
 	// Function to add a new expense category
-	const addExpense = (name, amount, dueDay = 15) => {
+	const addExpense = useCallback((name, amount, dueDay = 15) => {
 		const newExpense = {
 			id: Date.now(), // Use timestamp as unique ID
 			name,
@@ -427,20 +427,20 @@ export const FinancialProvider = ({ children }) => {
 				? [...prev.expenses, newExpense]
 				: [newExpense],
 		}));
-	};
+	}, []);
 
 	// Function to remove an expense category
-	const removeExpense = (id) => {
+	const removeExpense = useCallback((id) => {
 		setFinancialData((prev) => ({
 			...prev,
 			expenses: Array.isArray(prev.expenses)
 				? prev.expenses.filter((expense) => expense.id !== id)
 				: [],
 		}));
-	};
+	}, []);
 
 	// Function to update an existing expense
-	const updateExpense = (id, updates) => {
+	const updateExpense = useCallback((id, updates) => {
 		setFinancialData((prev) => ({
 			...prev,
 			expenses: Array.isArray(prev.expenses)
@@ -449,10 +449,10 @@ export const FinancialProvider = ({ children }) => {
 				  )
 				: [],
 		}));
-	};
+	}, []);
 
 	// Function to add a new yearly bonus
-	const addYearlyBonus = (year, month, amount, description) => {
+	const addYearlyBonus = useCallback((year, month, amount, description) => {
 		const newBonus = {
 			id: Date.now(), // Use timestamp as unique ID
 			year: parseInt(year),
@@ -467,20 +467,20 @@ export const FinancialProvider = ({ children }) => {
 				? [...prev.yearlyBonuses, newBonus]
 				: [newBonus],
 		}));
-	};
+	}, []);
 
 	// Function to remove a yearly bonus
-	const removeYearlyBonus = (id) => {
+	const removeYearlyBonus = useCallback((id) => {
 		setFinancialData((prev) => ({
 			...prev,
 			yearlyBonuses: Array.isArray(prev.yearlyBonuses)
 				? prev.yearlyBonuses.filter((bonus) => bonus.id !== id)
 				: [],
 		}));
-	};
+	}, []);
 
 	// Function to update an existing yearly bonus
-	const updateYearlyBonus = (id, updates) => {
+	const updateYearlyBonus = useCallback((id, updates) => {
 		setFinancialData((prev) => ({
 			...prev,
 			yearlyBonuses: Array.isArray(prev.yearlyBonuses)
@@ -489,10 +489,10 @@ export const FinancialProvider = ({ children }) => {
 				  )
 				: [],
 		}));
-	};
+	}, []);
 
 	// Function to add a new upcoming spending
-	const addUpcomingSpending = (name, amount, day, month, year, description) => {
+	const addUpcomingSpending = useCallback((name, amount, day, month, year, description) => {
 		const newSpending = {
 			id: Date.now(),
 			name,
@@ -509,20 +509,20 @@ export const FinancialProvider = ({ children }) => {
 				? [...prev.upcomingSpending, newSpending]
 				: [newSpending],
 		}));
-	};
+	}, []);
 
 	// Function to remove an upcoming spending
-	const removeUpcomingSpending = (id) => {
+	const removeUpcomingSpending = useCallback((id) => {
 		setFinancialData((prev) => ({
 			...prev,
 			upcomingSpending: Array.isArray(prev.upcomingSpending)
 				? prev.upcomingSpending.filter((spending) => spending.id !== id)
 				: [],
 		}));
-	};
+	}, []);
 
 	// Function to update an existing upcoming spending
-	const updateUpcomingSpending = (id, updates) => {
+	const updateUpcomingSpending = useCallback((id, updates) => {
 		setFinancialData((prev) => ({
 			...prev,
 			upcomingSpending: Array.isArray(prev.upcomingSpending)
@@ -531,10 +531,10 @@ export const FinancialProvider = ({ children }) => {
 				  )
 				: [],
 		}));
-	};
+	}, []);
 
 	// Get month name
-	const getMonthName = (monthNumber) => {
+	const getMonthName = useCallback((monthNumber) => {
 		const months = [
 			"January",
 			"February",
@@ -550,15 +550,29 @@ export const FinancialProvider = ({ children }) => {
 			"December",
 		];
 		return months[monthNumber - 1] || "January";
-	};
+	}, []);
 
 	// Format a date object as a string
-	const formatDate = (dateObj) => {
-		return `${getMonthName(dateObj.month)} ${dateObj.year}`;
-	};
+	const formatDate = useCallback((dateObj) => {
+		const months = [
+			"January",
+			"February",
+			"March",
+			"April",
+			"May",
+			"June",
+			"July",
+			"August",
+			"September",
+			"October",
+			"November",
+			"December",
+		];
+		return `${months[dateObj.month - 1] || "January"} ${dateObj.year}`;
+	}, []);
 
 	// Reset data to initial state (for troubleshooting)
-	const resetData = () => {
+	const resetData = useCallback(() => {
 		localStorage.removeItem("financialData");
 		setFinancialData(initialState);
 
@@ -576,10 +590,10 @@ export const FinancialProvider = ({ children }) => {
 					setSyncStatus({ status: "error", lastSync: null });
 				});
 		}
-	};
+	}, [initialState, currentUser]);
 
 	// Force sync with Firebase (for manual sync button)
-	const forceSyncWithFirebase = async () => {
+	const forceSyncWithFirebase = useCallback(async () => {
 		if (!currentUser) {
 			console.warn("Cannot sync: User not authenticated");
 			return { success: false, error: "Not authenticated" };
@@ -598,7 +612,7 @@ export const FinancialProvider = ({ children }) => {
 			setSyncStatus(prev => ({ status: "error", lastSync: prev.lastSync }));
 			return { success: false, error: error.message };
 		}
-	};
+	}, [currentUser, financialData]);
 
 	// Memoize the context value to prevent unnecessary re-renders
 	const contextValue = useMemo(() => ({
