@@ -4,6 +4,7 @@ import useProjection from "./useProjection";
 import useMilestones from "./useMilestones";
 import useErrorHandler from "./useErrorHandler";
 import { safeGet, safeParseNumber, safeDivide, validateFinancialData } from "../utils/errors/ErrorUtils";
+import { getCpfRates, calculateCpfContributions, EMPLOYEE_TYPE } from "../services/calculations/cpf/cpf-utilities";
 
 /**
  * Enhanced useFinancialCalculations hook with dynamic current month detection
@@ -103,9 +104,28 @@ const useFinancialCalculations = () => {
     return tryCatch(() => {
       const { personalInfo = {}, income = {}, expenses = [] } = financialData;
       
-      // Default values if data is missing
-      const defaultCpfContributionRate = 20; // 20% employee contribution
-      const defaultEmployerCpfRate = 17; // 17% employer contribution
+      // Calculate current age for CPF rate determination
+      const currentAge = calculateCurrentAge();
+      
+      // Get employee type (default to Singaporean)
+      const employeeType = income.employeeType || EMPLOYEE_TYPE.SINGAPOREAN;
+      
+      // Get age-appropriate CPF rates
+      let employeeCpfRate = 20; // Default fallback
+      let employerCpfRate = 17; // Default fallback
+      
+      try {
+        if (currentAge !== null) {
+          const [empRate, emplRate] = getCpfRates(employeeType, currentAge);
+          employeeCpfRate = empRate * 100; // Convert to percentage
+          employerCpfRate = emplRate * 100; // Convert to percentage
+        }
+      } catch (error) {
+        console.warn('Error getting CPF rates, using defaults:', error);
+        // Fall back to user-defined rates if available
+        employeeCpfRate = safeParseNumber(income.cpfRate, 20);
+        employerCpfRate = safeParseNumber(income.employerCpfRate, 17);
+      }
 
       // Calculate total monthly expenses from expenses array
       const totalMonthlyExpenses = Array.isArray(expenses) 
@@ -117,8 +137,8 @@ const useFinancialCalculations = () => {
 
       return {
         salary: currentSalary,
-        cpfContributionRate: safeParseNumber(income.cpfRate, defaultCpfContributionRate),
-        employerCpfContributionRate: safeParseNumber(income.employerCpfRate, defaultEmployerCpfRate),
+        cpfContributionRate: employeeCpfRate,
+        employerCpfContributionRate: employerCpfRate,
         monthlyExpenses: totalMonthlyExpenses,
         loanPayment: safeParseNumber(personalInfo.monthlyRepayment, 0),
         loanRemaining: safeParseNumber(personalInfo.remainingLoan, 0),
@@ -129,7 +149,10 @@ const useFinancialCalculations = () => {
         // Add projection timing info
         projectionStartMonth: currentMonth.month,
         projectionStartYear: currentMonth.year,
-        currentDay: currentMonth.day
+        currentDay: currentMonth.day,
+        // Add age and employee type for reference
+        currentAge,
+        employeeType
       };
     }, [], { source: 'currentValues calculation' });
   }, [financialData, currentMonth, tryCatch]);

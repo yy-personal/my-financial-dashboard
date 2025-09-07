@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import useErrorHandler from './useErrorHandler';
 import { safeParseNumber, safeDivide, createFinancialError } from '../utils/errors/ErrorUtils';
+import { getCpfRates, EMPLOYEE_TYPE } from '../services/calculations/cpf/cpf-utilities';
 
 /**
  * Enhanced useProjection hook with current month awareness
@@ -222,9 +223,31 @@ const useProjection = (initialData, initialSettings) => {
         // For current month, don't add salary if already received
         const effectiveSalary = (isCurrentMonthProjection && salaryAlreadyReceived) ? 0 : currentSalary;
         
-        // Calculate CPF contributions based on effective salary
-        const cpfContribution = effectiveSalary * (cpfContributionRate / 100);
-        const employerCpfContribution = effectiveSalary * (employerCpfContributionRate / 100);
+        // Calculate age-based CPF contributions for this projection month
+        let monthCpfRate = cpfContributionRate / 100; // Default fallback
+        let monthEmployerCpfRate = employerCpfContributionRate / 100; // Default fallback
+        
+        // Calculate age at this projection month (if birth year is available)
+        if (data.currentAge !== undefined && data.currentAge !== null) {
+          const monthsElapsed = month;
+          const currentAge = data.currentAge;
+          const projectedAge = currentAge + Math.floor(monthsElapsed / 12);
+          
+          try {
+            const employeeType = data.employeeType || EMPLOYEE_TYPE.SINGAPOREAN;
+            const [empRate, emplRate] = getCpfRates(employeeType, projectedAge);
+            monthCpfRate = empRate;
+            monthEmployerCpfRate = emplRate;
+          } catch (error) {
+            // Use original rates as fallback
+            monthCpfRate = cpfContributionRate / 100;
+            monthEmployerCpfRate = employerCpfContributionRate / 100;
+          }
+        }
+        
+        // Calculate CPF contributions based on age-appropriate rates
+        const cpfContribution = effectiveSalary * monthCpfRate;
+        const employerCpfContribution = effectiveSalary * monthEmployerCpfRate;
         
         // Calculate take-home pay
         const takeHomePay = effectiveSalary - cpfContribution;
@@ -385,7 +408,39 @@ const useProjection = (initialData, initialSettings) => {
         }
       };
     }, [], { source: 'generateProjection', data, settings });
-  }, [data, settings, validateInputs, tryCatch, getBonusForMonth, getUpcomingSpendingForMonth]);
+  }, [
+    // Only recalculate when key financial data changes
+    data?.salary,
+    data?.cpfContributionRate,
+    data?.employerCpfContributionRate,
+    data?.monthlyExpenses,
+    data?.loanPayment,
+    data?.loanRemaining,
+    data?.liquidCash,
+    data?.cpfBalance,
+    data?.interestRate,
+    data?.currentAge,
+    data?.employeeType,
+    
+    // Key settings that affect calculation
+    settings?.annualSalaryIncrease,
+    settings?.annualExpenseIncrease,
+    settings?.annualInvestmentReturn,
+    settings?.annualCpfInterestRate,
+    settings?.projectionYears,
+    settings?.bonusMonths,
+    settings?.bonusAmount,
+    settings?.projectionStartMonth,
+    settings?.projectionStartYear,
+    settings?.yearlyBonuses,
+    settings?.upcomingSpending,
+    
+    // Function dependencies (these are memoized)
+    validateInputs, 
+    tryCatch, 
+    getBonusForMonth, 
+    getUpcomingSpendingForMonth
+  ]);
 
   // Effect to regenerate projection when data or settings change
   useEffect(() => {
@@ -465,8 +520,8 @@ const useProjection = (initialData, initialSettings) => {
       projectionStartYear: year 
     }),
     
-    // Enhanced projection insights
-    getProjectionInsights: () => {
+    // Enhanced projection insights - memoized for performance
+    getProjectionInsights: useMemo(() => {
       if (!projectionData.length) return null;
       
       const lastProjection = projectionData[projectionData.length - 1];
@@ -486,7 +541,7 @@ const useProjection = (initialData, initialSettings) => {
             year: 'numeric' 
           }) : 'Current month'
       };
-    }
+    }, [projectionData, settings.projectionStartMonth, settings.projectionStartYear])
   };
 };
 

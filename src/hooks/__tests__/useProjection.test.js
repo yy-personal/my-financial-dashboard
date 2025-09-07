@@ -1,5 +1,5 @@
-import { renderHook, act } from '@testing-library/react-hooks';
-import useProjection from '../index';
+import { renderHook, act } from '@testing-library/react';
+import useProjection from '../useProjection';
 
 // Mock date-fns
 jest.mock('date-fns', () => ({

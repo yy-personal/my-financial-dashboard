@@ -600,32 +600,54 @@ export const FinancialProvider = ({ children }) => {
 		}
 	};
 
+	// Memoize the context value to prevent unnecessary re-renders
+	const contextValue = useMemo(() => ({
+		financialData,
+		updateFinancialData,
+		updateProjectionSettings,
+		totalExpenses,
+		calculateAge,
+		addExpense,
+		removeExpense,
+		updateExpense,
+		addYearlyBonus,
+		removeYearlyBonus,
+		updateYearlyBonus,
+		addUpcomingSpending,
+		removeUpcomingSpending,
+		updateUpcomingSpending,
+		getMonthName,
+		formatDate,
+		resetData,
+		isLoading,
+		syncStatus,
+		forceSyncWithFirebase,
+	}), [
+		financialData,
+		updateFinancialData,
+		updateProjectionSettings,
+		totalExpenses,
+		calculateAge,
+		addExpense,
+		removeExpense,
+		updateExpense,
+		addYearlyBonus,
+		removeYearlyBonus,
+		updateYearlyBonus,
+		addUpcomingSpending,
+		removeUpcomingSpending,
+		updateUpcomingSpending,
+		getMonthName,
+		formatDate,
+		resetData,
+		isLoading,
+		syncStatus,
+		forceSyncWithFirebase,
+	]);
+
 	// Provide the context value
 	return (
-		<FinancialContext.Provider
-			value={{
-				financialData,
-				updateFinancialData,
-				updateProjectionSettings,
-				totalExpenses,
-				calculateAge,
-				addExpense,
-				removeExpense,
-				updateExpense,
-				addYearlyBonus,
-				removeYearlyBonus,
-				updateYearlyBonus,
-				addUpcomingSpending,
-				removeUpcomingSpending,
-				updateUpcomingSpending,
-				getMonthName,
-				formatDate,
-				resetData,
-				isLoading,
-				syncStatus,
-				forceSyncWithFirebase,
-			}}
-		>
+		<FinancialContext.Provider value={contextValue}>
 			{children}
 		</FinancialContext.Provider>
 	);

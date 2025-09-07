@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import PropTypes from "prop-types";
 import {
   AreaChart,
@@ -122,4 +122,4 @@ SavingsGrowthChart.propTypes = {
   savingsGoalReachedMonth: PropTypes.object
 };
 
-export default SavingsGrowthChart;
+export default memo(SavingsGrowthChart);

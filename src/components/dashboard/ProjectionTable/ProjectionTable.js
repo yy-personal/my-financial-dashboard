@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import PropTypes from "prop-types";
 import Card from "../../common/Card";
 import { formatCurrency } from "../../../services/formatters/currencyFormatters";
@@ -315,4 +315,4 @@ ProjectionTable.propTypes = {
   timeframe: PropTypes.string.isRequired
 };
 
-export default ProjectionTable;
+export default memo(ProjectionTable);

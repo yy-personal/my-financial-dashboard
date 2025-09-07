@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import PropTypes from "prop-types";
 import {
   ComposedChart,
@@ -164,4 +164,4 @@ NetWorthChart.propTypes = {
   savingsGoalReachedMonth: PropTypes.object
 };
 
-export default NetWorthChart;
+export default memo(NetWorthChart);
