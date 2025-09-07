@@ -2,12 +2,30 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Recent Improvements (2025)
+
+### Performance & Accuracy Updates
+This codebase has been significantly optimized with:
+- ✅ **Age-based CPF calculations** integrated for Singapore users
+- ✅ **React.memo optimizations** on expensive chart components  
+- ✅ **Context memoization** with useCallback for all functions
+- ✅ **Enhanced UI spacing** with responsive breakpoints
+- ✅ **Build optimization** with ESLint compliance
+
+### Key Files Modified
+- `src/context/FinancialContext.js` - Optimized with useCallback functions
+- `src/hooks/useProjection.js` - Enhanced with CPF age progression
+- `src/hooks/useFinancialCalculations.js` - Integrated CPF utilities
+- `src/components/charts/*` - Memoized with React.memo
+- `src/components/dashboard/UpcomingSpending/*` - Enhanced spacing
+- `src/components/EditParameters.js` - Expanded layout and improved UX
+
 ## Common Development Commands
 
 ### Build and Development
 - `npm start` - Start development server at http://localhost:3000
-- `npm run build` - Build for production
-- `npm test` - Run all tests
+- `npm run build` - Build for production (now ESLint compliant!)
+- `npm test` - Run all tests  
 - `npm test -- --watch` - Run tests in watch mode
 - `npm test -- --coverage` - Generate test coverage report
 
@@ -22,10 +40,10 @@ This is a React-based financial dashboard application that helps users track and
 ### Key Architectural Patterns
 
 **State Management Strategy:**
-- Global state via React Context API (`FinancialContext`) for financial data
-- Custom hooks for complex business logic and calculations
-- Local component state for UI-specific interactions
-- Firebase integration for authenticated users with localStorage fallback
+- **Optimized Global State**: React Context API (`FinancialContext`) with memoized values and useCallback functions
+- **Performance-Focused Hooks**: Custom hooks with intelligent dependency arrays and memoization
+- **Component Optimization**: Strategic React.memo usage on expensive components (charts, tables)
+- **Firebase Integration**: Authenticated user sync with localStorage fallback and sync status indicators
 
 **Component Architecture:**
 - Modular component structure under `src/components/`
@@ -76,11 +94,12 @@ The application manages structured financial data including:
 ### Key Development Notes
 
 **Financial Calculations:**
-- All projections start from the current month by default
-- Salary is received at the beginning of each month (simplified model)
-- CPF contributions calculated based on Singapore regulations
-- Loan payments include principal and interest calculations
-- Investment returns applied monthly with compound growth
+- **Dynamic CPF Integration**: Age-based CPF rates that automatically adjust during multi-year projections
+- **Singapore-Specific**: Authentic CPF calculations for Singaporeans, SPRs, and Foreigners with proper age brackets
+- **Smart Projections**: All projections start from current month with salary timing awareness
+- **Loan Modeling**: Principal and interest calculations with early payoff detection
+- **Investment Growth**: Monthly compound returns with configurable rates
+- **Performance Optimized**: Memoized calculations that only recalculate when relevant data changes
 
 **Error Handling:**
 - Comprehensive error boundaries at component level
@@ -109,9 +128,36 @@ The application manages structured financial data including:
 - `src/utils/errors/` - Error handling utilities
 - `docs/ARCHITECTURE.md` - Detailed architectural documentation
 
-When making changes:
-1. Follow existing component patterns and naming conventions
-2. Maintain financial calculation accuracy and validation
-3. Ensure proper error handling and user feedback
-4. Test calculations thoroughly, especially edge cases
-5. Consider impact on Firebase data structure and migration needs
+## Current Development Best Practices
+
+When making changes to this optimized codebase:
+
+### Performance Considerations
+1. **Use React.memo** for expensive components (charts, tables, complex calculations)
+2. **Wrap functions in useCallback** when passing to memoized components or context
+3. **Use useMemo** for expensive calculations or object creation
+4. **Check dependency arrays** - only include values that should trigger re-computation
+
+### Component Development
+5. **Follow existing patterns** - component structure, naming conventions, and folder organization
+6. **Maintain responsive design** - use established breakpoints (sm:, md:, lg:, xl:)
+7. **Use consistent spacing** - follow the p-6, gap-6, mb-8 spacing hierarchy
+8. **Add hover states** for interactive elements using transition classes
+
+### Financial Calculations
+9. **Leverage CPF utilities** - use `getCpfRates()` for accurate age-based calculations
+10. **Validate financial logic** thoroughly, especially for edge cases and age transitions
+11. **Test projections** across different age groups and employee types
+12. **Consider aging effects** when building multi-year projections
+
+### Code Quality
+13. **Ensure ESLint compliance** - build will fail with ESLint errors
+14. **Add proper error handling** with user-friendly messages
+15. **Test thoroughly** - especially complex hooks and financial calculations
+16. **Consider Firebase impact** when modifying data structures
+
+### UI/UX Standards
+17. **Use established Card component** with consistent styling
+18. **Follow responsive grid patterns** - 1/2/3 column layouts as appropriate
+19. **Maintain accessibility** with proper labels and semantic HTML
+20. **Test across breakpoints** to ensure good mobile/tablet experience
