@@ -322,7 +322,7 @@ export const FinancialProvider = ({ children }) => {
 		loadSavedData().then((data) => {
 			setFinancialData(data);
 		});
-	}, [currentUser, loadSavedData]); // This will reload data whenever the user changes
+	}, [currentUser]); // Remove loadSavedData from dependencies to prevent infinite loop
 
 	// Save data whenever it changes
 	useEffect(() => {
@@ -364,7 +364,7 @@ export const FinancialProvider = ({ children }) => {
 		if (!isLoading) {
 			saveData();
 		}
-	}, [financialData, currentUser, isLoading, syncStatus.lastSync]);
+	}, [financialData, currentUser, isLoading]); // Remove syncStatus.lastSync to prevent infinite loop
 
 	// Function to update financial data
 	const updateFinancialData = (newData) => {
