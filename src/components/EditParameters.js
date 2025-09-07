@@ -652,19 +652,19 @@ const EditParameters = () => {
 	);
 
 	return (
-		<div className="bg-white rounded-lg shadow-lg max-w-4xl mx-auto">
-			<div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white p-4 rounded-t-lg">
+		<div className="bg-white rounded-lg shadow-lg max-w-6xl mx-auto">
+			<div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white p-6 rounded-t-lg">
 				<h1 className="text-xl md:text-2xl font-bold">
 					Edit Financial Parameters
 				</h1>
-				<p className="text-blue-100 mt-1">
+				<p className="text-blue-100 mt-2">
 					Customize your financial dashboard settings
 				</p>
 			</div>
 
-			<form onSubmit={handleSubmit} className="p-4">
+			<form onSubmit={handleSubmit} className="p-6">
 				{/* Personal Information Section */}
-				<div className="mb-6 border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+				<div className="mb-8 border border-gray-200 rounded-lg shadow-sm overflow-hidden">
 					<SectionHeader
 						title="Personal Information"
 						section="personal"
@@ -686,8 +686,8 @@ const EditParameters = () => {
 					/>
 
 					{activeSection === "personal" && (
-						<div className="p-4 bg-white">
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div className="p-6 bg-white">
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 								<DateDropdowns
 									dateType="birthday"
 									label="Birthday"
@@ -842,7 +842,7 @@ const EditParameters = () => {
 				</div>
 
 				{/* Combined Income & CPF Section */}
-				<div className="mb-6 border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+				<div className="mb-8 border border-gray-200 rounded-lg shadow-sm overflow-hidden">
 					<SectionHeader
 						title="Income & CPF Management"
 						section="income-cpf"
@@ -864,13 +864,13 @@ const EditParameters = () => {
 					/>
 
 					{activeSection === "income-cpf" && (
-						<div className="p-4 bg-white">
+						<div className="p-6 bg-white">
 							{/* Income Section */}
 							<div className="mb-6">
 								<h3 className="text-lg font-semibold mb-4 text-blue-700 border-b pb-2">
 									Income Information
 								</h3>
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 									{/* Current Monthly Salary input - simple version */}
 									<div className="mb-4">
 										<label className="block text-gray-700 font-medium mb-2">
@@ -1548,7 +1548,7 @@ const EditParameters = () => {
 									</p>
 								</div>
 
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 									{/* Current CPF Balance input - simple version */}
 									<div className="mb-4">
 										<label className="block text-gray-700 font-medium mb-2">
@@ -1707,7 +1707,7 @@ const EditParameters = () => {
 				</div>
 
 				{/* Monthly Expenses Section */}
-				<div className="mb-6 border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+				<div className="mb-8 border border-gray-200 rounded-lg shadow-sm overflow-hidden">
 					<SectionHeader
 						title="Monthly Expenses"
 						section="expenses"
@@ -1729,7 +1729,7 @@ const EditParameters = () => {
 					/>
 
 					{activeSection === "expenses" && (
-						<div className="p-4 bg-white">
+						<div className="p-6 bg-white">
 							{/* Existing expenses list */}
 							<div className="mb-4 overflow-x-auto">
 								<table className="w-full border-collapse">
@@ -2387,17 +2387,17 @@ const EditParameters = () => {
 					)}
 				</div>
 
-				<div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-6">
+				<div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 mt-8 pt-6 border-t border-gray-200">
 					<button
 						type="button"
 						onClick={() => navigate("/")}
-						className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors"
+						className="px-6 py-3 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors font-medium"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center"
+						className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center font-medium"
 					>
 						<svg
 							className="w-4 h-4 mr-2"

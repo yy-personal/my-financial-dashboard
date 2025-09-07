@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { useFinancial } from '../../../context/FinancialContext';
 import { formatCurrency } from '../../../services/formatters/currencyFormatters';
 import Card from '../../common/Card';
@@ -37,27 +37,27 @@ const UpcomingSpending = () => {
             {sortedUpcomingSpending.map((spending) => (
               <div
                 key={spending.id}
-                className="bg-white p-4 rounded-lg border border-gray-200"
+                className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900 mb-2">{spending.name}</h4>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-600">
-                      <div>
-                        <span className="text-xs text-gray-500 uppercase tracking-wider block sm:hidden">Date:</span>
-                        <span>{formatSpendingDate(spending)}</span>
+                    <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-gray-600">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-gray-500 uppercase tracking-wider font-medium">Date</span>
+                        <span className="mt-1 font-medium">{formatSpendingDate(spending)}</span>
                       </div>
-                      <div>
-                        <span className="text-xs text-gray-500 uppercase tracking-wider block sm:hidden">Amount:</span>
-                        <span className="font-medium text-purple-600">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-gray-500 uppercase tracking-wider font-medium">Amount</span>
+                        <span className="mt-1 font-semibold text-purple-600 text-lg">
                           {formatCurrency(spending.amount)}
                         </span>
                       </div>
                       {spending.description && (
-                        <div>
-                          <span className="text-xs text-gray-500 uppercase tracking-wider block sm:hidden">Description:</span>
-                          <span>{spending.description}</span>
+                        <div className="flex flex-col sm:col-span-2 lg:col-span-1">
+                          <span className="text-xs text-gray-500 uppercase tracking-wider font-medium">Description</span>
+                          <span className="mt-1">{spending.description}</span>
                         </div>
                       )}
                     </div>
@@ -92,4 +92,4 @@ const UpcomingSpending = () => {
   );
 };
 
-export default UpcomingSpending;
+export default memo(UpcomingSpending);

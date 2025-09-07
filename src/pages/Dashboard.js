@@ -438,18 +438,18 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="bg-gray-50 rounded-lg max-w-6xl mx-auto">
+    <div className="bg-gray-50 rounded-lg max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white p-4 rounded-lg mb-6 shadow-md">
-        <h1 className="text-xl md:text-2xl font-bold text-center">
+      <div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white p-6 rounded-lg mb-8 shadow-md">
+        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-center">
           PERSONAL FINANCIAL DASHBOARD
         </h1>
       </div>
 
       {/* Mobile-friendly Navigation Tabs */}
-      <div className="flex overflow-x-auto mb-6 bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="flex overflow-x-auto mb-8 bg-white rounded-lg shadow-sm border border-gray-200">
         <button
-          className={`py-3 px-4 font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
+          className={`py-4 px-6 font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
             activeTab === "summary"
               ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
               : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
@@ -459,7 +459,7 @@ const Dashboard = () => {
           Summary
         </button>
         <button
-          className={`py-3 px-4 font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
+          className={`py-4 px-6 font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
             activeTab === "milestones"
               ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
               : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
@@ -469,7 +469,7 @@ const Dashboard = () => {
           Milestones
         </button>
         <button
-          className={`py-3 px-4 font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
+          className={`py-4 px-6 font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
             activeTab === "charts"
               ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
               : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
@@ -479,7 +479,7 @@ const Dashboard = () => {
           Charts
         </button>
         <button
-          className={`py-3 px-4 font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
+          className={`py-4 px-6 font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
             activeTab === "projection"
               ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
               : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
@@ -489,7 +489,7 @@ const Dashboard = () => {
           Projection
         </button>
         <button
-          className={`py-3 px-4 font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
+          className={`py-4 px-6 font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
             activeTab === "cpf"
               ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
               : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"

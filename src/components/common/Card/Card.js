@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import PropTypes from "prop-types";
 
 /**
@@ -12,13 +12,13 @@ import PropTypes from "prop-types";
  * @returns {JSX.Element}
  */
 const Card = ({ children, title, className = "", titleColor = "bg-blue-600" }) => (
-  <div className={`bg-white rounded-lg shadow-md overflow-hidden ${className}`}>
+  <div className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden ${className}`}>
     {title && (
-      <div className={`${titleColor} px-4 py-3`}>
+      <div className={`${titleColor} px-6 py-4`}>
         <h2 className="text-lg font-semibold text-white">{title}</h2>
       </div>
     )}
-    <div className="p-4">{children}</div>
+    <div className="p-6">{children}</div>
   </div>
 );
 
@@ -29,4 +29,4 @@ Card.propTypes = {
   titleColor: PropTypes.string,
 };
 
-export default Card;
+export default memo(Card);
