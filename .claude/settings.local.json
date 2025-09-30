@@ -3,7 +3,11 @@
     "allow": [
       "Bash(rm:*)",
       "Bash(npm run build:*)",
-      "Bash(npm run deploy:*)"
+      "Bash(npm run deploy:*)",
+      "Bash(npm test:*)",
+      "Bash(awk:*)",
+      "Bash(find:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }
