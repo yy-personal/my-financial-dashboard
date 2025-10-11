@@ -8,7 +8,31 @@
  * - Modern Portfolio Theory
  * - Singapore investment landscape (CPF, bonds, equities, REITs)
  * - Risk-adjusted performance metrics (Sharpe ratio, volatility)
+ *
+ * Performance Optimizations:
+ * - Memoization cache for frequently called calculations
+ * - Input validation for robustness
  */
+
+// Memoization cache for compound growth calculations (max 100 entries)
+const compoundGrowthCache = new Map();
+const CACHE_MAX_SIZE = 100;
+
+// Helper function to create cache key
+const createCacheKey = (...args) => {
+  return args.map(arg => {
+    if (typeof arg === 'number') return arg.toFixed(4);
+    return String(arg);
+  }).join('|');
+};
+
+// Helper function to manage cache size
+const manageCacheSize = (cache) => {
+  if (cache.size >= CACHE_MAX_SIZE) {
+    const firstKey = cache.keys().next().value;
+    cache.delete(firstKey);
+  }
+};
 
 /**
  * Asset class definitions with typical Singapore market characteristics
@@ -65,7 +89,7 @@ export const ASSET_CLASSES = {
 };
 
 /**
- * Calculate compound interest with periodic contributions
+ * Calculate compound interest with periodic contributions (with memoization)
  *
  * @param {number} principal - Initial investment amount
  * @param {number} monthlyContribution - Monthly contribution amount
@@ -81,22 +105,49 @@ export const calculateCompoundGrowth = (
   years,
   compoundingFrequency = 12
 ) => {
+  // Input validation
+  if (principal < 0 || monthlyContribution < 0 || years <= 0) {
+    return {
+      finalValue: 0,
+      totalContributions: 0,
+      totalReturns: 0,
+      principalGrowth: 0,
+      contributionsGrowth: 0,
+      returnRate: 0,
+      years: 0
+    };
+  }
+
+  // Check cache for memoized result
+  const cacheKey = createCacheKey(principal, monthlyContribution, annualReturnRate, years, compoundingFrequency);
+  if (compoundGrowthCache.has(cacheKey)) {
+    return compoundGrowthCache.get(cacheKey);
+  }
+
   const periods = years * compoundingFrequency;
   const ratePerPeriod = annualReturnRate / compoundingFrequency;
 
-  // Future value of initial principal
-  const principalGrowth = principal * Math.pow(1 + ratePerPeriod, periods);
+  let principalGrowth, contributionsGrowth;
 
-  // Future value of monthly contributions (annuity)
-  const contributionsGrowth =
-    monthlyContribution *
-    ((Math.pow(1 + ratePerPeriod, periods) - 1) / ratePerPeriod);
+  // Handle zero return rate separately to avoid division by zero
+  if (ratePerPeriod === 0) {
+    principalGrowth = principal;
+    contributionsGrowth = monthlyContribution * periods;
+  } else {
+    // Future value of initial principal
+    principalGrowth = principal * Math.pow(1 + ratePerPeriod, periods);
+
+    // Future value of monthly contributions (annuity)
+    contributionsGrowth =
+      monthlyContribution *
+      ((Math.pow(1 + ratePerPeriod, periods) - 1) / ratePerPeriod);
+  }
 
   const totalValue = principalGrowth + contributionsGrowth;
   const totalContributions = principal + monthlyContribution * periods;
   const totalReturns = totalValue - totalContributions;
 
-  return {
+  const result = {
     finalValue: Math.round(totalValue * 100) / 100,
     totalContributions: Math.round(totalContributions * 100) / 100,
     totalReturns: Math.round(totalReturns * 100) / 100,
@@ -105,6 +156,12 @@ export const calculateCompoundGrowth = (
     returnRate: annualReturnRate * 100,
     years
   };
+
+  // Store in cache
+  manageCacheSize(compoundGrowthCache);
+  compoundGrowthCache.set(cacheKey, result);
+
+  return result;
 };
 
 /**
@@ -114,13 +171,23 @@ export const calculateCompoundGrowth = (
  * @returns {Object} Portfolio metrics
  */
 export const calculatePortfolioMetrics = (allocations) => {
+  // Input validation
+  if (!Array.isArray(allocations) || allocations.length === 0) {
+    return {
+      expectedReturn: 0,
+      volatility: 0,
+      sharpeRatio: 0,
+      riskLevel: 'N/A'
+    };
+  }
+
   let expectedReturn = 0;
   let portfolioVariance = 0;
 
   // Calculate weighted expected return
   allocations.forEach((allocation) => {
     const asset = ASSET_CLASSES[allocation.assetClass];
-    if (asset) {
+    if (asset && typeof allocation.percentage === 'number') {
       expectedReturn += asset.expectedReturn * (allocation.percentage / 100);
     }
   });

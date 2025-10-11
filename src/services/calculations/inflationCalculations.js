@@ -32,6 +32,18 @@ export const SINGAPORE_INFLATION_RATES = {
  * @returns {Object} Future nominal and real value breakdown
  */
 export const calculateInflationAdjusted = (currentValue, inflationRate, years) => {
+  // Input validation
+  if (currentValue < 0 || years < 0) {
+    return {
+      currentValue: 0,
+      futureNominalValue: 0,
+      inflationRate: 0,
+      years: 0,
+      totalInflation: 0,
+      purchasingPowerLoss: 0
+    };
+  }
+
   const inflationMultiplier = Math.pow(1 + inflationRate / 100, years);
   const futureNominalValue = currentValue * inflationMultiplier;
 
@@ -67,17 +79,30 @@ export const calculatePresentValue = (futureValue, inflationRate, years) => {
 };
 
 /**
- * Calculate real return (inflation-adjusted return)
+ * Calculate real return (inflation-adjusted return) using Fisher equation
  *
  * @param {number} nominalReturn - Nominal return rate as percentage
  * @param {number} inflationRate - Inflation rate as percentage
  * @returns {Object} Real return and Fisher equation breakdown
  */
 export const calculateRealReturn = (nominalReturn, inflationRate) => {
+  // Input validation
+  if (typeof nominalReturn !== 'number' || typeof inflationRate !== 'number') {
+    return {
+      nominalReturn: 0,
+      inflationRate: 0,
+      realReturn: 0,
+      approximateRealReturn: 0,
+      difference: 0
+    };
+  }
+
   // Fisher equation: (1 + real) = (1 + nominal) / (1 + inflation)
+  // This is the accurate formula for real returns
   const realReturn = ((1 + nominalReturn / 100) / (1 + inflationRate / 100) - 1) * 100;
 
-  // Simplified approximation
+  // Simplified approximation (only accurate for small rates)
+  // This approximation is less accurate and should only be used for quick estimates
   const approximateRealReturn = nominalReturn - inflationRate;
 
   return {

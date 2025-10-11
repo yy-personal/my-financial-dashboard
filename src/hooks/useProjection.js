@@ -143,13 +143,17 @@ const useProjection = (initialData, initialSettings) => {
         upcomingSpending = []
       } = settings;
 
-      // Convert annual rates to monthly
+      // Convert annual rates to monthly - Pre-calculated for performance
       const monthlySalaryIncrease = Math.pow(1 + annualSalaryIncrease / 100, 1 / 12) - 1;
       const monthlyExpenseIncrease = Math.pow(1 + annualExpenseIncrease / 100, 1 / 12) - 1;
       const monthlyInvestmentReturn = Math.pow(1 + annualInvestmentReturn / 100, 1 / 12) - 1;
       const monthlyCpfInterestRate = Math.pow(1 + annualCpfInterestRate / 100, 1 / 12) - 1;
-      const monthlyLoanInterestRate = interestRate ? 
+      const monthlyLoanInterestRate = interestRate ?
         Math.pow(1 + interestRate / 100, 1 / 12) - 1 : 0;
+
+      // Pre-calculate multipliers for salary and expense growth (avoid repeated calculations)
+      const salaryGrowthMultiplier = 1 + monthlySalaryIncrease;
+      const expenseGrowthMultiplier = 1 + monthlyExpenseIncrease;
 
       // Prepare projection array
       const projection = [];
@@ -172,19 +176,19 @@ const useProjection = (initialData, initialSettings) => {
       // Start projection from specified month/year
       const startDate = new Date(projectionStartYear, projectionStartMonth - 1, 1);
       const currentDate = new Date();
-      const isCurrentMonth = 
-        startDate.getFullYear() === currentDate.getFullYear() && 
+      const isCurrentMonth =
+        startDate.getFullYear() === currentDate.getFullYear() &&
         startDate.getMonth() === currentDate.getMonth();
-      
+
+      // Pre-calculate month names for formatting (performance optimization)
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
       for (let month = 0; month < totalMonths; month++) {
-        // Calculate the projection date starting from the specified start month
-        const projectionDate = new Date(
-          projectionStartYear, 
-          projectionStartMonth - 1 + month, 
-          1
-        );
-        const year = projectionDate.getFullYear();
-        const monthIndex = projectionDate.getMonth();
+        // Calculate year and month using arithmetic (faster than Date constructor)
+        const totalMonthsFromStart = projectionStartMonth - 1 + month;
+        const year = projectionStartYear + Math.floor(totalMonthsFromStart / 12);
+        const monthIndex = totalMonthsFromStart % 12;
         
         // Check for yearly bonuses first
         const yearlyBonus = getBonusForMonth(year, monthIndex + 1, yearlyBonuses);
@@ -207,10 +211,10 @@ const useProjection = (initialData, initialSettings) => {
         const monthSpendingAmount = upcomingSpendingData.totalAmount;
         const hasUpcomingSpending = monthSpendingAmount > 0;
         
-        // Increment salary and expenses with monthly increases
+        // Increment salary and expenses with monthly increases using pre-calculated multipliers
         if (month > 0) {
-          currentSalary *= (1 + monthlySalaryIncrease);
-          currentExpenses *= (1 + monthlyExpenseIncrease);
+          currentSalary *= salaryGrowthMultiplier;
+          currentExpenses *= expenseGrowthMultiplier;
         }
         
         // Check if salary has already been received this month
@@ -295,9 +299,9 @@ const useProjection = (initialData, initialSettings) => {
         
         // Calculate net worth
         const totalNetWorth = currentLiquidCash + currentCpfBalance - currentLoanRemaining;
-        
-        // Format date consistently
-        const formattedDate = `${projectionDate.toLocaleString('default', { month: 'short' })} ${projectionDate.getFullYear()}`;
+
+        // Format date consistently using pre-calculated month names (performance optimized)
+        const formattedDate = `${monthNames[monthIndex]} ${year}`;
         
         // Calculate cash flow components for better analysis
         const totalIncome = effectiveSalary + employerCpfContribution + monthBonusAmount;
