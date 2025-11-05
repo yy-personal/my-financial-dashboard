@@ -11,6 +11,8 @@ import { formatCurrency, formatPercent } from "../services/formatters/currencyFo
 import CpfDashboard from "../components/CpfDashboard";
 import CashFlowTiming from "../components/dashboard/CashFlowTiming";
 import UpcomingSpending from "../components/dashboard/UpcomingSpending";
+import YearlyExpenseBreakdown from "../components/charts/YearlyExpenseBreakdown";
+import ConsolidatedExpenseBreakdown from "../components/charts/ConsolidatedExpenseBreakdown";
 import useIntraMonthCashFlow from "../hooks/useIntraMonthCashFlow";
 
 /**
@@ -28,6 +30,7 @@ const Dashboard = () => {
   } = useContext(FinancialContext);
 
   const [activeTab, setActiveTab] = useState("summary");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   // Cash flow timing analysis
   const { cashFlowAnalysis, liquidityWarnings } = useIntraMonthCashFlow(financialData);
@@ -720,6 +723,54 @@ const Dashboard = () => {
 
           {/* Upcoming Spending */}
           <UpcomingSpending />
+
+          {/* Yearly Expenses Section */}
+          {financialData.yearlyExpenses && financialData.yearlyExpenses.length > 0 && (
+            <div className="space-y-6">
+              {/* Year Selector for Yearly Expenses */}
+              <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-amber-500">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Yearly Expenses Analysis</h3>
+                    <p className="text-sm text-gray-600 mt-1">View yearly expenses for a specific year</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="yearSelector" className="text-sm font-medium text-gray-700">
+                      Select Year:
+                    </label>
+                    <select
+                      id="yearSelector"
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                    >
+                      {[...Array(10)].map((_, i) => {
+                        const year = new Date().getFullYear() - 2 + i;
+                        return (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Yearly Expense Breakdown */}
+              <YearlyExpenseBreakdown
+                yearlyExpenses={financialData.yearlyExpenses}
+                selectedYear={selectedYear}
+              />
+
+              {/* Consolidated Expense Breakdown (Monthly + Yearly) */}
+              <ConsolidatedExpenseBreakdown
+                monthlyExpenses={financialData.expenses}
+                yearlyExpenses={financialData.yearlyExpenses}
+                selectedYear={selectedYear}
+              />
+            </div>
+          )}
         </div>
       )}
 

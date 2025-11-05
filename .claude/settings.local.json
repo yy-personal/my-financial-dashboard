@@ -10,7 +10,8 @@
       "Bash(node:*)",
       "Bash(cat:*)",
       "Bash(git add:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

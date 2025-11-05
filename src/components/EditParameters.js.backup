@@ -21,9 +21,6 @@ const EditParameters = () => {
 	// Use useRef to keep track of next id for upcoming spending
 	const nextUpcomingSpendingId = useRef(1);
 
-	// Use useRef to keep track of next id for yearly expenses
-	const nextYearlyExpenseId = useRef(1);
-
 	// Initialize formData with proper structure for salary adjustments and yearly bonuses
 	const initializeFormData = () => {
 		// Check if there are salary adjustments in the context
@@ -72,17 +69,6 @@ const EditParameters = () => {
 			nextUpcomingSpendingId.current = maxSpendingId + 1;
 		}
 
-		// Check if there are yearly expenses in the context
-		const yearlyExpenses = financialData.yearlyExpenses || [];
-
-		// Find the largest ID for yearly expenses to update the ref
-		if (yearlyExpenses.length > 0) {
-			const maxExpenseId = Math.max(
-				...yearlyExpenses.map((expense) => expense.id)
-			);
-			nextYearlyExpenseId.current = maxExpenseId + 1;
-		}
-
 		return {
 			personalInfo: {
 				...financialData.personalInfo,
@@ -125,10 +111,6 @@ const EditParameters = () => {
 				amount: String(spending.amount),
 				day: String(spending.day || 15),
 			})),
-		yearlyExpenses: yearlyExpenses.map((expense) => ({
-			...expense,
-			amount: String(expense.amount),
-		})),
 			newExpense: { name: "", amount: "", dueDay: "15" },
 			newSalaryAdjustment: {
 				month: new Date().getMonth() + 1,
@@ -141,16 +123,7 @@ const EditParameters = () => {
 				amount: "",
 				description: "Year End Bonus",
 			},
-			newYearlyExpense: {
-			name: "",
-			amount: "",
-			month: new Date().getMonth() + 1,
-			startYear: new Date().getFullYear(),
-			endYear: "",
-			isRecurring: true,
-			description: "",
-		},
-		newUpcomingSpending: {
+			newUpcomingSpending: {
 				name: "",
 				amount: "",
 				day: "15",
@@ -436,76 +409,6 @@ const EditParameters = () => {
 			return newData;
 		});
 	};
-	// Handle yearly expense field changes
-	const handleYearlyExpenseChange = (index, field, value) => {
-		setFormData((prevData) => {
-			const newData = { ...prevData };
-			const updatedExpenses = [...newData.yearlyExpenses];
-			updatedExpenses[index] = {
-				...updatedExpenses[index],
-				[field]: value,
-			};
-			newData.yearlyExpenses = updatedExpenses;
-			return newData;
-		});
-	};
-
-	// Handle changes to new yearly expense form
-	const handleNewYearlyExpenseChange = (field, value) => {
-		setFormData((prevData) => {
-			const newData = { ...prevData };
-			newData.newYearlyExpense = {
-				...newData.newYearlyExpense,
-				[field]: value,
-			};
-			return newData;
-		});
-	};
-
-	// Handle adding a new yearly expense
-	const handleAddYearlyExpense = () => {
-		const { name, amount, month, startYear, endYear, isRecurring, description } = formData.newYearlyExpense;
-
-		if (name && amount) {
-			const newExpense = {
-				id: Date.now(),
-				name: name,
-				amount: parseFloat(amount),
-				month: parseInt(month),
-				startYear: parseInt(startYear),
-				endYear: endYear ? parseInt(endYear) : null,
-				isRecurring: isRecurring,
-				description: description,
-			};
-
-			setFormData((prevData) => {
-				const newData = { ...prevData };
-				newData.yearlyExpenses = [...newData.yearlyExpenses, newExpense];
-				// Reset the new expense form
-				newData.newYearlyExpense = {
-					name: "",
-					amount: "",
-					month: new Date().getMonth() + 1,
-					startYear: new Date().getFullYear(),
-					endYear: "",
-					isRecurring: true,
-					description: "",
-				};
-				return newData;
-			});
-		}
-	};
-
-	// Handle removing a yearly expense
-	const handleRemoveYearlyExpense = (id) => {
-		setFormData((prevData) => {
-			const newData = { ...prevData };
-			newData.yearlyExpenses = newData.yearlyExpenses.filter(
-				(expense) => expense.id !== id
-			);
-			return newData;
-		});
-	};
 
 	// Handle removing an expense
 	const handleRemoveExpense = (id) => {
@@ -612,21 +515,12 @@ const EditParameters = () => {
 			year: parseInt(spending.year) || new Date().getFullYear(),
 		}));
 
-	// Process yearly expenses - convert strings to proper types
-	const processedYearlyExpenses = formData.yearlyExpenses.map((expense) => ({
-		...expense,
-		amount: parseFloat(expense.amount) || 0,
-		month: parseInt(expense.month) || 1,
-		startYear: parseInt(expense.startYear) || new Date().getFullYear(),
-		endYear: expense.endYear ? parseInt(expense.endYear) : null,
-	}));
 		// Update the financial data with properly converted values
 		updateFinancialData({
 			...processedData,
 			expenses: processedExpenses,
 			yearlyBonuses: processedBonuses,
 			upcomingSpending: processedUpcomingSpending,
-		yearlyExpenses: processedYearlyExpenses,
 		});
 
 		navigate("/");
