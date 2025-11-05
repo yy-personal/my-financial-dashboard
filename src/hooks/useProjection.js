@@ -96,17 +96,38 @@ const useProjection = (initialData, initialSettings) => {
   // Get upcoming spending for a specific month
   const getUpcomingSpendingForMonth = useCallback((year, month, day, upcomingSpending = []) => {
     if (!Array.isArray(upcomingSpending)) return { totalAmount: 0, items: [] };
-    
-    const monthSpending = upcomingSpending.filter(spending => 
+
+    const monthSpending = upcomingSpending.filter(spending =>
       spending.year === year && spending.month === month
     );
-    
+
     const totalAmount = monthSpending.reduce((sum, spending) => sum + safeParseNumber(spending.amount, 0), 0);
-    
-    return { 
-      totalAmount, 
+
+    return {
+      totalAmount,
       items: monthSpending,
       description: monthSpending.map(s => s.name).join(', ')
+    };
+  }, []);
+
+  // Get yearly expenses for a specific month and year
+  const getYearlyExpensesForMonthAndYear = useCallback((year, month, yearlyExpenses = []) => {
+    if (!Array.isArray(yearlyExpenses)) return { totalAmount: 0, items: [] };
+
+    const monthExpenses = yearlyExpenses.filter(expense => {
+      // Check if expense applies to this month and year
+      const appliesInThisYear = expense.startYear <= year && (!expense.endYear || expense.endYear >= year);
+      const isThisMonth = expense.month === month;
+
+      return appliesInThisYear && isThisMonth;
+    });
+
+    const totalAmount = monthExpenses.reduce((sum, expense) => sum + safeParseNumber(expense.amount, 0), 0);
+
+    return {
+      totalAmount,
+      items: monthExpenses,
+      description: monthExpenses.map(e => e.name).join(', ')
     };
   }, []);
 
@@ -129,17 +150,18 @@ const useProjection = (initialData, initialSettings) => {
         interestRate = 0
       } = data;
 
-      const { 
-        annualSalaryIncrease = 3.0, 
-        annualExpenseIncrease = 2.0, 
-        annualInvestmentReturn = 4.0, 
-        annualCpfInterestRate = 2.5, 
+      const {
+        annualSalaryIncrease = 3.0,
+        annualExpenseIncrease = 2.0,
+        annualInvestmentReturn = 4.0,
+        annualCpfInterestRate = 2.5,
         projectionYears = 30,
         bonusMonths = 2,
         bonusAmount = safeParseNumber(settings.bonusAmount || salary, salary),
         projectionStartMonth = new Date().getMonth() + 1,
         projectionStartYear = new Date().getFullYear(),
         yearlyBonuses = [],
+        yearlyExpenses = [],
         upcomingSpending = []
       } = settings;
 
@@ -210,7 +232,12 @@ const useProjection = (initialData, initialSettings) => {
         const upcomingSpendingData = getUpcomingSpendingForMonth(year, monthIndex + 1, 15, upcomingSpending);
         const monthSpendingAmount = upcomingSpendingData.totalAmount;
         const hasUpcomingSpending = monthSpendingAmount > 0;
-        
+
+        // Check for yearly expenses this month
+        const yearlyExpenseData = getYearlyExpensesForMonthAndYear(year, monthIndex + 1, yearlyExpenses);
+        const monthYearlyExpenseAmount = yearlyExpenseData.totalAmount;
+        const hasYearlyExpense = monthYearlyExpenseAmount > 0;
+
         // Increment salary and expenses with monthly increases using pre-calculated multipliers
         if (month > 0) {
           currentSalary *= salaryGrowthMultiplier;
@@ -273,8 +300,8 @@ const useProjection = (initialData, initialSettings) => {
           loanPaidOffIndex = month;
         }
         
-        // Calculate monthly savings (take-home minus expenses and loan payment, plus bonus, minus upcoming spending)
-        const monthlySavings = takeHomePay - currentExpenses - actualLoanPayment + monthBonusAmount - monthSpendingAmount;
+        // Calculate monthly savings (take-home minus expenses and loan payment, plus bonus, minus upcoming spending, minus yearly expenses)
+        const monthlySavings = takeHomePay - currentExpenses - actualLoanPayment + monthBonusAmount - monthSpendingAmount - monthYearlyExpenseAmount;
         
         // Update cash savings with new savings plus investment returns
         const investmentReturn = currentLiquidCash * monthlyInvestmentReturn;
@@ -305,7 +332,7 @@ const useProjection = (initialData, initialSettings) => {
         
         // Calculate cash flow components for better analysis
         const totalIncome = effectiveSalary + employerCpfContribution + monthBonusAmount;
-        const totalOutflow = currentExpenses + actualLoanPayment + cpfContribution + monthSpendingAmount;
+        const totalOutflow = currentExpenses + actualLoanPayment + cpfContribution + monthSpendingAmount + monthYearlyExpenseAmount;
         const netCashFlow = totalIncome - totalOutflow;
         
         // Add enhanced month data to projection
@@ -355,7 +382,13 @@ const useProjection = (initialData, initialSettings) => {
           upcomingSpendingItems: upcomingSpendingData.items,
           upcomingSpendingDescription: upcomingSpendingData.description,
           hasUpcomingSpending,
-          
+
+          // Yearly expenses data
+          yearlyExpenseAmount: monthYearlyExpenseAmount,
+          yearlyExpenseItems: yearlyExpenseData.items,
+          yearlyExpenseDescription: yearlyExpenseData.description,
+          hasYearlyExpense,
+
           // Additional metadata
           year,
           monthIndex: monthIndex + 1,
@@ -437,13 +470,15 @@ const useProjection = (initialData, initialSettings) => {
     settings?.projectionStartMonth,
     settings?.projectionStartYear,
     settings?.yearlyBonuses,
+    settings?.yearlyExpenses,
     settings?.upcomingSpending,
-    
+
     // Function dependencies (these are memoized)
-    validateInputs, 
-    tryCatch, 
-    getBonusForMonth, 
-    getUpcomingSpendingForMonth
+    validateInputs,
+    tryCatch,
+    getBonusForMonth,
+    getUpcomingSpendingForMonth,
+    getYearlyExpensesForMonthAndYear
   ]);
 
   // Effect to regenerate projection when data or settings change

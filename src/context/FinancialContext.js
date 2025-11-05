@@ -49,6 +49,7 @@ export const FinancialProvider = ({ children }) => {
 				description: "Year End Bonus",
 			},
 		],
+		yearlyExpenses: [],
 		upcomingSpending: [],
 		projectionSettings: {
 			rowsToDisplay: 36, // Default to 36 months (3 years)
@@ -110,6 +111,11 @@ export const FinancialProvider = ({ children }) => {
 			oldData.yearlyBonuses = initialState.yearlyBonuses;
 		}
 
+		// Add yearlyExpenses if it doesn't exist
+		if (!oldData.yearlyExpenses) {
+			oldData.yearlyExpenses = initialState.yearlyExpenses;
+		}
+
 		// Add upcomingSpending if it doesn't exist
 		if (!oldData.upcomingSpending) {
 			oldData.upcomingSpending = initialState.upcomingSpending;
@@ -129,7 +135,7 @@ export const FinancialProvider = ({ children }) => {
 			oldData.personalInfo.currentCpfBalance =
 				initialState.personalInfo.currentCpfBalance;
 		}
-		
+
 		// Add employeeType if it doesn't exist
 		if (
 			oldData &&
@@ -150,7 +156,7 @@ export const FinancialProvider = ({ children }) => {
 			if (oldData.income.salaryAdjustmentYear !== undefined) {
 				delete oldData.income.salaryAdjustmentYear;
 			}
-			
+
 			// Add salaryDay if it doesn't exist
 			if (typeof oldData.income.salaryDay === "undefined") {
 				oldData.income.salaryDay = initialState.income.salaryDay;
@@ -161,7 +167,7 @@ export const FinancialProvider = ({ children }) => {
 		if (oldData && oldData.expenses && Array.isArray(oldData.expenses)) {
 			oldData.expenses = oldData.expenses.map((expense, index) => ({
 				...expense,
-				dueDay: expense.dueDay !== undefined ? expense.dueDay : 
+				dueDay: expense.dueDay !== undefined ? expense.dueDay :
 					(initialState.expenses[index]?.dueDay || 15) // Default to mid-month
 			}));
 		}
@@ -491,6 +497,49 @@ export const FinancialProvider = ({ children }) => {
 		}));
 	}, []);
 
+	// Function to add a new yearly expense
+	const addYearlyExpense = useCallback((name, amount, month, startYear, endYear, isRecurring, description) => {
+		const newYearlyExpense = {
+			id: Date.now(), // Use timestamp as unique ID
+			name,
+			amount: parseFloat(amount) || 0,
+			month: parseInt(month),
+			startYear: parseInt(startYear),
+			endYear: endYear ? parseInt(endYear) : null, // null = recurring forever
+			isRecurring: isRecurring !== false, // Default to true if not specified
+			description: description || "",
+		};
+
+		setFinancialData((prev) => ({
+			...prev,
+			yearlyExpenses: Array.isArray(prev.yearlyExpenses)
+				? [...prev.yearlyExpenses, newYearlyExpense]
+				: [newYearlyExpense],
+		}));
+	}, []);
+
+	// Function to remove a yearly expense
+	const removeYearlyExpense = useCallback((id) => {
+		setFinancialData((prev) => ({
+			...prev,
+			yearlyExpenses: Array.isArray(prev.yearlyExpenses)
+				? prev.yearlyExpenses.filter((expense) => expense.id !== id)
+				: [],
+		}));
+	}, []);
+
+	// Function to update an existing yearly expense
+	const updateYearlyExpense = useCallback((id, updates) => {
+		setFinancialData((prev) => ({
+			...prev,
+			yearlyExpenses: Array.isArray(prev.yearlyExpenses)
+				? prev.yearlyExpenses.map((expense) =>
+						expense.id === id ? { ...expense, ...updates } : expense
+				  )
+				: [],
+		}));
+	}, []);
+
 	// Function to add a new upcoming spending
 	const addUpcomingSpending = useCallback((name, amount, day, month, year, description) => {
 		const newSpending = {
@@ -627,6 +676,9 @@ export const FinancialProvider = ({ children }) => {
 		addYearlyBonus,
 		removeYearlyBonus,
 		updateYearlyBonus,
+		addYearlyExpense,
+		removeYearlyExpense,
+		updateYearlyExpense,
 		addUpcomingSpending,
 		removeUpcomingSpending,
 		updateUpcomingSpending,
@@ -648,6 +700,9 @@ export const FinancialProvider = ({ children }) => {
 		addYearlyBonus,
 		removeYearlyBonus,
 		updateYearlyBonus,
+		addYearlyExpense,
+		removeYearlyExpense,
+		updateYearlyExpense,
 		addUpcomingSpending,
 		removeUpcomingSpending,
 		updateUpcomingSpending,

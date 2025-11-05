@@ -306,18 +306,57 @@ const useFinancialCalculations = () => {
       month: safeParseNumber(month, currentMonth?.month || 1),
       year: safeParseNumber(year, currentMonth?.year || new Date().getFullYear()),
       day: 1,
-      formatted: new Date(year, month - 1, 1).toLocaleDateString('en-US', { 
-        month: 'long', 
-        year: 'numeric' 
+      formatted: new Date(year, month - 1, 1).toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric'
       })
     };
     setProjectionStartDate(customStartDate);
-    
+
     // Update projection settings
     updateSettings({
       projectionStartMonth: customStartDate.month,
       projectionStartYear: customStartDate.year
     });
+  };
+
+  // Helper function to get yearly expenses that apply to a specific year
+  const getYearlyExpensesForYear = (targetYear) => {
+    if (!financialData?.yearlyExpenses || !Array.isArray(financialData.yearlyExpenses)) {
+      return [];
+    }
+
+    return financialData.yearlyExpenses.filter(expense => {
+      // Check if expense applies to this year based on start/end dates
+      const startsBeforeOrDuring = expense.startYear <= targetYear;
+      const endsAfterOrDuring = !expense.endYear || expense.endYear >= targetYear;
+
+      return startsBeforeOrDuring && endsAfterOrDuring;
+    });
+  };
+
+  // Helper function to get yearly expenses for a specific month and year
+  const getYearlyExpensesForMonthAndYear = (month, year) => {
+    const yearlyExpensesForYear = getYearlyExpensesForYear(year);
+
+    return yearlyExpensesForYear.filter(expense => expense.month === month);
+  };
+
+  // Helper function to calculate total yearly expenses for a given year
+  const getTotalYearlyExpensesForYear = (targetYear) => {
+    const yearlyExpensesForYear = getYearlyExpensesForYear(targetYear);
+
+    return yearlyExpensesForYear.reduce(
+      (total, expense) => total + safeParseNumber(expense.amount, 0),
+      0
+    );
+  };
+
+  // Helper function to calculate average monthly impact of yearly expenses
+  const getAverageMonthlyYearlyExpenseImpact = (targetYear) => {
+    const totalYearlyExpenses = getTotalYearlyExpensesForYear(targetYear);
+
+    return safeParseNumber(totalYearlyExpenses, 0) / 12;
   };
 
   // Calculate asset allocation data for charts/displays
@@ -520,7 +559,13 @@ const useFinancialCalculations = () => {
     updateCurrentCpfBalance,
     setCustomProjectionStart,
     clearOldSalaryAdjustmentFields, // NEW function to clear old fields
-    
+
+    // NEW: Yearly expenses calculation helpers
+    getYearlyExpensesForYear,
+    getYearlyExpensesForMonthAndYear,
+    getTotalYearlyExpensesForYear,
+    getAverageMonthlyYearlyExpenseImpact,
+
     // Enhanced utility functions
     formatCurrency: (amount) => `$${safeParseNumber(amount, 0).toLocaleString()}`,
     formatPercentage: (percentage) => `${safeParseNumber(percentage, 0).toFixed(1)}%`,

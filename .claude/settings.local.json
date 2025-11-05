@@ -7,7 +7,10 @@
       "Bash(npm test:*)",
       "Bash(awk:*)",
       "Bash(find:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(cat:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)"
     ],
     "deny": []
   }
