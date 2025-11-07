@@ -36,7 +36,8 @@ npm run build
 
 ### Financial Planning
 - **CPF Integration**: Age-accurate Singapore CPF calculations with automatic rate adjustments based on age brackets (55, 60, 65, 70)
-- **Financial Projections**: Multi-year projections with aging-based CPF rate calculations
+- **Financial Projections**: Multi-year projections with aging-based CPF rate calculations and yearly expense integration
+- **Expense Tracking**: Monthly and yearly expenses with recurring/one-time support and start/end dates
 - **Loan Analysis**: Amortization schedules, early payoff analysis, and affordability calculations
 - **Investment Tracking**: Portfolio allocation with Modern Portfolio Theory metrics
 - **Tax Calculations**: Singapore personal income tax with YA 2025 rates and reliefs
@@ -44,8 +45,9 @@ npm run build
 
 ### Visualization
 - **Interactive Charts**: Net worth growth, savings projections, and cash flow analysis
+- **Expense Analysis**: Categorized monthly expense breakdown with yearly expense visualization
+- **Consolidated View**: Combined monthly and yearly expense analysis by year
 - **Asset Allocation**: Visual breakdown of investment portfolio
-- **Expense Tracking**: Categorized monthly expense analysis
 - **Milestone Timeline**: Track financial goals and achievements
 
 ### User Experience
@@ -197,7 +199,7 @@ my-financial-dashboard/
 │   ├── components/          # React components
 │   │   ├── common/          # Shared UI components (Card, InfoItem, etc.)
 │   │   ├── dashboard/       # Dashboard-specific components
-│   │   └── charts/          # Chart components (NetWorthChart, etc.)
+│   │   └── charts/          # Chart components (NetWorthChart, YearlyExpenseBreakdown, etc.)
 │   ├── context/             # React Context providers
 │   │   └── FinancialContext.js
 │   ├── hooks/               # Custom React hooks
@@ -224,10 +226,13 @@ my-financial-dashboard/
 
 | Path | Description |
 |------|-------------|
-| `src/context/FinancialContext.js` | Central state management with Firebase sync |
-| `src/hooks/useProjection.js` | Core financial projection engine |
+| `src/context/FinancialContext.js` | Central state management with Firebase sync and yearly expenses |
+| `src/hooks/useProjection.js` | Core financial projection engine with yearly expense integration |
 | `src/services/calculations/` | 8+ financial calculation modules |
 | `src/components/dashboard/` | Main dashboard components |
+| `src/components/EditParameters.js` | Settings form with yearly expenses management |
+| `src/components/charts/YearlyExpenseBreakdown.js` | Yearly expenses visualization component |
+| `src/components/charts/ConsolidatedExpenseBreakdown.js` | Monthly + yearly expense analysis |
 
 ## Performance
 
@@ -280,6 +285,45 @@ For complete API documentation, see [CALCULATIONS.md](CALCULATIONS.md).
 - **useErrorHandler**: Comprehensive error handling and recovery
 
 For detailed hook documentation, see [docs/HOOKS.md](docs/HOOKS.md).
+
+## Yearly Expenses
+
+### Overview
+
+The dashboard includes comprehensive support for tracking yearly (annual) expenses alongside monthly expenses. This allows for better financial planning by accounting for irregular expenses like insurance, taxes, and maintenance.
+
+### Features
+
+- **Recurring Expenses**: Track expenses that occur every year (no end date)
+- **One-Time Expenses**: Define expenses with specific start and end years
+- **Flexible Dates**: Set the month when expense occurs and years it applies
+- **Visualization**: Dedicated breakdown views and consolidated analysis
+- **Integration**: Automatically deducted in financial projections during applicable months
+
+### Management
+
+Yearly expenses are managed in the **Edit Parameters** form under the "Yearly Expenses" section:
+
+1. **Add New Expense**: Name, annual amount, month, start year, and optional end year
+2. **Edit Existing**: Change any field including amount, date, or type (recurring/one-time)
+3. **Remove**: Delete expenses no longer needed
+4. **View Total**: Automatic calculation of total yearly expense amount
+
+### Dashboard Visualization
+
+Two complementary views on the Summary tab:
+
+1. **Yearly Expense Breakdown**:
+   - Pie chart showing expense distribution
+   - Summary cards with total, average monthly impact, and count
+   - Detailed table with all expenses for selected year
+   - Year selector for multi-year analysis
+
+2. **Consolidated Expense Breakdown**:
+   - Combined view of monthly and yearly expenses
+   - Bar chart showing total monthly impact
+   - Expense distribution across all categories
+   - Monthly average calculations
 
 ## Architecture
 
