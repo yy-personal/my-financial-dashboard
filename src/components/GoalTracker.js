@@ -8,25 +8,15 @@ const GoalTracker = () => {
     // Initialize goals from context or create default goals
     const [goals, setGoals] = useState(
         financialData.goals || [
-            { 
-                id: 1, 
-                name: "Emergency Fund", 
-                targetAmount: 15000, 
-                currentAmount: financialData.personalInfo.currentSavings, 
+            {
+                id: 1,
+                name: "Emergency Fund",
+                targetAmount: 15000,
+                currentAmount: financialData.personalInfo.currentSavings,
                 targetDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
                 category: "savings",
                 priority: "high",
                 color: "#0088FE"
-            },
-            { 
-                id: 2, 
-                name: "Pay Off Loan", 
-                targetAmount: financialData.personalInfo.remainingLoan, 
-                currentAmount: financialData.personalInfo.remainingLoan - financialData.personalInfo.monthlyRepayment * 3, 
-                targetDate: new Date(new Date().setFullYear(new Date().getFullYear() + 2)),
-                category: "debt",
-                priority: "medium",
-                color: "#00C49F"
             }
         ]
     );

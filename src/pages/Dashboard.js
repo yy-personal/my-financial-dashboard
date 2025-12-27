@@ -58,7 +58,6 @@ const Dashboard = () => {
 
     // Initial values
     let currentSavings = personalInfo.currentSavings;
-    let loanRemaining = personalInfo.remainingLoan;
     let cpfBalance = personalInfo.currentCpfBalance || 0; // Use user-provided CPF balance
     const birthYear = personalInfo.birthday.year;
     const birthMonth = personalInfo.birthday.month;
@@ -68,9 +67,6 @@ const Dashboard = () => {
     const cpfRate = income.cpfRate / 100;
     const employerCpfRate = income.employerCpfRate / 100;
     const monthlyExpenses = totalExpenses;
-    const loanPayment = personalInfo.monthlyRepayment;
-    const annualInterestRate = personalInfo.interestRate / 100;
-    const monthlyInterestRate = annualInterestRate / 12;
 
     // Calculate months - auto-detect current month
     const currentDate = new Date();
@@ -104,7 +100,6 @@ const Dashboard = () => {
       : [];
 
     // Track milestones
-    let loanPaidOffMonth = null;
     let savingsGoalReachedMonth = null; // This will now track only cash savings (excluding CPF)
 
     // Generate projection for 60 months (5 years)
@@ -175,28 +170,6 @@ const Dashboard = () => {
         }
       }
 
-      // Calculate loan payment and remaining balance
-      let actualLoanPayment = loanPayment;
-      let interestForMonth = loanRemaining * monthlyInterestRate;
-      let principalPayment = Math.min(
-        loanRemaining,
-        loanPayment - interestForMonth
-      );
-
-      if (loanRemaining <= 0) {
-        interestForMonth = 0;
-        principalPayment = 0;
-        actualLoanPayment = 0;
-        loanRemaining = 0;
-      } else {
-        loanRemaining = Math.max(0, loanRemaining - principalPayment);
-      }
-
-      // Record loan paid off milestone
-      if (loanRemaining === 0 && loanPaidOffMonth === null) {
-        loanPaidOffMonth = month;
-      }
-
       // Check if this is the current month and handle salary timing
       const isCurrentMonthProjection = month === 0;
       const salaryDay = income.salaryDay || 25; // Default to 25th if not specified
@@ -210,7 +183,7 @@ const Dashboard = () => {
       
       // Calculate monthly savings (including any bonuses, minus upcoming spending)
       const monthlySavings =
-        effectiveTakeHomePay - monthlyExpenses - actualLoanPayment + bonusAmount - upcomingSpendingAmount;
+        effectiveTakeHomePay - monthlyExpenses + bonusAmount - upcomingSpendingAmount;
 
       // Update balances - use effective values for current month
       cpfBalance += effectiveCpfContribution + effectiveEmployerCpf;
@@ -222,7 +195,7 @@ const Dashboard = () => {
         currentSavings += monthlySavings;
       }
       
-      const totalNetWorth = currentSavings + cpfBalance - loanRemaining;
+      const totalNetWorth = currentSavings + cpfBalance;
 
       // Record savings goal milestone - now only for cash savings (excluding CPF)
       if (currentSavings >= 100000 && savingsGoalReachedMonth === null) {
@@ -239,8 +212,6 @@ const Dashboard = () => {
         takeHomePay: effectiveTakeHomePay, // Use effective take-home for current month
         monthlyExpenses: monthlyExpenses, // Match the expected field name
         expenses: monthlyExpenses,
-        loanPayment: actualLoanPayment,
-        loanRemaining: loanRemaining,
         monthlySavings: monthlySavings,
         bonusAmount: bonusAmount,
         bonusDescription: bonusDescription,
@@ -254,9 +225,7 @@ const Dashboard = () => {
         cashSavings: currentSavings,
         totalNetWorth: totalNetWorth,
         milestone:
-          month === loanPaidOffMonth
-            ? "Loan Paid Off"
-            : month === savingsGoalReachedMonth
+          month === savingsGoalReachedMonth
             ? "100K Cash Savings Goal"
             : bonusAmount > 0
             ? bonusDescription
@@ -268,8 +237,6 @@ const Dashboard = () => {
 
     return {
       projection,
-      loanPaidOffMonth:
-        loanPaidOffMonth !== null ? projection[loanPaidOffMonth] : null,
       savingsGoalReachedMonth:
         savingsGoalReachedMonth !== null
           ? projection[savingsGoalReachedMonth]
@@ -277,7 +244,7 @@ const Dashboard = () => {
     };
   };
 
-  const { projection, loanPaidOffMonth, savingsGoalReachedMonth } =
+  const { projection, savingsGoalReachedMonth } =
     calculateProjection();
 
   // Expense breakdown for pie chart
@@ -286,19 +253,9 @@ const Dashboard = () => {
       name: expense.name,
       value: expense.amount,
     })),
-    {
-      name: "Loan Payment",
-      value: financialData.personalInfo.monthlyRepayment,
-    },
   ];
 
   // Extract summary data
-  const timeToPayLoan = loanPaidOffMonth
-    ? `${Math.floor(loanPaidOffMonth.month / 12)} years ${
-        loanPaidOffMonth.month % 12
-      } months`
-    : "Not within projection";
-
   const timeToSavingsGoal = savingsGoalReachedMonth
     ? `${Math.floor(savingsGoalReachedMonth.month / 12)} years ${
         savingsGoalReachedMonth.month % 12
@@ -556,37 +513,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Remaining Loan Card */}
-            <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-red-500">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Remaining Loan
-                  </p>
-                  <p className="text-2xl font-bold text-red-700">
-                    {formatCurrency(
-                      financialData.personalInfo
-                        .remainingLoan
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {timeToPayLoan !==
-                    "Not within projection"
-                      ? `Paid off in ${timeToPayLoan}`
-                      : "Long-term loan"}
-                  </p>
-                </div>
-                <StatusIndicator
-                  value={
-                    financialData.personalInfo.remainingLoan
-                  }
-                  threshold1={20000}
-                  threshold2={40000}
-                  reverse={true}
-                />
-              </div>
-            </div>
-
             {/* Net Worth Card */}
             <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500">
               <p className="text-sm text-gray-500">
@@ -596,12 +522,11 @@ const Dashboard = () => {
                 {formatCurrency(
                   financialData.personalInfo.currentSavings +
                     (financialData.personalInfo
-                      .currentCpfBalance || 0) -
-                    financialData.personalInfo.remainingLoan
+                      .currentCpfBalance || 0)
                 )}
               </p>
               <p className="text-xs text-gray-500">
-                Assets minus liabilities
+                Total assets
               </p>
             </div>
           </div>
@@ -779,10 +704,9 @@ const Dashboard = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-6">
             {/* Net Worth Chart */}
-            <NetWorthChart 
-              chartData={chartData} 
-              loanPaidOffMonth={loanPaidOffMonth} 
-              savingsGoalReachedMonth={savingsGoalReachedMonth} 
+            <NetWorthChart
+              chartData={chartData}
+              savingsGoalReachedMonth={savingsGoalReachedMonth}
             />
 
             {/* Savings Growth Chart */}
@@ -823,31 +747,6 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-700 font-medium">
-                      Student Loan Paid Off
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {loanPaidOffMonth
-                        ? loanPaidOffMonth.date
-                        : "Not within projection"}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {timeToPayLoan}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {loanPaidOffMonth
-                        ? loanPaidOffMonth.age
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {loanPaidOffMonth
-                        ? formatCurrency(
-                            loanPaidOffMonth.cashSavings
-                          )
-                        : "-"}
-                    </td>
-                  </tr>
                   <tr className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-700 font-medium">
                       $100,000 Savings Achieved
@@ -931,173 +830,8 @@ const Dashboard = () => {
             </div>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Progress Towards Loan Payment */}
-            <Card title="Progress Towards Loan Payment">
-              {loanPaidOffMonth && (
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">
-                      Original Loan:{" "}
-                      <span className="font-medium">
-                        {formatCurrency(
-                          financialData.personalInfo
-                            .remainingLoan
-                        )}
-                      </span>
-                    </span>
-                    <span className="text-gray-600">
-                      Remaining:{" "}
-                      <span className="font-medium text-green-600">
-                        {formatCurrency(
-                          financialData.personalInfo
-                            .remainingLoan > 0
-                            ? projection[0]
-                                .loanRemaining
-                            : 0
-                        )}
-                      </span>
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                    <div
-                      className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-out"
-                      style={{
-                        width: `${Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            ((financialData
-                              .personalInfo
-                              .remainingLoan -
-                              projection[0]
-                                .loanRemaining) /
-                              financialData
-                                .personalInfo
-                                .remainingLoan) *
-                              100
-                          )
-                        )}%`,
-                      }}
-                    ></div>
-                  </div>
-                  <div className="p-4 bg-green-50 rounded-lg border border-green-200 mt-4">
-                    <div className="flex items-start">
-                      <svg
-                        className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        ></path>
-                      </svg>
-                      <div>
-                        <p className="text-green-800 font-medium">
-                          Congratulations! You'll be
-                          debt-free by{" "}
-                          <span className="font-bold">
-                            {loanPaidOffMonth.date}
-                          </span>{" "}
-                          at age{" "}
-                          {loanPaidOffMonth.age}.
-                        </p>
-                        <p className="mt-1 text-green-700">
-                          Total repayment period:{" "}
-                          {timeToPayLoan} from{" "}
-                          {getMonthName(new Date().getMonth() + 1)}{" "}
-                          {new Date().getFullYear()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {!loanPaidOffMonth && (
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">
-                      Original Loan:{" "}
-                      <span className="font-medium">
-                        {formatCurrency(
-                          financialData.personalInfo
-                            .remainingLoan
-                        )}
-                      </span>
-                    </span>
-                    <span className="text-gray-600">
-                      Remaining:{" "}
-                      <span className="font-medium text-red-600">
-                        {formatCurrency(
-                          projection[
-                            projection.length - 1
-                          ].loanRemaining
-                        )}
-                      </span>
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                    <div
-                      className="bg-blue-500 h-4 rounded-full transition-all duration-500 ease-out"
-                      style={{
-                        width: `${Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            (1 -
-                              projection[
-                                projection.length -
-                                  1
-                              ].loanRemaining /
-                                financialData
-                                  .personalInfo
-                                  .remainingLoan) *
-                              100
-                          )
-                        )}%`,
-                      }}
-                    ></div>
-                  </div>
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mt-4">
-                    <div className="flex items-start">
-                      <svg
-                        className="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        ></path>
-                      </svg>
-                      <div>
-                        <p className="text-blue-800 font-medium">
-                          You're making progress, but
-                          your loan won't be fully
-                          paid within the 5-year
-                          projection period.
-                        </p>
-                        <p className="mt-1 text-blue-700">
-                          Consider increasing your
-                          monthly payments to
-                          accelerate debt payoff.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </Card>
-
-            {/* Progress Towards Savings Goal */}
-            <Card title="Progress Towards $100K Cash Savings">
+          {/* Progress Towards Savings Goal */}
+          <Card title="Progress Towards $100K Cash Savings">
               {savingsGoalReachedMonth && (
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm mb-1">
@@ -1248,7 +982,6 @@ const Dashboard = () => {
                 </div>
               )}
             </Card>
-          </div>
         </div>
       )}
 
@@ -1434,38 +1167,13 @@ const Dashboard = () => {
           </div>
 
           {/* Show milestone information if available */}
-          {(loanPaidOffMonth ||
-            savingsGoalReachedMonth ||
+          {(savingsGoalReachedMonth ||
             financialData.yearlyBonuses?.length > 0) && (
             <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h3 className="font-medium text-blue-700 mb-2">
                 Key Milestones:
               </h3>
               <ul className="space-y-2">
-                {loanPaidOffMonth && (
-                  <li className="flex items-start">
-                    <svg
-                      className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      ></path>
-                    </svg>
-                    <span>
-                      <span className="font-medium">
-                        Loan Paid Off:
-                      </span>{" "}
-                      {loanPaidOffMonth.date} (Month{" "}
-                      {loanPaidOffMonth.month})
-                    </span>
-                  </li>
-                )}
                 {savingsGoalReachedMonth && (
                   <li className="flex items-start">
                     <svg

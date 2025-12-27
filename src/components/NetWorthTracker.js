@@ -39,20 +39,20 @@ const NetWorthTracker = () => {
             const randomFactor = 0.95 + Math.random() * 0.1; // 0.95 to 1.05
             const currentSavings = financialData.personalInfo.currentSavings;
             const currentCpfBalance = financialData.personalInfo.currentCpfBalance || 0;
-            const remainingLoan = financialData.personalInfo.remainingLoan;
-            
+            const remainingLoan = 0; // No loans
+
             // Calculate backwards with some randomness
             const adjustmentFactor = 1 - (0.03 * (11 - i)); // Older months have lower values
-            
+
             // Additional assets
             const investments = financialData.investments?.reduce((total, investment) => total + investment.value, 0) || 0;
             const investmentsAdjusted = investments * adjustmentFactor * randomFactor;
-            
+
             // Other assets (property, vehicle, etc)
             const otherAssets = 0; // Default to 0, user will add these
-            
+
             // Liabilities
-            const adjustedLoan = remainingLoan / adjustmentFactor;
+            const adjustedLoan = 0; // No loans
             const otherDebts = 0; // Default to 0, user will add these
             
             history.push({
@@ -85,7 +85,7 @@ const NetWorthTracker = () => {
         cpf: financialData.personalInfo.currentCpfBalance || 0,
         investments: financialData.investments?.reduce((total, investment) => total + investment.value, 0) || 0,
         otherAssets: 0,
-        loans: financialData.personalInfo.remainingLoan,
+        loans: 0, // No loans
         otherDebts: 0
     });
     

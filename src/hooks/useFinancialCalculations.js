@@ -140,11 +140,8 @@ const useFinancialCalculations = () => {
         cpfContributionRate: employeeCpfRate,
         employerCpfContributionRate: employerCpfRate,
         monthlyExpenses: totalMonthlyExpenses,
-        loanPayment: safeParseNumber(personalInfo.monthlyRepayment, 0),
-        loanRemaining: safeParseNumber(personalInfo.remainingLoan, 0),
         liquidCash: safeParseNumber(personalInfo.currentSavings, 0),
         cpfBalance: safeParseNumber(personalInfo.currentCpfBalance, 0),
-        interestRate: safeParseNumber(personalInfo.interestRate, 0),
         salaryDay: safeParseNumber(income.salaryDay, 25), // Add salary day for timing calculations
         // Add projection timing info
         projectionStartMonth: currentMonth.month,

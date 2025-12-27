@@ -92,11 +92,6 @@ const EditParameters = () => {
 				currentCpfBalance: String(
 					financialData.personalInfo.currentCpfBalance || 0
 				),
-				remainingLoan: String(financialData.personalInfo.remainingLoan),
-				interestRate: String(financialData.personalInfo.interestRate),
-				monthlyRepayment: String(
-					financialData.personalInfo.monthlyRepayment
-				),
 				birthday: { ...financialData.personalInfo.birthday },
 				// Add savings timeframe setting
 			},
@@ -563,12 +558,6 @@ const EditParameters = () => {
 					parseFloat(formData.personalInfo.currentSavings) || 0,
 				currentCpfBalance:
 					parseFloat(formData.personalInfo.currentCpfBalance) || 0,
-				remainingLoan:
-					parseFloat(formData.personalInfo.remainingLoan) || 0,
-				interestRate:
-					parseFloat(formData.personalInfo.interestRate) || 0,
-				monthlyRepayment:
-					parseFloat(formData.personalInfo.monthlyRepayment) || 0,
 				// Include savings timeframe setting
 			},
 			income: {
@@ -847,93 +836,6 @@ const EditParameters = () => {
 													...formData,
 												};
 												updatedData.personalInfo.currentSavings =
-													e.target.value;
-												setFormData(updatedData);
-											}}
-											className="w-full pl-8 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-										/>
-									</div>
-								</div>
-
-								<div className="mb-4">
-									<label className="block text-gray-700 font-medium mb-2">
-										Remaining Loan (SGD)
-									</label>
-									<div className="relative">
-										<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-											<span className="text-gray-500">
-												$
-											</span>
-										</div>
-										<input
-											type="text"
-											value={
-												formData.personalInfo
-													.remainingLoan
-											}
-											onChange={(e) => {
-												const updatedData = {
-													...formData,
-												};
-												updatedData.personalInfo.remainingLoan =
-													e.target.value;
-												setFormData(updatedData);
-											}}
-											className="w-full pl-8 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-										/>
-									</div>
-								</div>
-
-								<div className="mb-4">
-									<label className="block text-gray-700 font-medium mb-2">
-										Loan Interest Rate (%)
-									</label>
-									<div className="relative">
-										<input
-											type="text"
-											value={
-												formData.personalInfo
-													.interestRate
-											}
-											onChange={(e) => {
-												const updatedData = {
-													...formData,
-												};
-												updatedData.personalInfo.interestRate =
-													e.target.value;
-												setFormData(updatedData);
-											}}
-											className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-										/>
-										<div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-											<span className="text-gray-500">
-												%
-											</span>
-										</div>
-									</div>
-								</div>
-
-								<div className="mb-4">
-									<label className="block text-gray-700 font-medium mb-2">
-										Monthly Loan Repayment (SGD)
-									</label>
-									<div className="relative">
-										<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-											<span className="text-gray-500">
-												$
-											</span>
-										</div>
-										<input
-											type="text"
-											value={
-												formData.personalInfo
-													.monthlyRepayment
-											}
-											onChange={(e) => {
-												const updatedData = {
-													...formData,
-												};
-												updatedData.personalInfo.monthlyRepayment =
 													e.target.value;
 												setFormData(updatedData);
 											}}

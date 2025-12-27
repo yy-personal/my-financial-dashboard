@@ -45,7 +45,7 @@ const LiquidityDashboard = () => {
   // Calculate asset types and totals
   const liquidAssets = financialData.personalInfo.currentSavings || 0;
   const cpfAssets = financialData.personalInfo.currentCpfBalance || 0;
-  const totalLiabilities = financialData.personalInfo.remainingLoan || 0;
+  const totalLiabilities = 0; // No loans
   
   const totalAssets = liquidAssets + cpfAssets;
   const totalLiquidNetWorth = liquidAssets - totalLiabilities;

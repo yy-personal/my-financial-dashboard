@@ -23,9 +23,6 @@ export const FinancialProvider = ({ children }) => {
 			},
 			currentSavings: 11000,
 			currentCpfBalance: 15000, // Added initial CPF balance field
-			remainingLoan: 26848,
-			interestRate: 4.75,
-			monthlyRepayment: 900,
 		},
 		income: {
 			currentSalary: 4800,

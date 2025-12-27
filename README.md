@@ -38,7 +38,6 @@ npm run build
 - **CPF Integration**: Age-accurate Singapore CPF calculations with automatic rate adjustments based on age brackets (55, 60, 65, 70)
 - **Financial Projections**: Multi-year projections with aging-based CPF rate calculations and yearly expense integration
 - **Expense Tracking**: Monthly and yearly expenses with recurring/one-time support and start/end dates
-- **Loan Analysis**: Amortization schedules, early payoff analysis, and affordability calculations
 - **Investment Tracking**: Portfolio allocation with Modern Portfolio Theory metrics
 - **Tax Calculations**: Singapore personal income tax with YA 2025 rates and reliefs
 - **Inflation Analysis**: Real vs nominal return calculations using Fisher equation
@@ -209,7 +208,6 @@ my-financial-dashboard/
 │   ├── services/
 │   │   └── calculations/    # Financial calculation modules
 │   │       ├── cpf/         # CPF utilities and allocation
-│   │       ├── loanCalculations.js
 │   │       ├── taxCalculations.js
 │   │       ├── investmentCalculations.js
 │   │       └── inflationCalculations.js
@@ -268,7 +266,6 @@ For detailed performance documentation, see [PERFORMANCE.md](PERFORMANCE.md).
 | Module | Functions | Description |
 |--------|-----------|-------------|
 | **CPF** | 11 functions | Contribution rates, account allocation, tiered interest |
-| **Loan** | 11 functions | Amortization, early payoff, affordability analysis |
 | **Tax** | 8 functions | Income tax, reliefs, monthly estimation |
 | **Investment** | 12 functions | Portfolio metrics, compound growth, retirement planning |
 | **Inflation** | 11 functions | Real returns, purchasing power, inflation adjustment |
