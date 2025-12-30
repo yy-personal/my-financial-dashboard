@@ -268,8 +268,7 @@ const Dashboard = () => {
     currentSalary * (financialData.income.cpfRate / 100);
   const takeHomePay = currentSalary - cpfContribution;
   const monthlyExpenses = totalExpenses;
-  const loanPayment = financialData.personalInfo.monthlyRepayment;
-  const monthlySavings = takeHomePay - monthlyExpenses - loanPayment;
+  const monthlySavings = takeHomePay - monthlyExpenses;
   const savingsRate = monthlySavings / takeHomePay;
 
   // Filtered data for charts (every 3 months)
@@ -551,12 +550,10 @@ const Dashboard = () => {
                   Monthly Expenses
                 </h3>
                 <p className="text-2xl font-bold text-red-700">
-                  {formatCurrency(
-                    monthlyExpenses + loanPayment
-                  )}
+                  {formatCurrency(monthlyExpenses)}
                 </p>
                 <p className="text-sm text-gray-600">
-                  Including loan payment
+                  Total living expenses
                 </p>
               </div>
 
@@ -598,16 +595,6 @@ const Dashboard = () => {
                     title="Living Expenses"
                   ></div>
                   <div
-                    className="bg-orange-500 h-full"
-                    style={{
-                      width: `${
-                        (loanPayment / takeHomePay) *
-                        100
-                      }%`,
-                    }}
-                    title="Loan Payment"
-                  ></div>
-                  <div
                     className="bg-green-500 h-full"
                     style={{
                       width: `${
@@ -623,9 +610,6 @@ const Dashboard = () => {
                 <span className="text-red-600">
                   Expenses: {formatCurrency(monthlyExpenses)}
                 </span>
-                <span className="text-orange-600">
-                  Loan: {formatCurrency(loanPayment)}
-                </span>
                 <span className="text-green-600">
                   Savings: {formatCurrency(monthlySavings)}
                 </span>
@@ -634,10 +618,9 @@ const Dashboard = () => {
           </Card>
 
           {/* Expense Breakdown (Using our new component) */}
-          <ExpenseBreakdown 
-            expenseData={expenseData} 
-            totalExpenses={totalExpenses} 
-            loanPayment={loanPayment} 
+          <ExpenseBreakdown
+            expenseData={expenseData}
+            totalExpenses={totalExpenses}
           />
 
           {/* Cash Flow Timing Analysis */}
@@ -1063,12 +1046,6 @@ const Dashboard = () => {
                       Expenses
                     </th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      Loan Payment
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      Loan Remaining
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Bonus
                     </th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -1113,16 +1090,6 @@ const Dashboard = () => {
                         <td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-orange-600">
                           {formatCurrency(
                             month.expenses
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-red-600">
-                          {formatCurrency(
-                            month.loanPayment
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-red-600">
-                          {formatCurrency(
-                            month.loanRemaining
                           )}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-700 whitespace-nowrap font-medium text-purple-600">

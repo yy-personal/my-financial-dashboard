@@ -63,11 +63,6 @@ const CashFlowChart = ({ chartData }) => {
               fill="#ff7300"
             />
             <Bar
-              dataKey="loanPayment"
-              name="Loan Payment"
-              fill="#ff0000"
-            />
-            <Bar
               dataKey="monthlySavings"
               name="Cash Savings"
               fill="#82ca9d"

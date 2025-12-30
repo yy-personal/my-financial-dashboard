@@ -6,11 +6,10 @@ import { formatCurrency, formatPercent } from "../../../services/formatters/curr
 /**
  * MonthlyCashFlow Component
  * Displays monthly income, expenses, savings, and cash flow progress bar
- * 
+ *
  * @param {Object} props - Component props
  * @param {number} props.takeHomePay - Monthly take-home pay after CPF
  * @param {number} props.monthlyExpenses - Total monthly expenses
- * @param {number} props.loanPayment - Monthly loan payment amount
  * @param {number} props.monthlySavings - Monthly savings amount
  * @param {number} props.savingsRate - Savings as a percentage of take-home pay
  * @returns {JSX.Element}
@@ -18,7 +17,6 @@ import { formatCurrency, formatPercent } from "../../../services/formatters/curr
 const MonthlyCashFlow = ({
   takeHomePay,
   monthlyExpenses,
-  loanPayment,
   monthlySavings,
   savingsRate
 }) => {
@@ -42,12 +40,10 @@ const MonthlyCashFlow = ({
             Monthly Expenses
           </h3>
           <p className="text-2xl font-bold text-red-700">
-            {formatCurrency(
-              monthlyExpenses + loanPayment
-            )}
+            {formatCurrency(monthlyExpenses)}
           </p>
           <p className="text-sm text-gray-600">
-            Including loan payment
+            Total monthly expenses
           </p>
         </div>
 
@@ -87,16 +83,6 @@ const MonthlyCashFlow = ({
               title="Living Expenses"
             ></div>
             <div
-              className="bg-orange-500 h-full"
-              style={{
-                width: `${
-                  (loanPayment / takeHomePay) *
-                  100
-                }%`,
-              }}
-              title="Loan Payment"
-            ></div>
-            <div
               className="bg-green-500 h-full"
               style={{
                 width: `${
@@ -112,9 +98,6 @@ const MonthlyCashFlow = ({
           <span className="text-red-600">
             Expenses: {formatCurrency(monthlyExpenses)}
           </span>
-          <span className="text-orange-600">
-            Loan: {formatCurrency(loanPayment)}
-          </span>
           <span className="text-green-600">
             Savings: {formatCurrency(monthlySavings)}
           </span>
@@ -127,7 +110,6 @@ const MonthlyCashFlow = ({
 MonthlyCashFlow.propTypes = {
   takeHomePay: PropTypes.number.isRequired,
   monthlyExpenses: PropTypes.number.isRequired,
-  loanPayment: PropTypes.number.isRequired,
   monthlySavings: PropTypes.number.isRequired,
   savingsRate: PropTypes.number.isRequired
 };

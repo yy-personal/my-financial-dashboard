@@ -4,49 +4,12 @@ This document provides comprehensive documentation for all financial calculation
 
 ## Table of Contents
 
-1. [Loan Calculations](#loan-calculations)
-2. [CPF Calculations](#cpf-calculations)
-3. [Tax Calculations](#tax-calculations)
-4. [Investment Calculations](#investment-calculations)
-5. [Inflation Calculations](#inflation-calculations)
-6. [Scenario Modeling](#scenario-modeling)
-7. [Integration Examples](#integration-examples)
-
----
-
-## Loan Calculations
-
-**Location:** `src/services/calculations/loanCalculations.js`
-
-Comprehensive loan analysis utilities for Singapore mortgages and personal loans using reducing balance method.
-
-### Key Functions
-
-#### `calculateMonthlyPayment(principal, annualInterestRate, loanTermYears)`
-Calculates monthly loan payment using standard amortization formula.
-
-**Example:**
-```javascript
-const payment = calculateMonthlyPayment(300000, 2.6, 25);
-// Returns: ~$1,352 per month
-```
-
-#### `generateAmortizationSchedule(principal, annualInterestRate, loanTermYears, startDate)`
-Generates complete month-by-month amortization schedule.
-
-**Returns:** Array of monthly payment objects with principal/interest breakdown
-
-#### `calculateEarlyPayoff(remainingBalance, monthlyPayment, annualInterestRate, extraPayment)`
-Analyzes impact of extra payments on loan payoff time and interest savings.
-
-#### `calculateAffordability(monthlyIncome, annualInterestRate, loanTermYears, debtServiceRatio)`
-Calculates maximum affordable loan based on income (Singapore DSR: 40%).
-
-### Test Coverage
-- ✅ Standard amortization calculations
-- ✅ Zero interest edge cases
-- ✅ Payment breakdown accuracy
-- ✅ Affordability calculations
+1. [CPF Calculations](#cpf-calculations)
+2. [Tax Calculations](#tax-calculations)
+3. [Investment Calculations](#investment-calculations)
+4. [Inflation Calculations](#inflation-calculations)
+5. [Scenario Modeling](#scenario-modeling)
+6. [Integration Examples](#integration-examples)
 
 ---
 
@@ -449,7 +412,6 @@ function planRetirement(currentData, retirementAge) {
 
 ```javascript
 import { analyzeHousingAffordability } from './scenarioModeling';
-import { calculateMonthlyPayment } from './loanCalculations';
 import { simulateJobLoss } from './scenarioModeling';
 
 function comprehensiveHousingAnalysis(housingParams, financialData) {
@@ -465,8 +427,7 @@ function comprehensiveHousingAnalysis(housingParams, financialData) {
   const stressTest = simulateJobLoss(
     {
       ...financialData,
-      monthlyExpenses: newMonthlyExpenses,
-      loanPayment: affordability.monthlyPayment
+      monthlyExpenses: newMonthlyExpenses
     },
     6, // 6 months unemployment
     0
@@ -500,7 +461,6 @@ npm test -- --testPathPattern="cpf-age-transitions.test"
 ```
 
 ### Test Coverage
-- ✅ Loan calculations (12 tests)
 - ✅ CPF age transitions (11 tests)
 - ✅ Edge cases and boundary conditions
 - ✅ Multi-year projections

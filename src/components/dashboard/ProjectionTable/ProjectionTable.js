@@ -37,7 +37,6 @@ const ProjectionTable = ({ projectionData = [], timeframe }) => {
     if (index === 0) {
       return {
         isFirstMonth: true,
-        isLoanPaidOff: dataPoint.loanRemaining === 0,
         isSavingsGoalReached: dataPoint.cashSavings >= 100000, // Assuming $100K goal
         isNetWorthMilestone: false,
         hasLargeIncome: false,
@@ -50,9 +49,8 @@ const ProjectionTable = ({ projectionData = [], timeframe }) => {
 
     return {
       isFirstMonth: false,
-      isLoanPaidOff: prevDataPoint.loanRemaining > 0 && dataPoint.loanRemaining === 0,
       isSavingsGoalReached: prevDataPoint.cashSavings < 100000 && dataPoint.cashSavings >= 100000,
-      isNetWorthMilestone: 
+      isNetWorthMilestone:
         (prevDataPoint.totalNetWorth < 250000 && dataPoint.totalNetWorth >= 250000) ||
         (prevDataPoint.totalNetWorth < 500000 && dataPoint.totalNetWorth >= 500000) ||
         (prevDataPoint.totalNetWorth < 1000000 && dataPoint.totalNetWorth >= 1000000),
@@ -136,9 +134,6 @@ const ProjectionTable = ({ projectionData = [], timeframe }) => {
                 CPF
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Loan
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Net Worth
               </th>
             </tr>
@@ -146,9 +141,8 @@ const ProjectionTable = ({ projectionData = [], timeframe }) => {
           <tbody className="bg-white divide-y divide-gray-200">
             {tableData.map((dataPoint, index) => {
               const metrics = calculateRowMetrics(dataPoint, index, tableData);
-              const isHighlightRow = 
-                metrics.isLoanPaidOff || 
-                metrics.isSavingsGoalReached || 
+              const isHighlightRow =
+                metrics.isSavingsGoalReached ||
                 metrics.isNetWorthMilestone ||
                 metrics.hasLargeIncome;
 
@@ -165,11 +159,6 @@ const ProjectionTable = ({ projectionData = [], timeframe }) => {
                     {metrics.hasLargeIncome && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                         Bonus
-                      </span>
-                    )}
-                    {metrics.isLoanPaidOff && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
-                        Loan Paid
                       </span>
                     )}
                     {metrics.isSavingsGoalReached && (
@@ -192,9 +181,6 @@ const ProjectionTable = ({ projectionData = [], timeframe }) => {
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900 text-right">
                     {formatCurrency(dataPoint.cpfBalance || 0)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                    {formatCurrency(dataPoint.loanRemaining || 0)}
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-right">
                     {formatCurrency(dataPoint.totalNetWorth || 0)}
@@ -267,14 +253,6 @@ const ProjectionTable = ({ projectionData = [], timeframe }) => {
                   <span>Monthly Expenses:</span>
                   <span>{formatCurrency(selectedDataPoint.monthlyExpenses || 0)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Loan Payment:</span>
-                  <span>{formatCurrency(selectedDataPoint.loanPayment || 0)}</span>
-                </div>
-                <div className="flex justify-between font-medium">
-                  <span>Total Outflow:</span>
-                  <span>{formatCurrency((selectedDataPoint.monthlyExpenses || 0) + (selectedDataPoint.loanPayment || 0))}</span>
-                </div>
                 <div className="flex justify-between text-green-600 font-medium mt-1">
                   <span>Monthly Savings:</span>
                   <span>{formatCurrency(selectedDataPoint.monthlySavings || 0)}</span>
@@ -292,10 +270,6 @@ const ProjectionTable = ({ projectionData = [], timeframe }) => {
                 <div className="flex justify-between">
                   <span>CPF Balance:</span>
                   <span>{formatCurrency(selectedDataPoint.cpfBalance || 0)}</span>
-                </div>
-                <div className="flex justify-between text-red-600">
-                  <span>Loan Remaining:</span>
-                  <span>{formatCurrency(selectedDataPoint.loanRemaining || 0)}</span>
                 </div>
                 <div className="flex justify-between font-medium text-blue-700 mt-1">
                   <span>Total Net Worth:</span>

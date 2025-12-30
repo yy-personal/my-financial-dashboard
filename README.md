@@ -142,7 +142,7 @@ npm test -- --testPathPattern="useProjection"
 ### Test Coverage
 
 - **96 passing tests** across all modules
-- **Calculation Tests**: 52 tests for investment, age, loan, and CPF calculations
+- **Calculation Tests**: 52 tests for investment, age, and CPF calculations
 - **Component Tests**: React Testing Library for UI components
 - **Hook Tests**: Custom hook functionality and edge cases
 

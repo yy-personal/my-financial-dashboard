@@ -101,7 +101,7 @@ This document outlines the roadmap for future development of the Financial Dashb
 - [ ] **Smart Recommendations**
   - Implement rule-based recommendation engine
   - Add savings optimization suggestions
-  - Provide debt repayment strategies
+  - Provide investment allocation strategies
 
 - [ ] **Financial Health Scoring**
   - Develop financial health scoring algorithm

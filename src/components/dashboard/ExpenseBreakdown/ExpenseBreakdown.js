@@ -10,11 +10,10 @@ import { formatCurrency } from "../../../services/formatters/currencyFormatters"
  *
  * @param {Object} props - Component props
  * @param {Array} props.expenseData - Array of expense objects with name and value
- * @param {number} props.totalExpenses - Sum of all non-loan expenses
- * @param {number} props.loanPayment - Monthly loan payment amount
+ * @param {number} props.totalExpenses - Sum of all expenses
  * @returns {JSX.Element}
  */
-const ExpenseBreakdown = ({ expenseData, totalExpenses, loanPayment }) => {
+const ExpenseBreakdown = ({ expenseData, totalExpenses }) => {
   // Colors for pie chart
   const COLORS = [
     "#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", 
@@ -39,7 +38,7 @@ const ExpenseBreakdown = ({ expenseData, totalExpenses, loanPayment }) => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {expenseData.filter(expense => expense.name !== "Loan Payment").map((expense, index) => (
+              {expenseData.map((expense, index) => (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm text-gray-700">
                     {expense.name}
@@ -49,20 +48,12 @@ const ExpenseBreakdown = ({ expenseData, totalExpenses, loanPayment }) => {
                   </td>
                 </tr>
               ))}
-              <tr className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm text-gray-700">
-                  Loan Payment
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-700 text-right">
-                  {formatCurrency(loanPayment)}
-                </td>
-              </tr>
               <tr className="bg-blue-50">
                 <td className="px-4 py-3 text-sm font-medium text-blue-700">
                   Total
                 </td>
                 <td className="px-4 py-3 text-sm font-medium text-blue-700 text-right">
-                  {formatCurrency(totalExpenses + loanPayment)}
+                  {formatCurrency(totalExpenses)}
                 </td>
               </tr>
             </tbody>
@@ -109,8 +100,7 @@ ExpenseBreakdown.propTypes = {
       value: PropTypes.number.isRequired
     })
   ).isRequired,
-  totalExpenses: PropTypes.number.isRequired,
-  loanPayment: PropTypes.number.isRequired
+  totalExpenses: PropTypes.number.isRequired
 };
 
 export default ExpenseBreakdown;

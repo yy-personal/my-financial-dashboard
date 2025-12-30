@@ -73,7 +73,6 @@ function MyComponent() {
 | `employerCpfContribution` | number | Employer CPF contribution |
 | `takeHomePay` | number | Monthly take-home pay (after CPF) |
 | `monthlyExpenses` | number | Total monthly expenses |
-| `loanPayment` | number | Monthly loan payment |
 | `monthlySavings` | number | Monthly savings amount |
 | `savingsRate` | number | Savings as percentage of take-home pay |
 | `totalMonthlyIncome` | number | Total monthly income including employer CPF |
@@ -85,9 +84,7 @@ function MyComponent() {
 | `assetAllocationData` | Array | Data for asset allocation charts |
 | `projection` | Array | Complete financial projection data |
 | `chartData` | Array | Filtered data for charts (first 5 years) |
-| `loanPaidOffMonth` | Object | Month when loan will be paid off |
 | `savingsGoalReachedMonth` | Object | Month when savings goal will be reached |
-| `timeToPayLoan` | number | Months remaining to pay off loan |
 | `timeToSavingsGoal` | number | Months to reach savings goal |
 | `expenseData` | Array | Data for expense breakdown |
 | `upcomingEvents` | Array | Upcoming financial events |
@@ -118,10 +115,8 @@ function MyComponent() {
   const initialData = {
     liquidCash: 50000,
     cpfBalance: 100000,
-    loanRemaining: 200000,
     salary: 6000,
     monthlyExpenses: 2000,
-    loanPayment: 1000,
     cpfContributionRate: 20,
     employerCpfContributionRate: 17
   };
@@ -139,9 +134,7 @@ function MyComponent() {
   
   const {
     projectionData,
-    loanPaidOffMonth,
     savingsGoalReachedMonth,
-    timeToPayLoan,
     timeToSavingsGoal,
     settings,
     updateSettings,
@@ -164,9 +157,7 @@ function MyComponent() {
 | Property | Type | Description |
 |----------|------|-------------|
 | `projectionData` | Array | Array of monthly financial projections |
-| `loanPaidOffMonth` | Object | Month when loan will be paid off |
 | `savingsGoalReachedMonth` | Object | Month when savings goal will be reached |
-| `timeToPayLoan` | number | Months remaining to pay off loan |
 | `timeToSavingsGoal` | number | Months to reach savings goal |
 | `settings` | Object | Current projection settings |
 | `updateSettings` | Function | Function to update settings |
@@ -182,12 +173,10 @@ Each item in the `projectionData` array has the following properties:
   monthlyIncome: 6000,         // Monthly income
   takeHomePay: 4800,           // Take-home pay after CPF
   monthlyExpenses: 2000,       // Monthly expenses
-  loanPayment: 1000,           // Loan payment
   monthlySavings: 1800,        // Monthly savings
   cashSavings: 51800,          // Cumulative cash savings
   cpfBalance: 101020,          // CPF balance
-  loanRemaining: 199000,       // Remaining loan
-  totalNetWorth: -46180,       // Net worth
+  totalNetWorth: 51800,        // Net worth
   employeeCpfContribution: 1200,// Employee CPF contribution
   employerCpfContribution: 1020,// Employer CPF contribution
   totalCpfContribution: 2220,  // Total CPF contribution
@@ -215,9 +204,7 @@ function MyComponent() {
   
   // Projection data
   const projectionData = {
-    loanPaidOffMonth: { date: 'Dec 2030' },
     savingsGoalReachedMonth: { date: 'Jun 2025' },
-    timeToPayLoan: 120,
     timeToSavingsGoal: 36,
     currentLiquidCash: 20000,
     currentAge: 30
@@ -261,13 +248,13 @@ Each milestone has the following structure:
 ```javascript
 {
   id: "milestone-1",           // Unique ID
-  title: "Loan Paid Off",      // Title
+  title: "Savings Goal",       // Title
   description: "...",          // Description
-  date: "Dec 2030",            // Target date
-  timeRemaining: 120,          // Months remaining
+  date: "Jun 2025",            // Target date
+  timeRemaining: 36,           // Months remaining
   complete: false,             // Whether completed
   progress: 25,                // Completion percentage
-  type: "loan",                // Milestone type
+  type: "savings",             // Milestone type
   custom: false,               // Whether custom or system
   system: true                 // Whether system-generated
 }

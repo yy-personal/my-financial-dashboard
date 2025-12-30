@@ -10,9 +10,28 @@
  * - Monte Carlo simulations for uncertainty
  */
 
-import { calculateMonthlyPayment, calculateRemainingTerm } from './loanCalculations';
 import { calculateTieredCpfInterest } from './cpf/cpf-allocation';
 import { calculateRealReturn } from './inflationCalculations';
+
+/**
+ * Helper: Calculate monthly mortgage payment
+ * @param {number} principal - Loan principal amount
+ * @param {number} annualRate - Annual interest rate (percentage)
+ * @param {number} years - Loan term in years
+ * @returns {number} Monthly payment amount
+ */
+const calculateMonthlyMortgagePayment = (principal, annualRate, years) => {
+  if (principal <= 0 || years <= 0) return 0;
+  if (annualRate === 0) return principal / (years * 12);
+
+  const monthlyRate = annualRate / 100 / 12;
+  const numberOfPayments = years * 12;
+  const monthlyPayment = principal *
+    (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) /
+    (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+
+  return monthlyPayment;
+};
 
 /**
  * Emergency Fund Adequacy Analysis
@@ -66,11 +85,10 @@ export const simulateJobLoss = (financialData, unemploymentMonths, severancePaym
   const {
     liquidCash,
     monthlyExpenses,
-    loanPayment = 0,
     cpfBalance = 0
   } = financialData;
 
-  const totalMonthlyBurn = monthlyExpenses + loanPayment;
+  const totalMonthlyBurn = monthlyExpenses;
   const totalFundsAvailable = liquidCash + severancePayment;
   const totalExpectedExpenses = totalMonthlyBurn * unemploymentMonths;
 
@@ -101,9 +119,8 @@ export const simulateJobLoss = (financialData, unemploymentMonths, severancePaym
     recommendations: needsEmergencyAction ? [
       'Reduce non-essential expenses immediately',
       'Consider part-time or freelance work',
-      'Negotiate loan payment deferral with bank',
       'Access insurance claims if applicable',
-      'Use CPF OA for housing loan (if eligible)'
+      'Review unemployment benefits eligibility'
     ] : [
       'Current emergency fund is adequate',
       'Continue building emergency reserves',
@@ -136,7 +153,7 @@ export const analyzeHousingAffordability = (housingParams, financialData) => {
 
   const downPayment = propertyPrice * (downPaymentPercentage / 100);
   const loanAmount = propertyPrice - downPayment;
-  const monthlyLoanPayment = calculateMonthlyPayment(loanAmount, interestRate, loanTermYears);
+  const monthlyLoanPayment = calculateMonthlyMortgagePayment(loanAmount, interestRate, loanTermYears);
 
   // Total Debt Servicing Ratio (TDSR) - max 55% in Singapore
   const tdsr = ((monthlyLoanPayment) / monthlyIncome) * 100;

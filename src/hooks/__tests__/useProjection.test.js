@@ -97,27 +97,11 @@ describe('useProjection Hook', () => {
     expect(result.current.settings.bonusMonths).toBe(2);
   });
 
-  it('should calculate loan paid off month correctly', () => {
-    // Data with small loan that should be paid off quickly
-    const quickLoanData = {
-      ...sampleInitialData,
-      loanRemaining: 10000 // Small loan amount
-    };
-    
-    const { result } = renderHook(() => useProjection(quickLoanData, sampleSettings));
-    
-    // Loan should be paid off after 10 months (10000 / 1000)
-    expect(result.current.timeToPayLoan).toBeLessThanOrEqual(10);
-    expect(result.current.loanPaidOffMonth).not.toBeNull();
-    expect(result.current.loanPaidOffMonth.date).toBeDefined();
-  });
-
   it('should calculate savings goal reached month correctly', () => {
     // Data with high savings rate to quickly reach savings goal
     const highSavingsData = {
       ...sampleInitialData,
       liquidCash: 90000, // Start close to 100k goal
-      loanRemaining: 0, // No loan to pay off
       monthlyExpenses: 1000 // Lower expenses
     };
     

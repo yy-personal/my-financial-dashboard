@@ -54,18 +54,7 @@ const useIntraMonthCashFlow = (financialData, settings = {}) => {
         category: 'expense'
       });
     });
-    
-    // Add loan payment (assume due on 1st)
-    if (monthData.loanPayment > 0) {
-      dailyEvents.push({
-        day: 1,
-        type: 'expense', 
-        description: 'Loan Payment',
-        amount: -monthData.loanPayment,
-        category: 'loan'
-      });
-    }
-    
+
     // Sort events by day
     dailyEvents.sort((a, b) => a.day - b.day);
     

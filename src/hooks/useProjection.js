@@ -20,9 +20,7 @@ const useProjection = (initialData, initialSettings) => {
     ...initialSettings
   });
   const [projectionData, setProjectionData] = useState([]);
-  const [loanPaidOffMonth, setLoanPaidOffMonth] = useState(null);
   const [savingsGoalReachedMonth, setSavingsGoalReachedMonth] = useState(null);
-  const [timeToPayLoan, setTimeToPayLoan] = useState('Not within projection');
   const [timeToSavingsGoal, setTimeToSavingsGoal] = useState('Not within projection');
 
   // Setup error handler for this hook
@@ -59,11 +57,10 @@ const useProjection = (initialData, initialSettings) => {
     // Check for negative values in key fields
     if (
       (data.salary !== undefined && data.salary < 0) ||
-      (data.monthlyExpenses !== undefined && data.monthlyExpenses < 0) ||
-      (data.loanPayment !== undefined && data.loanPayment < 0)
+      (data.monthlyExpenses !== undefined && data.monthlyExpenses < 0)
     ) {
       handleError(createFinancialError(
-        'Negative values are not allowed for salary, expenses, or loan payments', 
+        'Negative values are not allowed for salary or expenses',
         'negative_value'
       ));
       return false;
@@ -138,16 +135,13 @@ const useProjection = (initialData, initialSettings) => {
     }
 
     return tryCatch(() => {
-      const { 
-        salary = 0, 
-        cpfContributionRate = 20, 
-        employerCpfContributionRate = 17, 
-        monthlyExpenses = 0, 
-        loanPayment = 0, 
-        loanRemaining = 0, 
-        liquidCash = 0, 
-        cpfBalance = 0,
-        interestRate = 0
+      const {
+        salary = 0,
+        cpfContributionRate = 20,
+        employerCpfContributionRate = 17,
+        monthlyExpenses = 0,
+        liquidCash = 0,
+        cpfBalance = 0
       } = data;
 
       const {
@@ -170,8 +164,6 @@ const useProjection = (initialData, initialSettings) => {
       const monthlyExpenseIncrease = Math.pow(1 + annualExpenseIncrease / 100, 1 / 12) - 1;
       const monthlyInvestmentReturn = Math.pow(1 + annualInvestmentReturn / 100, 1 / 12) - 1;
       const monthlyCpfInterestRate = Math.pow(1 + annualCpfInterestRate / 100, 1 / 12) - 1;
-      const monthlyLoanInterestRate = interestRate ?
-        Math.pow(1 + interestRate / 100, 1 / 12) - 1 : 0;
 
       // Pre-calculate multipliers for salary and expense growth (avoid repeated calculations)
       const salaryGrowthMultiplier = 1 + monthlySalaryIncrease;
@@ -183,13 +175,10 @@ const useProjection = (initialData, initialSettings) => {
       // Set initial values
       let currentSalary = safeParseNumber(salary);
       let currentExpenses = safeParseNumber(monthlyExpenses);
-      let currentLoanPayment = safeParseNumber(loanPayment);
-      let currentLoanRemaining = safeParseNumber(loanRemaining);
       let currentLiquidCash = safeParseNumber(liquidCash);
       let currentCpfBalance = safeParseNumber(cpfBalance);
-      
+
       // Track milestone months
-      let loanPaidOffIndex = null;
       let savingsGoalIndex = null;
       
       // Calculate projection for specified number of years (in months)
@@ -282,26 +271,9 @@ const useProjection = (initialData, initialSettings) => {
         
         // Calculate take-home pay
         const takeHomePay = effectiveSalary - cpfContribution;
-        
-        // Calculate loan payment and remaining balance
-        let actualLoanPayment = currentLoanRemaining > 0 ? currentLoanPayment : 0;
-        
-        // Calculate interest for the month
-        const interestPayment = currentLoanRemaining > 0 ? currentLoanRemaining * monthlyLoanInterestRate : 0;
-        
-        // Principal payment is loan payment minus interest
-        const principalPayment = Math.min(currentLoanRemaining, Math.max(0, actualLoanPayment - interestPayment));
-        
-        // Update loan remaining
-        currentLoanRemaining = Math.max(0, currentLoanRemaining - principalPayment);
-        
-        // Record loan payoff milestone
-        if (currentLoanRemaining === 0 && loanPaidOffIndex === null && month > 0) {
-          loanPaidOffIndex = month;
-        }
-        
-        // Calculate monthly savings (take-home minus expenses and loan payment, plus bonus, minus upcoming spending, minus yearly expenses)
-        const monthlySavings = takeHomePay - currentExpenses - actualLoanPayment + monthBonusAmount - monthSpendingAmount - monthYearlyExpenseAmount;
+
+        // Calculate monthly savings (take-home minus expenses, plus bonus, minus upcoming spending, minus yearly expenses)
+        const monthlySavings = takeHomePay - currentExpenses + monthBonusAmount - monthSpendingAmount - monthYearlyExpenseAmount;
         
         // Update cash savings with new savings plus investment returns
         const investmentReturn = currentLiquidCash * monthlyInvestmentReturn;
@@ -323,16 +295,16 @@ const useProjection = (initialData, initialSettings) => {
         if (currentLiquidCash >= 100000 && savingsGoalIndex === null) {
           savingsGoalIndex = month;
         }
-        
+
         // Calculate net worth
-        const totalNetWorth = currentLiquidCash + currentCpfBalance - currentLoanRemaining;
+        const totalNetWorth = currentLiquidCash + currentCpfBalance;
 
         // Format date consistently using pre-calculated month names (performance optimized)
         const formattedDate = `${monthNames[monthIndex]} ${year}`;
         
         // Calculate cash flow components for better analysis
         const totalIncome = effectiveSalary + employerCpfContribution + monthBonusAmount;
-        const totalOutflow = currentExpenses + actualLoanPayment + cpfContribution + monthSpendingAmount + monthYearlyExpenseAmount;
+        const totalOutflow = currentExpenses + cpfContribution + monthSpendingAmount + monthYearlyExpenseAmount;
         const netCashFlow = totalIncome - totalOutflow;
         
         // Add enhanced month data to projection
@@ -356,18 +328,14 @@ const useProjection = (initialData, initialSettings) => {
           // Cash flow components
           takeHomePay,
           monthlyExpenses: currentExpenses,
-          loanPayment: actualLoanPayment,
-          principalPayment,
-          interestPayment,
           monthlySavings,
           monthlySavingsAdded: (month === 0 && isCurrentMonth && salaryAlreadyReceived) ? 0 : monthlySavings,
           netCashFlow,
           totalOutflow,
-          
+
           // Balances
           cashSavings: currentLiquidCash,
           cpfBalance: currentCpfBalance,
-          loanRemaining: currentLoanRemaining,
           totalNetWorth,
           
           // Returns and growth
@@ -396,24 +364,23 @@ const useProjection = (initialData, initialSettings) => {
         });
         
         // Optional: Stop early if all milestones reached and we have enough data
-        if (loanPaidOffIndex !== null && savingsGoalIndex !== null && month > 60) {
+        if (savingsGoalIndex !== null && month > 60) {
           break;
         }
       }
       
       // Set milestone information
-      const loanPaidOff = loanPaidOffIndex !== null ? projection[loanPaidOffIndex] : null;
       const savingsGoalReached = savingsGoalIndex !== null ? projection[savingsGoalIndex] : null;
-      
+
       // Enhanced time formatting function
       const formatTimeToMilestone = (months) => {
         if (months === null) return 'Not within projection';
         const monthsNum = Number(months);
         if (isNaN(monthsNum)) return 'Not within projection';
-        
+
         const years = Math.floor(monthsNum / 12);
         const remainingMonths = monthsNum % 12;
-        
+
         if (years > 0) {
           if (remainingMonths > 0) {
             return `${years} year${years > 1 ? 's' : ''} ${remainingMonths} month${remainingMonths > 1 ? 's' : ''}`;
@@ -425,12 +392,10 @@ const useProjection = (initialData, initialSettings) => {
         }
         return 'Less than a month';
       };
-      
+
       return {
         projection,
-        loanPaidOffMonth: loanPaidOff,
         savingsGoalReachedMonth: savingsGoalReached,
-        timeToPayLoan: formatTimeToMilestone(loanPaidOffIndex),
         timeToSavingsGoal: formatTimeToMilestone(savingsGoalIndex),
         // Additional insights
         projectionMetadata: {
@@ -451,11 +416,8 @@ const useProjection = (initialData, initialSettings) => {
     data?.cpfContributionRate,
     data?.employerCpfContributionRate,
     data?.monthlyExpenses,
-    data?.loanPayment,
-    data?.loanRemaining,
     data?.liquidCash,
     data?.cpfBalance,
-    data?.interestRate,
     data?.currentAge,
     data?.employeeType,
     
@@ -489,22 +451,18 @@ const useProjection = (initialData, initialSettings) => {
       }
       
       const result = generateProjection();
-      
+
       if (result) {
         setProjectionData(result.projection || []);
-        setLoanPaidOffMonth(result.loanPaidOffMonth || null);
         setSavingsGoalReachedMonth(result.savingsGoalReachedMonth || null);
-        setTimeToPayLoan(result.timeToPayLoan || 'Not within projection');
         setTimeToSavingsGoal(result.timeToSavingsGoal || 'Not within projection');
       }
     } catch (error) {
       handleError(error, { source: 'useEffect projection generator' });
-      
+
       // Set default/empty values on error
       setProjectionData([]);
-      setLoanPaidOffMonth(null);
       setSavingsGoalReachedMonth(null);
-      setTimeToPayLoan('Not within projection');
       setTimeToSavingsGoal('Not within projection');
     }
   }, [data, settings, generateProjection, handleError]);
@@ -526,9 +484,7 @@ const useProjection = (initialData, initialSettings) => {
   return {
     // Projection data
     projectionData,
-    loanPaidOffMonth,
     savingsGoalReachedMonth,
-    timeToPayLoan,
     timeToSavingsGoal,
     
     // Settings management
@@ -545,9 +501,7 @@ const useProjection = (initialData, initialSettings) => {
       const result = generateProjection();
       if (result && result.projection) {
         setProjectionData(result.projection);
-        setLoanPaidOffMonth(result.loanPaidOffMonth);
         setSavingsGoalReachedMonth(result.savingsGoalReachedMonth);
-        setTimeToPayLoan(result.timeToPayLoan);
         setTimeToSavingsGoal(result.timeToSavingsGoal);
       }
       return result;

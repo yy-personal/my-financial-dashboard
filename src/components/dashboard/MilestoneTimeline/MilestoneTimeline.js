@@ -47,12 +47,6 @@ const MilestoneTimeline = ({ milestones = [] }) => {
 
   // Colors for different milestone types
   const typeColors = {
-    loan: {
-      bg: "bg-orange-100",
-      text: "text-orange-800",
-      border: "border-orange-200",
-      icon: "bg-orange-500"
-    },
     savings: {
       bg: "bg-green-100",
       text: "text-green-800",

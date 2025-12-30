@@ -11,13 +11,10 @@ import MilestoneTimeline from "../MilestoneTimeline";
  *
  * @param {Object} props - Component props
  * @param {Array} props.milestones - Array of milestone objects
- * @param {Object} props.loanPaidOffMonth - Month when loan is paid off (or null)
  * @param {Object} props.savingsGoalReachedMonth - Month when savings goal is reached (or null)
- * @param {number} props.timeToPayLoan - Months remaining to pay loan
  * @param {number} props.timeToSavingsGoal - Months remaining to reach savings goal
  * @param {number} props.currentLiquidCash - Current liquid cash amount
  * @param {number} props.savingsGoal - Target savings goal amount
- * @param {number} props.currentLoanBalance - Current loan balance
  * @param {number} props.retirementAge - Target retirement age
  * @param {number} props.currentAge - Current age
  * @param {number} props.retirementSavingsGoal - Target retirement savings amount
@@ -26,13 +23,10 @@ import MilestoneTimeline from "../MilestoneTimeline";
  */
 const MilestonesDashboard = ({
   milestones = [],
-  loanPaidOffMonth,
   savingsGoalReachedMonth,
-  timeToPayLoan,
   timeToSavingsGoal,
   currentLiquidCash,
   savingsGoal = 100000,
-  currentLoanBalance,
   retirementAge = 65,
   currentAge,
   retirementSavingsGoal = 1000000,
@@ -41,14 +35,6 @@ const MilestonesDashboard = ({
   // Calculate savings goal progress
   const savingsGoalProgress = Math.min(
     Math.round((currentLiquidCash / savingsGoal) * 100),
-    100
-  );
-
-  // Calculate loan payment progress
-  const initialLoanAmount = 
-    currentLoanBalance / (1 - timeToPayLoan / (timeToPayLoan + 1)); // Estimate initial amount
-  const loanProgress = Math.min(
-    Math.round(((initialLoanAmount - currentLoanBalance) / initialLoanAmount) * 100),
     100
   );
 
@@ -63,17 +49,6 @@ const MilestonesDashboard = ({
 
   // Combine automatic and custom milestones
   const autoMilestones = [
-    {
-      id: "loan-payoff",
-      title: "Loan Paid Off",
-      description: "Complete payment of your outstanding loan",
-      date: loanPaidOffMonth ? loanPaidOffMonth.date : null,
-      timeRemaining: timeToPayLoan,
-      complete: timeToPayLoan <= 0,
-      progress: loanProgress,
-      type: "loan",
-      amount: currentLoanBalance
-    },
     {
       id: "savings-goal",
       title: `Savings Goal: ${formatCurrency(savingsGoal)}`,
@@ -184,12 +159,6 @@ const MilestonesDashboard = ({
                   <span className="text-gray-600">Target: {formatCurrency(milestone.amount)}</span>
                 </div>
               )}
-              
-              {milestone.type === 'loan' && milestone.amount !== undefined && (
-                <div className="mt-2 text-sm">
-                  <span className="text-gray-600">Remaining: {formatCurrency(milestone.amount)}</span>
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -222,13 +191,10 @@ MilestonesDashboard.propTypes = {
       current: PropTypes.number
     })
   ),
-  loanPaidOffMonth: PropTypes.object,
   savingsGoalReachedMonth: PropTypes.object,
-  timeToPayLoan: PropTypes.number,
   timeToSavingsGoal: PropTypes.number,
   currentLiquidCash: PropTypes.number,
   savingsGoal: PropTypes.number,
-  currentLoanBalance: PropTypes.number,
   retirementAge: PropTypes.number,
   currentAge: PropTypes.number,
   retirementSavingsGoal: PropTypes.number,

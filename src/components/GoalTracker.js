@@ -261,7 +261,6 @@ const GoalTracker = () => {
                                     required
                                 >
                                     <option value="savings">Savings</option>
-                                    <option value="debt">Debt Repayment</option>
                                     <option value="investment">Investment</option>
                                     <option value="purchase">Major Purchase</option>
                                     <option value="other">Other</option>

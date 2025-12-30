@@ -12,7 +12,6 @@ import { SavingsGrowthChart, NetWorthChart } from "../charts";
  *
  * @param {Object} props - Component props
  * @param {Array} props.projectionData - Array of projection data points
- * @param {Object} props.loanPaidOffMonth - Month when loan is paid off (or null)
  * @param {Object} props.savingsGoalReachedMonth - Month when savings goal is reached (or null)
  * @param {Object} props.currentValues - Current financial values
  * @param {Object} props.projectionSettings - Current projection settings
@@ -21,7 +20,6 @@ import { SavingsGrowthChart, NetWorthChart } from "../charts";
  */
 const ProjectionDashboard = ({
   projectionData = [],
-  loanPaidOffMonth,
   savingsGoalReachedMonth,
   currentValues,
   projectionSettings,
@@ -67,10 +65,8 @@ const ProjectionDashboard = ({
       endingCashSavings: lastDataPoint.cashSavings || 0,
       startingCpfBalance: firstDataPoint.cpfBalance || 0,
       endingCpfBalance: lastDataPoint.cpfBalance || 0,
-      startingLoanRemaining: firstDataPoint.loanRemaining || 0,
-      endingLoanRemaining: lastDataPoint.loanRemaining || 0,
       netWorthGrowth: lastDataPoint.totalNetWorth - firstDataPoint.totalNetWorth || 0,
-      netWorthGrowthPercentage: 
+      netWorthGrowthPercentage:
         firstDataPoint.totalNetWorth
           ? ((lastDataPoint.totalNetWorth - firstDataPoint.totalNetWorth) / firstDataPoint.totalNetWorth) * 100
           : 0
@@ -169,7 +165,7 @@ const ProjectionDashboard = ({
       </Card>
 
       {/* Projection Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <Card className="bg-blue-50 border border-blue-100">
           <div className="flex flex-col">
             <div className="text-sm text-blue-700">Net Worth</div>
@@ -177,7 +173,7 @@ const ProjectionDashboard = ({
               {formatCurrency(metrics.endingNetWorth)}
             </div>
             <div className={`mt-1 text-sm ${metrics.netWorthGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {metrics.netWorthGrowth >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(metrics.netWorthGrowth))} 
+              {metrics.netWorthGrowth >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(metrics.netWorthGrowth))}
               ({Math.round(Math.abs(metrics.netWorthGrowthPercentage))}%)
             </div>
           </div>
@@ -206,29 +202,16 @@ const ProjectionDashboard = ({
             </div>
           </div>
         </Card>
-
-        <Card className="bg-orange-50 border border-orange-100">
-          <div className="flex flex-col">
-            <div className="text-sm text-orange-700">Loan Remaining</div>
-            <div className="text-2xl font-bold text-orange-800">
-              {formatCurrency(metrics.endingLoanRemaining)}
-            </div>
-            <div className="mt-1 text-sm text-gray-600">
-              From {formatCurrency(metrics.startingLoanRemaining)}
-            </div>
-          </div>
-        </Card>
       </div>
 
       {/* Projection Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <NetWorthChart 
-          chartData={filteredData} 
-          loanPaidOffMonth={loanPaidOffMonth}
+        <NetWorthChart
+          chartData={filteredData}
           savingsGoalReachedMonth={savingsGoalReachedMonth}
         />
-        
-        <SavingsGrowthChart 
+
+        <SavingsGrowthChart
           chartData={filteredData}
           savingsGoalReachedMonth={savingsGoalReachedMonth}
         />
@@ -245,16 +228,13 @@ const ProjectionDashboard = ({
 
 ProjectionDashboard.propTypes = {
   projectionData: PropTypes.arrayOf(PropTypes.object).isRequired,
-  loanPaidOffMonth: PropTypes.object,
   savingsGoalReachedMonth: PropTypes.object,
   currentValues: PropTypes.shape({
     salary: PropTypes.number,
     monthlySavings: PropTypes.number,
     monthlyExpenses: PropTypes.number,
-    loanPayment: PropTypes.number,
     liquidCash: PropTypes.number,
-    cpfBalance: PropTypes.number,
-    loanRemaining: PropTypes.number
+    cpfBalance: PropTypes.number
   }).isRequired,
   projectionSettings: PropTypes.shape({
     annualSalaryIncrease: PropTypes.number,

@@ -15,7 +15,6 @@ const useMilestones = (initialMilestones = [], projectionData = {}) => {
   const [filteredMilestones, setFilteredMilestones] = useState([]);
   const [milestoneTypes, setMilestoneTypes] = useState([
     { id: "all", label: "All Milestones", active: true },
-    { id: "loan", label: "Loan Milestones", active: false },
     { id: "savings", label: "Savings Milestones", active: false },
     { id: "retirement", label: "Retirement Milestones", active: false },
     { id: "custom", label: "Custom Milestones", active: false }
@@ -126,27 +125,12 @@ const useMilestones = (initialMilestones = [], projectionData = {}) => {
 
   // Auto-update system milestones when projection data changes
   useEffect(() => {
-    if (!projectionData.loanPaidOffMonth && !projectionData.savingsGoalReachedMonth) {
+    if (!projectionData.savingsGoalReachedMonth) {
       return;
     }
     
     const autoMilestones = [];
-    
-    // Loan payoff milestone
-    if (projectionData.loanPaidOffMonth) {
-      autoMilestones.push({
-        id: "system-loan-payoff",
-        title: "Loan Paid Off",
-        description: "Complete payment of your outstanding loan",
-        date: projectionData.loanPaidOffMonth.date,
-        timeRemaining: projectionData.timeToPayLoan,
-        complete: projectionData.timeToPayLoan <= 0,
-        progress: 100 - (projectionData.timeToPayLoan / (projectionData.timeToPayLoan + 1) * 100),
-        type: "loan",
-        system: true
-      });
-    }
-    
+
     // Savings goal milestone
     if (projectionData.savingsGoalReachedMonth) {
       autoMilestones.push({

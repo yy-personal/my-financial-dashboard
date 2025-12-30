@@ -178,9 +178,7 @@ const useFinancialCalculations = () => {
   // Use our custom projection hook with enhanced settings
   const {
     projectionData,
-    loanPaidOffMonth,
     savingsGoalReachedMonth,
-    timeToPayLoan,
     timeToSavingsGoal,
     settings: projectionSettings,
     updateSettings,
@@ -189,9 +187,7 @@ const useFinancialCalculations = () => {
 
   // Use our custom milestones hook
   const { milestones } = useMilestones([], {
-    loanPaidOffMonth,
     savingsGoalReachedMonth,
-    timeToPayLoan,
     timeToSavingsGoal,
     currentLiquidCash: currentValues?.liquidCash,
     currentAge: financialData?.personalInfo ? calculateCurrentAge() : null
@@ -404,15 +400,7 @@ const useFinancialCalculations = () => {
         name: item.name,
         value: safeParseNumber(item.amount, 0)
       }));
-      
-      // Add loan payment if available
-      if (currentValues?.loanPayment && currentValues.loanPayment > 0) {
-        expenses.push({
-          name: "Loan Payment",
-          value: currentValues.loanPayment
-        });
-      }
-      
+
       setExpenseData(expenses);
     } catch (error) {
       handleError(error, { source: 'expense breakdown calculation' });
@@ -423,25 +411,13 @@ const useFinancialCalculations = () => {
   // Generate upcoming financial events with current month awareness
   useEffect(() => {
     try {
-      if (!loanPaidOffMonth && !savingsGoalReachedMonth && !projectionData && !currentMonth) {
+      if (!savingsGoalReachedMonth && !projectionData && !currentMonth) {
         setUpcomingEvents([]);
         return;
       }
-      
+
       const events = [];
-      
-      // Add loan payoff event
-      if (loanPaidOffMonth) {
-        events.push({
-          id: "loan-payoff",
-          title: "Loan Paid Off",
-          date: loanPaidOffMonth.date,
-          type: "milestone",
-          importance: "high",
-          monthsFromNow: loanPaidOffMonth.month || 0
-        });
-      }
-      
+
       // Add savings goal event
       if (savingsGoalReachedMonth) {
         events.push({
@@ -508,7 +484,7 @@ const useFinancialCalculations = () => {
       handleError(error, { source: 'upcoming events calculation' });
       setUpcomingEvents([]);
     }
-  }, [loanPaidOffMonth, savingsGoalReachedMonth, projectionData, currentMonth, financialData, handleError]);
+  }, [savingsGoalReachedMonth, projectionData, currentMonth, financialData, handleError]);
 
   return {
     // Error state
@@ -528,9 +504,7 @@ const useFinancialCalculations = () => {
     // Projection data
     projection: projectionData,
     chartData: projectionData ? projectionData.slice(0, 60) : [], // First 5 years for charts
-    loanPaidOffMonth,
     savingsGoalReachedMonth,
-    timeToPayLoan,
     timeToSavingsGoal,
     
     // Asset details

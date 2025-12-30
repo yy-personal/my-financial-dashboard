@@ -45,7 +45,7 @@ const LiquidityDashboard = () => {
   // Calculate asset types and totals
   const liquidAssets = financialData.personalInfo.currentSavings || 0;
   const cpfAssets = financialData.personalInfo.currentCpfBalance || 0;
-  const totalLiabilities = 0; // No loans
+  const totalLiabilities = 0;
   
   const totalAssets = liquidAssets + cpfAssets;
   const totalLiquidNetWorth = liquidAssets - totalLiabilities;
@@ -101,14 +101,12 @@ const LiquidityDashboard = () => {
   const cpfContribution = monthlyIncome * (financialData.income.cpfRate / 100) || 0;
   const takeHomePay = monthlyIncome - cpfContribution;
   const monthlyExpenses = financialData.expenses.reduce((sum, expense) => sum + expense.amount, 0) || 0;
-  const loanPayment = financialData.personalInfo.monthlyRepayment || 0;
-  const monthlySavings = takeHomePay - monthlyExpenses - loanPayment;
+  const monthlySavings = takeHomePay - monthlyExpenses;
   
   const monthlyBreakdownData = [
     { name: "Total Income", value: monthlyIncome },
     { name: "Take-Home Pay", value: takeHomePay },
     { name: "Living Expenses", value: monthlyExpenses },
-    { name: "Loan Payment", value: loanPayment },
     { name: "Available for Savings", value: monthlySavings },
     { name: "CPF Contribution (Restricted)", value: cpfContribution }
   ];
@@ -118,42 +116,26 @@ const LiquidityDashboard = () => {
     let projection = [];
     let currentLiquidAssets = liquidAssets;
     let currentCpfAssets = cpfAssets;
-    let currentLoanBalance = totalLiabilities;
-    
-    // Monthly interest rate (assuming 4% annual rate for calculation)
-    const loanInterestRate = (financialData.personalInfo.interestRate || 4) / 100 / 12;
-    
+
     for (let i = 0; i < 12; i++) {
-      // Calculate loan payment and interest
-      let interestPayment = currentLoanBalance * loanInterestRate;
-      let principalPayment = Math.min(currentLoanBalance, loanPayment - interestPayment);
-      
-      if (currentLoanBalance <= 0) {
-        interestPayment = 0;
-        principalPayment = 0;
-        currentLoanBalance = 0;
-      } else {
-        currentLoanBalance = Math.max(0, currentLoanBalance - principalPayment);
-      }
-      
       // Update assets
       currentLiquidAssets += monthlySavings;
       currentCpfAssets += cpfContribution;
-      
+
       const month = new Date();
       month.setMonth(month.getMonth() + i);
       const monthName = month.toLocaleString('default', { month: 'short' });
-      
+
       projection.push({
         month: `${monthName} ${month.getFullYear()}`,
         liquidAssets: currentLiquidAssets,
         cpfAssets: currentCpfAssets,
-        loanBalance: currentLoanBalance,
-        liquidNetWorth: currentLiquidAssets - currentLoanBalance,
-        totalNetWorth: currentLiquidAssets + currentCpfAssets - currentLoanBalance
+        loanBalance: 0,
+        liquidNetWorth: currentLiquidAssets,
+        totalNetWorth: currentLiquidAssets + currentCpfAssets
       });
     }
-    
+
     return projection;
   };
   
@@ -437,10 +419,6 @@ const LiquidityDashboard = () => {
                   <span>Living Expenses:</span>
                   <span className="font-medium text-red-600">- {formatCurrency(monthlyExpenses)}</span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span>Loan Payment:</span>
-                  <span className="font-medium text-red-600">- {formatCurrency(loanPayment)}</span>
-                </div>
                 <div className="flex justify-between items-center text-sm font-medium">
                   <span>Available for Savings:</span>
                   <span className={monthlySavings >= 0 ? "text-green-600" : "text-red-600"}>
@@ -553,14 +531,6 @@ const LiquidityDashboard = () => {
                     fill="#a855f7"
                     fillOpacity={0.3}
                   />
-                  <Area
-                    type="monotone"
-                    dataKey="loanBalance"
-                    name="Loan Balance"
-                    stroke="#ef4444"
-                    fill="#ef4444"
-                    fillOpacity={0.3}
-                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -573,7 +543,6 @@ const LiquidityDashboard = () => {
                   <ul className="space-y-1 text-sm">
                     <li>Liquid Assets: {formatCurrency(projectionData[11].liquidAssets)}</li>
                     <li>CPF Balance: {formatCurrency(projectionData[11].cpfAssets)}</li>
-                    <li>Loan Balance: {formatCurrency(projectionData[11].loanBalance)}</li>
                   </ul>
                 </div>
                 <div>
@@ -603,9 +572,6 @@ const LiquidityDashboard = () => {
                       CPF Balance
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Loan Balance
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Liquid Net Worth
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -624,9 +590,6 @@ const LiquidityDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-purple-600">
                         {formatCurrency(entry.cpfAssets)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
-                        {formatCurrency(entry.loanBalance)}
                       </td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${
                         entry.liquidNetWorth >= 0 ? 'text-green-600' : 'text-red-600'

@@ -61,7 +61,7 @@ Firebase/LocalStorage → FinancialContext → Custom Hooks → Components
 
 **useProjection** (`src/hooks/useProjection.js`):
 - Primary financial projection engine
-- Handles monthly salary calculations, CPF contributions, loan payments
+- Handles monthly salary calculations and CPF contributions
 - Generates projections starting from current month
 - Supports salary adjustments, bonuses, and milestone tracking
 - Includes error handling and validation
@@ -97,7 +97,6 @@ The application manages structured financial data including:
 - **Dynamic CPF Integration**: Age-based CPF rates that automatically adjust during multi-year projections
 - **Singapore-Specific**: Authentic CPF calculations for Singaporeans, SPRs, and Foreigners with proper age brackets
 - **Smart Projections**: All projections start from current month with salary timing awareness
-- **Loan Modeling**: Principal and interest calculations with early payoff detection
 - **Investment Growth**: Monthly compound returns with configurable rates
 - **Performance Optimized**: Memoized calculations that only recalculate when relevant data changes
 

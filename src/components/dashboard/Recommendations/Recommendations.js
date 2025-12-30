@@ -33,57 +33,43 @@ RecommendationItem.propTypes = {
 /**
  * Recommendations Component
  * Displays financial recommendations based on projection data
- * 
- * @param {Object} props - Component props
- * @param {Object} props.loanPaidOffMonth - Month when loan is paid off (or null)
- * @param {number} props.monthlyRepayment - Monthly loan repayment amount
+ *
  * @returns {JSX.Element}
  */
-const Recommendations = ({ loanPaidOffMonth, monthlyRepayment }) => {
+const Recommendations = () => {
   return (
     <Card title="Financial Recommendations">
       <ul className="space-y-3 text-gray-700">
         <RecommendationItem>
-          Continue with your current loan repayment plan of{" "}
-          <strong>{formatCurrency(monthlyRepayment)}</strong>
-          /month to achieve debt freedom by{" "}
-          <strong>
-            {loanPaidOffMonth
-              ? loanPaidOffMonth.date
-              : "the projected date"}
-          </strong>
-        </RecommendationItem>
-        
-        <RecommendationItem>
-          After your salary adjustments, consider
-          increasing your loan payment to accelerate
-          debt repayment
-        </RecommendationItem>
-        
-        <RecommendationItem>
-          Once your loan is paid off, redirect that{" "}
-          <strong>{formatCurrency(monthlyRepayment)}</strong>{" "}
-          to boost your savings rate further
-        </RecommendationItem>
-        
-        <RecommendationItem>
           Maintain your current expense level even
           after salary increases to accelerate savings
         </RecommendationItem>
-        
+
         <RecommendationItem>
           Consider diversifying your savings into
           investments once you pass $50,000 in cash
           savings
+        </RecommendationItem>
+
+        <RecommendationItem>
+          Review your monthly expenses regularly to
+          identify opportunities for additional savings
+        </RecommendationItem>
+
+        <RecommendationItem>
+          Build an emergency fund of 6-12 months of
+          expenses before investing heavily
+        </RecommendationItem>
+
+        <RecommendationItem>
+          Take advantage of salary bonuses to boost
+          your savings rate and accelerate financial goals
         </RecommendationItem>
       </ul>
     </Card>
   );
 };
 
-Recommendations.propTypes = {
-  loanPaidOffMonth: PropTypes.object,
-  monthlyRepayment: PropTypes.number.isRequired
-};
+Recommendations.propTypes = {};
 
 export default Recommendations;

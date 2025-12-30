@@ -39,7 +39,6 @@ const NetWorthTracker = () => {
             const randomFactor = 0.95 + Math.random() * 0.1; // 0.95 to 1.05
             const currentSavings = financialData.personalInfo.currentSavings;
             const currentCpfBalance = financialData.personalInfo.currentCpfBalance || 0;
-            const remainingLoan = 0; // No loans
 
             // Calculate backwards with some randomness
             const adjustmentFactor = 1 - (0.03 * (11 - i)); // Older months have lower values
@@ -52,20 +51,19 @@ const NetWorthTracker = () => {
             const otherAssets = 0; // Default to 0, user will add these
 
             // Liabilities
-            const adjustedLoan = 0; // No loans
             const otherDebts = 0; // Default to 0, user will add these
-            
+
             history.push({
                 date: `${month} ${year}`,
                 cash: Math.round(currentSavings * adjustmentFactor * randomFactor),
                 cpf: Math.round(currentCpfBalance * adjustmentFactor * randomFactor),
                 investments: Math.round(investmentsAdjusted),
                 otherAssets: Math.round(otherAssets * adjustmentFactor),
-                loans: Math.round(adjustedLoan),
+                loans: 0,
                 otherDebts: Math.round(otherDebts * adjustmentFactor),
                 totalAssets: Math.round((currentSavings + currentCpfBalance + investments + otherAssets) * adjustmentFactor * randomFactor),
-                totalLiabilities: Math.round((adjustedLoan + otherDebts)),
-                netWorth: Math.round((currentSavings + currentCpfBalance + investments + otherAssets) * adjustmentFactor * randomFactor - (adjustedLoan + otherDebts))
+                totalLiabilities: Math.round(otherDebts),
+                netWorth: Math.round((currentSavings + currentCpfBalance + investments + otherAssets) * adjustmentFactor * randomFactor - otherDebts)
             });
         }
         
@@ -85,7 +83,7 @@ const NetWorthTracker = () => {
         cpf: financialData.personalInfo.currentCpfBalance || 0,
         investments: financialData.investments?.reduce((total, investment) => total + investment.value, 0) || 0,
         otherAssets: 0,
-        loans: 0, // No loans
+        loans: 0,
         otherDebts: 0
     });
     
@@ -101,8 +99,7 @@ const NetWorthTracker = () => {
     
     const [liabilityCategories, setLiabilityCategories] = useState(
         financialData.liabilityCategories || [
-            { id: 1, name: 'Loans', color: '#FF0000', includeInCalculation: true },
-            { id: 2, name: 'Other Debts', color: '#CC0000', includeInCalculation: true }
+            { id: 1, name: 'Other Debts', color: '#CC0000', includeInCalculation: true }
         ]
     );
     
@@ -236,13 +233,12 @@ const NetWorthTracker = () => {
     ] : [];
     
     const liabilityBreakdown = latestEntry ? [
-        { name: 'Loans', value: latestEntry.loans },
         { name: 'Other Debts', value: latestEntry.otherDebts }
     ] : [];
     
     // Colors for pie charts
     const ASSET_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-    const LIABILITY_COLORS = ['#FF0000', '#CC0000'];
+    const LIABILITY_COLORS = ['#CC0000'];
     
     // Update context when component mounts
     useEffect(() => {
@@ -322,9 +318,6 @@ const NetWorthTracker = () => {
                                 {formatCurrency(latestEntry.totalLiabilities)}
                             </p>
                             <div className="text-sm text-gray-600 mt-1">
-                                <span className="inline-block mr-2">
-                                    Loans: {formatCurrency(latestEntry.loans)}
-                                </span>
                                 <span className="inline-block">
                                     Other Debts: {formatCurrency(latestEntry.otherDebts)}
                                 </span>
@@ -428,25 +421,6 @@ const NetWorthTracker = () => {
                                             type="number"
                                             name="otherAssets"
                                             value={newEntry.otherAssets}
-                                            onChange={handleInputChange}
-                                            className="w-full pl-7 px-3 py-2 border border-gray-300 rounded-md"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-gray-700 text-sm font-medium mb-1">
-                                        Loans
-                                    </label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <span className="text-gray-500">$</span>
-                                        </div>
-                                        <input
-                                            type="number"
-                                            name="loans"
-                                            value={newEntry.loans}
                                             onChange={handleInputChange}
                                             className="w-full pl-7 px-3 py-2 border border-gray-300 rounded-md"
                                             required
